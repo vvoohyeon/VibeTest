@@ -1,6 +1,6 @@
 ## 1) 목표 요약 (3~6줄)
 - 랜딩페이지는 “다양한 테스트/콘텐츠 카탈로그”를 카드 그리드로 제공하고, 사용자는 카드 탐색(스크롤) 중 즉시 흥미를 느끼며 진입할 수 있어야 한다.
-- 카드에는 실시간 조명/tilt로 “생동감”을 제공하되, 텍스트 가독성과 멀미/피로도를 해치지 않도록 각도/속도/감쇠를 제한한다.
+- 카드 인터랙션은 Normal/Expanded 전환과 정보 가독성을 최우선으로 하며, 이번 범위에서는 tilt 효과를 사용하지 않는다.
 - 카드 hover/tap 시 expanded “추가 정보(예: 테스트 첫 문항, 블로그 요약, 태그)”를 노출해 클릭 전 의사결정을 돕는다.
 - 반응형(Desktop/Tablet/Mobile)에서 그리드가 자연스럽게 재배치되며, i18n 문자열 길이 변화에도 레이아웃이 깨지지 않아야 한다.
 - 일부 카드는 unavailable(coming soon)로 노출될 수 있으며, 시각적으로 구분되되 탐색 흐름을 방해하지 않는다.
@@ -29,6 +29,27 @@
 - Desktop: 1024px 이상
 
 > 업계 표준 범위로 제안하며, 실제 구현은 `min-width` 기반으로 단순화 권장.
+
+### 2.2A 프레임워크/라우팅 구현 제약 (필수 고정)
+
+- Next.js App Router는 layout 2계층을 유지한다.
+- 루트 layout(`src/app/layout.tsx`)은 HTML/Body/전역 스타일만 담당한다.
+- 로케일 layout(`src/app/[locale]/layout.tsx`)은 locale 검증, i18n 메시지 주입, 페이지 쉘/Provider 주입을 담당한다.
+- 위 2개 layout은 중복이 아니라 역할 분리이며, 하나로 병합하지 않는다.
+
+- 라우팅 타입 안전성:
+- `typedRoutes: true`를 기준으로 구현한다.
+- `router.push/replace` 및 `Link href`에는 임의 문자열 직접 연결을 금지한다.
+- 동적 경로(`/test/[variant]/question` 등)는 공용 RouteBuilder(또는 typed route helper)에서만 생성한다.
+- locale 중복(`/en/en/...`) 등 비정상 URL은 생성 단계에서 차단한다.
+
+- i18n 라우팅 엔트리:
+- Next.js 16 기준으로 `middleware.ts` 대신 `proxy.ts`를 사용한다.
+- locale 매칭 및 리다이렉트 정책은 `proxy.ts` 단일 엔트리에서 관리한다.
+
+- 정적 페이지 빌드 안전성:
+- SSG 경로에서 `useSearchParams` 사용 시 Suspense 경계 또는 동적 렌더링 전략을 명시한다.
+- 위 조건이 없으면 해당 훅 사용을 금지한다.
 
 ### 2.3 GNB 명세
 - 구성요소:
@@ -73,9 +94,13 @@
   - 전환 중 GNB 교체 타이밍(필수 고정):
     - 전환 중에는 GNB를 유지하고, 전환 완료 시점에 한 번에 목적 페이지 GNB로 교체한다.
     - 요소 구성이 달라지는 경우(예: Mobile 블로그 페이지의 ‘뒤로가기&햄버거’)도 동일 원칙을 적용한다.
-  - Desktop 설정 레이어 인터랙션:
-    - 열기: Hover 또는 Focus 또는 Click
-    - 닫기: `Esc` 또는 외부 클릭 또는 focus out
+- Desktop 설정 레이어 인터랙션:
+  - 트리거 UI는 `EN/KR` 텍스트 + 현재 테마 아이콘(라이트/다크)을 한 덩어리 컨트롤로 노출한다.
+  - 열기: Hover 또는 Focus 또는 Click
+  - 트리거와 확장 레이어 사이에 hover 단절 구간(gap)을 두지 않는다.
+  - 확장 레이어는 트리거와 시각/공간적으로 연속된 영역으로 배치한다.
+  - 닫기: `Esc` 또는 외부 클릭 또는 focus out
+  - Hover 기반 닫힘은 즉시 해제 대신 짧은 유예(권장 100~180ms) 후 닫힘 처리해 의도치 않은 hovered-out을 방지한다.
   - Mobile 햄버거 메뉴 인터랙션:
     - 기존 push(컨텐츠 밀어내기) 방식 금지
     - `fixed` 오버레이 패널 + backdrop 방식으로 표시
@@ -116,7 +141,10 @@
 - 카드 최소 폭:
   - Desktop: minCardWidth 260~300px 범위(가독성/정보량 기준으로 팀 내 확정)
 - 정렬:
-  - 동일 row 내 카드 높이는 “콘텐츠 높이”가 아니라 “카드 기본 비율(예: 4:5~3:4)”을 우선(텍스트는 line-clamp 처리)
+  - Normal 상태 카드 높이는 콘텐츠 기반 compact 높이(auto)를 기본으로 한다.
+  - 같은 row에서는 가장 큰 카드 높이에 맞춰 나머지 카드를 stretch한다(equal-height row).
+  - row 간 높이는 독립적으로 계산한다(전체 그리드 단일 고정 높이 금지).
+  - 불필요한 하단 여백(빈 공간)을 만들지 않는다.
 
 #### 2.4.3 Tablet: 2/3 컬럼 “조합” 규칙
 - 동일하게 `heroCards` + `mainCards` 2단 구조 유지
@@ -169,7 +197,7 @@
 - Normal 썸네일 표시 규격(필수 고정):
   - `thumbnailOrIcon`은 Normal 카드 상단에서 좌우 너비를 꽉 채우는 썸네일로 노출한다.
   - 가로 폭: 카드 내부 콘텐츠 영역 기준 100%
-  - 비율: 고정 `16:9`
+  - 비율: 고정 `6:1` (얇은 배너형)
   - 이미지 리사이즈 방식: `cover` 우선(잘림 허용), 왜곡 금지
 
 - 상태 배지(Available/Unavailable) 정책(필수 고정):
@@ -188,7 +216,7 @@
   - Expanded 상태에서는 Normal의 `cardSubtitle`, `thumbnailOrIcon`, `tags[]`는 모두 사라져야 한다.
 
 - Normal → Expanded 전환 모션(필수 고정)
-  - 전환은 카드 Elevate + 확대(기본 120%)를 유지한 상태에서 레이아웃 전환으로 처리한다.
+  - 전환은 카드 Elevate + 확대(기본 110%)를 유지한 상태에서 레이아웃 전환으로 처리한다.
   - 전환 구성:
     1) Normal의 비타이틀 정보(`cardSubtitle`, `thumbnailOrIcon`, `tags[]`): fade-out + collapse (권장 160~240ms)
     2) `cardTitle`: 카드 최상단으로 이동 (권장 180~280ms)
@@ -359,8 +387,7 @@
   - `TRANSITIONING` (페이지 진입 전환 진행 중: 입력/스크롤 잠금 및 시각 상태 고정)
 
 - CardState(각 카드별):
-  - `REST` (기본)
-  - `TILTING` (tilt 적용 중)
+  - `NORMAL` (기본)
   - `EXPANDED` (확장 정보 노출 상태)
   - `FOCUSED` (키보드 포커스/접근성)
 
@@ -386,7 +413,7 @@
       1) available 카드가 `EXPANDED` 상태
       2) unavailable 카드에서 해당 카드 오버레이 활성
     - 반응:
-      - 비대상 카드 `REST` 강제
+      - 비대상 카드 `NORMAL` 강제
       - 비대상 카드 입력 기반 반응 0
       - 비대상 카드 Expanded 진입 차단
     - 해제:
@@ -394,9 +421,9 @@
       - 카드 간 이동 시 즉시 handoff 허용(해제 지연 금지)
 
 > 우선순위(상위가 하위를 덮음):
-`INACTIVE` > `REDUCED_MOTION` > `TRANSITIONING` > `EXPANDED` > `HOVER_LOCK(Desktop)` > `TILTING` > `REST`
+`INACTIVE` > `REDUCED_MOTION` > `TRANSITIONING` > `EXPANDED` > `HOVER_LOCK(Desktop)` > `NORMAL`
 
-> 참고: `FOCUSED`는 키보드 접근성 관점의 상태이며, 시각/모션 상태(`EXPANDED`/`TILTING`/`REST`)와의 결합 가능 여부 및 제약은 각 하위 규칙에서 명시한다.
+> 참고: `FOCUSED`는 키보드 접근성 관점의 상태이며, 시각/모션 상태(`EXPANDED`/`NORMAL`)와의 결합 가능 여부 및 제약은 각 하위 규칙에서 명시한다.
 
 #### 3.0.1 SSR/Hydration 렌더 일관성 계약 (필수 고정)
 
@@ -407,7 +434,9 @@
   - SSR되는 Client Component의 초기 렌더 경로에서 다음 값을 직접 사용해 텍스트/속성 분기를 만들지 않는다:
     - `localStorage` / `sessionStorage` / `window` 기반 값
     - `Date.now()` / `Math.random()` / 비결정적 시간·난수 값
+  - 위 금지 규칙은 `useState` initializer, Provider 기본값 계산, Context 초기화 경로에도 동일하게 적용한다.
   - 위 값은 **mount 이후 effect 단계에서만** 동기화한다.
+  - 초기 렌더는 중립 상태(예: consent=`UNKNOWN`, transition=`null`, sessionId=`pending`)를 사용한다.
 
 - 초기 상태 규칙(필수):
   - 사용자 저장 상태(예: consent, 토글 상태) 기반 UI라도, SSR과 클라이언트 첫 렌더에서는 동일한 초기 표시를 사용한다.
@@ -430,46 +459,28 @@
   - 카드 표면(고주파, 빠른 반응) — 단 텍스트 영역은 대비 유지(아래 4 참고)
 
 #### 3.1.2 입력 신호
-- Desktop:
-  - pointer position (x,y): `pointermove`
-  - scroll: `scrollY`, `scrollVelocity`
-- Mobile:
-  - gyroscope/device orientation: `beta/gamma` 기반 tilt
-  - scroll: `scrollVelocity`
-- 배경 레이어 입력 우선순위(추후 확장 시): 포인터 입력 > 단말 기울기 입력 > (둘 다 없을 때) 의도적인 랜덤 반응 순으로 적용한다. 단, 배경 반응은 항상 저주파(읽기 방해 금지)로 제한한다.
+- Desktop/Mobile 공통:
+- 입력 신호는 Expanded 진입/해제, CTA 활성화, 전환 잠금 상태 판단에만 사용한다.
+- 센서 권한 요청(deviceorientation permission request)을 수행하지 않는다.
 
 #### 3.1.3 카드 Tilt 규칙 (가독성 제한 포함)
-- Desktop tilt(마우스 상대 위치):
-  - 트리거: `pointermove` (단, 현재 EXPANDED 카드가 없고 HOVER_LOCK이 없을 때)
-  - 반응: 카드 중심 대비 포인터 상대 위치로 tilt 계산
-  - 파라미터(권장 범위):
-    - maxTiltDeg = 6° ~ 10° (기본 8°)
-    - responseSmoothing = 80ms ~ 180ms (저역통과/스프링 감쇠)
-    - updateRate = rAF 기반, 단 60fps 유지 어려우면 30fps로 degrade
-- Mobile tilt(기울기 기반):
-  - 트리거: deviceorientation (권한 허용 시)
-  - 반응: (gamma, beta)를 정규화해 tiltX/tiltY로 매핑
-  - 파라미터(권장 범위):
-    - sensorClamp = ±15° 입력 제한
-    - maxTiltDeg = 5° ~ 9° (기본 7°)
-    - smoothingHalfLife = 120ms ~ 220ms
-- 가독성 보호 방식 선택(필수 고정)
-  - 기본값: (A) 텍스트/아이콘 레이어는 별도 평면(또는 독립 처리)으로 간주하고, tilt/조명 영향은 50% 이하로 제한한다.
-  - 대안: (B) 텍스트 레이어 분리를 사용하지 않는 경우에만, 텍스트 대비 자동 보정을 적용한다(그라데이션/오버레이 강도 상한을 유지).
-  - 혼용 금지: 한 카드에서 (A)와 (B)를 동시에 적용하지 않는다(중복 보정으로 인한 과보정/가독성 저하 방지).
-  - 우선순위: `REDUCED_MOTION`에서는 (A)/(B) 모두 “최소 움직임/최소 변화” 원칙에 맞춰 단순화한다(읽기 우선).
+- 본 버전에서는 카드 tilt를 전면 비활성화한다.
+- Normal/Expanded 모두 rotate/tilt transform을 적용하지 않는다(`tilt = 0deg`).
+- 가독성 보호는 tilt 보정이 아닌 텍스트 대비/간격/전환 단순화로 처리한다.
 
 #### 3.1.4 카드 Expanded 규칙
 - 공통 원칙
-  - Normal → Expanded는 카드 Elevate + 확대(120%) + 콘텐츠 전환으로 구현한다.
+  - Normal → Expanded는 카드 Elevate + 확대(110%) + 콘텐츠 전환으로 구현한다.
   - 전환 중, 전환 후 카드 내부의 별도 outline 박스(내부 패널) 시각을 만들지 않는다.
   - 상태 전환 전/후는 Desktop/Mobile 모두 시각적으로 seamless 해야 한다.
   - Expanded 진입 시 Normal 정보 중 `cardTitle`만 유지하고, 나머지 Normal 정보(`cardSubtitle`, `thumbnailOrIcon`, `tags[]`)는 제거한다.
+  - Expanded 상태의 카드 본체 투명도(`opacity`)는 항상 `1.0`으로 고정한다.
+  - Expanded 전환 중/유지 중 카드 본체의 alpha 변화(투명도 애니메이션 포함)는 금지한다.
 
 - Desktop
   - available 카드:
     - 트리거: `hover enter` 후 120~200ms 유지
-    - 반응: `EXPANDED` 진입 + scale 1.2
+    - 반응: `EXPANDED` 진입 + scale 1.1
     - Normal 비타이틀 정보는 fade-out + collapse, 타이틀은 카드 상단으로 이동
     - 상세 정보/CTA는 stagger로 등장
   - unavailable 테스트 카드:
@@ -549,7 +560,7 @@
   - rampDuration = 500ms
   - rampEasing = cubic-bezier(0.2, 0.8, 0.2, 1)
 
-#### 3.2.3 Hover로 Expanded 된 카드는 120% 확대
+#### 3.2.3 Hover로 Expanded 된 카드는 110% 확대
 - 적용 대상(필수 고정):
   - Desktop에서 available 카드가 hover로 `EXPANDED`에 진입한 경우
   - unavailable 테스트 카드는 Expanded가 없으므로 적용 대상 아님
@@ -558,16 +569,17 @@
   - available 카드가 Desktop hover로 `EXPANDED` 진입 시
 
 - 반응:
-  - 120% 확대
+  - 110% 확대
   - 확대 기준점(transform-origin) 고정 규칙:
     - 좌측 끝 카드: `x=0%, y=0%`
     - 우측 끝 카드: `x=100%, y=0%`
     - 그 외 카드: `x=50%, y=0%`
-  - Expanded 유지 동안 120% 상태 유지
+  - Expanded 유지 동안 110% 상태 유지
 
 - 레이아웃/안정성 규칙:
   - 리플로우 유발 금지
   - 카드 레이어는 GNB보다 낮게 유지
+  - Expanded 대상 카드 본체의 `opacity`는 `1.0` 고정(자동 감쇠/페이드 금지)
   - 자동 보정은 Expanded 진입 시 1회 결정 후 고정
   - 전환 시작 이후 보정/스케일 재계산 금지
   - 전환 시작 이후 hover out 등으로 시각 상태 역전 금지
@@ -576,32 +588,15 @@
 
 ### 3.3 Mobile 전용
 
-#### 3.3.1 기울기 감지로 tilt
-- 트리거: deviceorientation permission granted
-- 반응: 각 카드 tilt 적용(단, 화면에 보이는 카드만)
-- 제약:
-  - 화면 내 visible 카드만 업데이트(Intersection ratio >= 0.25)
+#### 3.3.1 모바일 센서 입력 정책 (비활성)
 
-  - 스크롤 상태 정의(모바일 공통)
-    - “사용자 드래그 스크롤 중”: 사용자가 화면을 터치한 채 스크롤 제스처를 수행하는 동안
-    - “관성 스크롤 중”: 사용자가 손을 뗀 이후에도 화면이 계속 이동하는 동안
-    - “정지”: 스크롤 이동이 사실상 멈춘 상태
+- 모바일에서 기울기 센서(deviceorientation)를 사용하지 않는다.
+- 센서 권한 요청/감지 실패/감쇠 로직을 구현하지 않는다.
 
-  - 스크롤 상태에 따른 센서 tilt gain 조정(멀미 방지)
-    - 사용자 드래그 스크롤 중: 센서 tilt gain을 50%로 감소
-    - 관성 스크롤 중: 센서 tilt gain은 즉시 100%로 복귀하지 않고, 짧은 안정화 구간 후 점진 복귀(급격한 변화 방지)
-    - 정지: 센서 tilt gain 100% 적용
+#### 3.3.2 스크롤 기반 회전 효과 정책 (비활성)
 
-#### 3.3.2 스크롤 속도에 따른 tilt (간단 함수/구간)
-- 트리거: scroll event로 velocity 계산(v = ΔscrollY / Δt, px/ms)
-- 반응: 추가 tiltBoostDeg 적용(스크롤 방향에 따른 “살짝 눌림/젖힘”)
-- 매핑(예시, 구현 고정 규칙):
-  - |v| < 0.5 → tiltBoost = 0°
-  - 0.5 ≤ |v| < 1.5 → tiltBoost = lerp(0°, 3°)
-  - |v| ≥ 1.5 → tiltBoost = 5° cap
-- 결합 규칙:
-  - 최종 tilt = gyroTilt * 0.7 + scrollTiltBoost * 0.3 (기본)
-  - `EXPANDED` 상태에서는 scrollTiltBoost = 0° (읽기 우선)
+- 스크롤 속도 기반 tiltBoost를 사용하지 않는다.
+- 스크롤 이벤트는 Expanded 상태 관리 및 전환 잠금과의 충돌 방지에만 사용한다.
 
 #### 3.3.3 Expanded 카드는 full-bleed 표시(좌우 16px 여백 제거)
 - 트리거: Mobile에서 available 카드 tap → `EXPANDED` 진입
@@ -615,7 +610,11 @@
   - 전환 시작점은 “full-bleed된 Expanded 카드의 최종 외곽”
   - full-bleed 상태에서 page scroll lock
   - 모바일 Expanded 상태에서는 우측 상단 `X` 버튼을 필수 노출한다.
+  - - `X` 버튼은 backdrop보다 높은 레이어에 위치해야 하며, 항상 시각적으로 식별 가능하고 탭 가능해야 한다.
   - Expanded 카드 외부 영역은 backdrop으로 처리한다.
+  - 레이어 우선순위는 `GNB > Expanded 카드 > backdrop > 기타 카드`를 고정한다.
+  - backdrop은 Expanded 대상 카드를 덮지 않아야 하며, 대상 카드는 항상 시각적으로 하이라이트(불투명/상호작용 가능) 상태를 유지해야 한다.
+  - dim 처리는 “Expanded 외부 영역”에만 적용한다.
 
 - 닫기 규칙(모바일 한정, 필수 고정)
   - `X` 버튼 클릭 시 닫힘 처리한다.
@@ -764,6 +763,28 @@
   - SSR과 첫 클라이언트 렌더의 DOM 텍스트/속성이 달라질 수 있는 분기(저장소/시간/난수/환경 분기)가 새로 추가되면 PR 차단 대상으로 본다.
   - 진입 URL 정합성과 pre-answered 수명/소비 정책을 위반하는 변경은 PR 차단 대상으로 본다.
 
+- 라우팅 타입/빌드 검증(필수):
+  - `typedRoutes` 활성 상태에서 `npm run build`가 경로 타입 오류 없이 통과해야 한다.
+  - 동적 경로는 공용 RouteBuilder를 통해서만 생성되는지 코드 리뷰로 확인한다.
+  - i18n 라우팅 엔트리가 `proxy.ts`로 유지되는지 확인한다(`middleware.ts` 회귀 금지).
+
+- Desktop 설정 레이어 상호작용 검증(필수):
+  - 설정 트리거와 확장 레이어 사이에 마우스를 이동해도 레이어가 의도치 않게 닫히지 않아야 한다.
+  - `EN/KR + 테마 아이콘` 조합 컨트롤이 열림 상태에서 실제 변경 가능해야 한다.
+
+- 카드 레이아웃 검증(필수):
+  - Normal 썸네일 비율이 `6:1`로 적용되는지 확인한다.
+  - Normal 카드 높이가 콘텐츠 기반 compact로 렌더되는지 확인한다.
+  - 동일 row에서 equal-height가 적용되는지 확인한다.
+
+- 모바일 Expanded 레이어 검증(필수):
+  - Expanded 카드가 dim 처리되지 않고 하이라이트 상태를 유지해야 한다.
+  - backdrop은 Expanded 외부 영역만 dim 처리해야 한다.
+  - `X` 버튼이 항상 보이고 탭 가능해야 한다.
+
+- 모션 검증(필수):
+  - Desktop/Mobile 모두 카드 tilt가 발생하지 않아야 한다.
+
 ## 5) 개선안 2~3버전 제시 (필수)
 버전 A/B/C는 서로 배타적인 전체 패키지이며, 한 번 선택되면 문서 1~4의 관련 파라미터/규칙은 선택한 버전으로 치환한다. 본 문서 본문(1~4)은 기본값으로 버전 B 기준으로 작성되었으며, 다른 버전을 선택할 경우 해당 섹션의 규칙을 버전 정의에 맞춰 적용한다.
 - (이번 세션 선택안) 버전 B를 채택하며, 배경 요소는 1장 목표 요약의 원칙에 따라 정적(강도 0/정지)으로 운용한다.
@@ -789,13 +810,13 @@
   - Tablet: hero=2, main=(width>=900?3:2)
   - Mobile: 1컬럼 + 16px
 - 조명/tilt/expanded 우선순위
-  - 조명: 배경(저주파)+카드(고주파), intensity 상한 준수
-  - tilt: Desktop pointer / Mobile gyro+scrollBoost
+  - 조명: 배경 정적(강도 0/정지), 카드 가독성 우선
+  - tilt: 사용하지 않음
   - expanded:
-    - Desktop hover expanded + 카드 scale 1.2
+    - Desktop hover expanded + 카드 scale 1.1
     - Desktop에서 expanded 카드 존재 시 다른 카드 입력 억제(HOVER_LOCK)
     - Mobile tap expanded
-  - 충돌 처리: expanded 시 tilt 0~2° 축소 + 조명 70% 축소
+  - 충돌 처리: expanded 시 조명 70% 축소(또는 0 유지)
 - Mobile full-bleed
   - in-flow full-bleed 적용
   - 닫기: 우측 상단 `X` 버튼(필수), 닫힘 시 진입 직전 스크롤/형태로 자연 복원
@@ -808,7 +829,7 @@
   - 조명: 배경 다중 요소 drift + 포인터/자이로 반응
   - tilt: 카드별 시차(phase) 허용
   - expanded:
-    - Desktop hover expanded + scale 1.2 + 주변 dim
+    - Desktop hover expanded + scale 1.1 + 주변 dim
     - Mobile tap expanded + 반투명 backdrop
   - backdrop 활성 시 다른 카드 입력 완전 차단
 - Mobile full-bleed
