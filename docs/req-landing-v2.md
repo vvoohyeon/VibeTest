@@ -59,7 +59,10 @@
 - `typedRoutes: true` 기준으로 구현한다.
 - `router.push/replace` 및 `Link href`에 임의 문자열 직접 연결을 금지한다.
 - 동적 경로(`/test/[variant]/question` 등)는 RouteBuilder(또는 typed route helper)에서만 생성한다.
-- locale 중복(`/en/en/...`) 등 비정상 URL 생성은 빌드/코드리뷰 단계에서 차단한다.
+- locale 주입 전략은 단일 방식으로 고정하며 혼용을 금지한다. V1은 i18n 라우팅 계층이 locale prefix를 주입하는 방식을 사용한다.
+- 위 전략에서 RouteBuilder는 locale-free 경로만 생성한다(예: `/test/[variant]/question`, `/blog`, `/history`).
+- `/${locale}` 수동 문자열 결합 또는 locale 포함 경로를 RouteBuilder 입력값으로 전달하는 것을 금지한다.
+- `/en/en/...`, `/kr/kr/...` 패턴이 내부 링크/네비게이션에서 1건이라도 확인되면 blocking 결함으로 처리한다.
 
 ### 2.4 i18n Routing Entry (MUST)
 - Next.js 16 기준으로 `middleware.ts` 대신 `proxy.ts`를 사용한다.
@@ -80,7 +83,10 @@
 
 ### 3.2 Locale URL Integrity (MUST)
 - locale 반영 책임은 라우팅 계층 단일 책임으로 유지한다.
-- 비정상 locale URL 감지 시 전환 실패로 처리한다.
+- 최종 URL 형식은 `/{locale}/...`이며 locale 세그먼트는 정확히 1회만 허용한다.
+- `/{locale}/{locale}/...`(예: `/en/en/...`, `/kr/kr/...`)는 비정상 URL로 정의한다.
+- 내부 전환 중 비정상 URL 생성이 감지되면 전환을 즉시 실패 처리하고 source 상태를 유지한다.
+- 전환 실패 시 `transition_fail(reason=locale_duplicate)`를 기록한다.
 - 전환 실패 시 pre-answer(Q1) 데이터는 롤백한다.
 
 ### 3.3 Navigation Swap Timing (MUST)
@@ -501,6 +507,10 @@
 - typedRoutes 활성 상태에서 `npm run build` 통과
 - 동적 경로 RouteBuilder 경유 확인
 - i18n 엔트리 `proxy.ts` 유지 확인
+- RouteBuilder 단위검증에서 `landing/blog/history/question` 생성 결과가 단일 locale prefix 규칙을 만족함을 확인
+- Playwright 스모크에서 Home/History/Blog 링크 이동 URL에 `/en/en`, `/kr/kr` 패턴이 0건임을 확인
+- Playwright 스모크에서 테스트 카드 CTA/블로그 카드 CTA 이동 URL에 `/en/en`, `/kr/kr` 패턴이 0건임을 확인
+- 위 검사 중 1건이라도 실패하면 릴리스 차단
 
 #### Settings UI
 - Desktop 설정 레이어:
@@ -523,7 +533,7 @@
 - Expanded 카드 하이라이트 유지(backdrop이 카드 자체를 dim 처리하지 않음)
 
 #### Transition / Test Handshake
-- 랜딩 CTA 진입 시 locale 중복 URL 없음
+- 랜딩 CTA(테스트/블로그)와 GNB 링크(홈/이력/블로그) 진입 시 locale 중복 URL(`/en/en/...`, `/kr/kr/...`)이 생성되지 않는다.
 - 랜딩 유입은 instruction 후 Q2 시작
 - 딥링크 유입은 instruction 후 Q1 시작
 - 재렌더/재마운트에도 Q2→Q1 역전 없음
