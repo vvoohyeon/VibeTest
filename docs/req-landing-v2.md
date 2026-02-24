@@ -137,6 +137,8 @@
 - Normal 카드 높이는 콘텐츠 기반 compact(auto) 우선
 - 동일 row 내 equal-height stretch 적용(최대 높이로 맞춤)
 - row 간 높이는 독립 계산
+- Expanded(Desktop/Tablet)는 콘텐츠 기반 auto/hug를 기본으로 하며 고정 높이를 사용하지 않음
+- Expanded(Desktop/Tablet)는 in-flow reflow를 허용
 - 불필요한 하단 빈 공간 금지
 
 ## 5. GNB Contract
@@ -166,6 +168,7 @@
 
 ### 5.4 Mobile / Landing
 - CI + 햄버거
+- 햄버거는 GNB 우측 끝에 배치(컨테이너 패딩 기준, Mobile 16px inset)
 - 햄버거는 fixed overlay + backdrop
 - body scroll lock 적용
 - backdrop 탭으로 닫힘
@@ -176,7 +179,7 @@
 ### 5.5 Test / Blog Context
 - Desktop Test: CI + Timer + 최소 메뉴
 - Mobile Test: Back + Timer
-- Mobile Blog: Back + 햄버거(최하단 설정 구성 동일)
+- Mobile Blog: Back + 햄버거(최하단 설정 구성 동일, 햄버거 우측 끝 배치 규칙은 Landing과 동일)
 
 ### 5.6 Language / Theme State
 - 언어 변경 위치:
@@ -223,6 +226,7 @@
   - 예상 소요 시간
   - 공유 횟수
   - 누적 테스트 횟수
+- `meta`는 non-interactive 정보 슬롯이며 outline/border/stroke 없이 flat fill로 표현
 - 별도 Start CTA 금지
 
 #### Blog (available)
@@ -231,13 +235,15 @@
   - 읽기 시간
   - 공유 횟수
   - 조회수
+- `meta`는 non-interactive 정보 슬롯이며 outline/border/stroke 없이 flat fill로 표현
 - `primaryCTA` 1개 고정: Read more(i18n)
 
 ### 6.6 Text Clamp Policy
 #### Normal
 - title: 1줄 + truncate
 - subtitle: 1줄 + truncate
-- tags: 각 1줄 + truncate
+- tags 영역: 항상 1줄 슬롯 고정
+- tags chip: 각 1줄 + truncate, wrap 금지
 - 상태 배지 텍스트 슬롯 미사용
 
 #### Expanded
@@ -253,7 +259,8 @@
 ### 6.7 Missing Slot Handling
 - required 슬롯 누락 시 영역 제거 금지
 - required 값 누락 시 빈값 렌더(레이아웃 유지)
-- optional(`tags[]`) 비어있으면 숨김
+- optional(`tags[]`)은 값이 없어도 tags 컨테이너를 유지(1줄 높이 고정)
+- tags chip은 정의된 값만 렌더(빈 chip 강제 렌더 금지)
 
 ### 6.8 Unavailable Contract
 #### Blog
@@ -321,7 +328,9 @@
   - unavailable 카드 오버레이 활성
 - 반응:
   - 비대상 카드 NORMAL 강제
+  - 비대상 카드 시각 dim/backdrop 효과 금지(비대상 opacity `1.0` 고정)
   - 비대상 카드 입력 기반 반응 0
+  - 비대상 카드 키보드 포커스 제외(`tabIndex=-1`)
   - 비대상 Expanded 진입 차단
 - 해제:
   - 대상 종료 시 즉시(0ms)
@@ -345,6 +354,7 @@
   - 그 외 `50% 0%`
 - Expanded 유지 동안 `1.1` 고정
 - 비대상 카드 scale은 항상 1
+- Desktop에서는 Expanded 외부 backdrop/dim 효과를 사용하지 않음
 
 ### 8.3 Expanded Opacity
 - Expanded 카드 본체 opacity는 항상 `1.0`
@@ -355,11 +365,15 @@
   - Test: answerChoiceA/B
   - Blog: Read more
 
-## 9. Mobile Expanded & Full-Bleed Contract
 ### 9.1 Entry / Exit
-- available 카드 탭 시 해당 카드만 Expanded
+- available 카드 탭 시 탭된 해당 카드만 Expanded
+- Expanded는 카드의 in-flow 위치를 유지하며 상단으로 재배치(top jump)하지 않음
+- Expanded 헤더는 `title + X` 1행 구조
+- title은 1줄 고정 + truncate
+- X 버튼은 헤더 우측 끝, title과 동일 높이에서 수직 중앙 정렬
+- X 버튼은 카드 내부 스크롤 중에도 카드 상단 헤더에 sticky로 유지
 - 닫기:
-  - 우측 상단 X 버튼
+  - X 버튼
   - 카드 외부(backdrop) 탭
 - 닫힘 시 해당 카드만 Normal 복귀
 - 닫힘 후 Expanded 직전 scroll/위치/형태로 자연 복귀
@@ -370,6 +384,8 @@
 - 컨테이너 패딩 상쇄
 - 전환 애니메이션 `220~360ms`
 - full-bleed 동안 page scroll lock
+- Expanded 카드 내부 스크롤 허용 (화면 높이를 벗어날 때에만)
+- 자동 viewport 보정 스크롤 금지(엄격 위치 유지)
 - 다른 카드 상호작용 비활성
 
 ### 9.3 Layer Order (MUST)
@@ -522,6 +538,7 @@
   - fixed overlay + backdrop
   - body scroll lock
   - backdrop 탭 닫힘
+  - Landing/Blog 공통으로 GNB 우측 끝 배치(컨테이너 패딩 기준 Mobile 16px inset)
 
 #### Card / Expanded
 - Normal 탭 → Expanded 진입
@@ -529,8 +546,13 @@
 - unavailable 카드 Expanded 전이 금지
 - 썸네일 비율 `6:1`
 - Normal compact + row equal-height
+- Normal tags 영역은 항상 1줄 슬롯 유지(0개여도 영역 유지), 빈 tag chip 렌더 금지
+- Expanded(Desktop/Tablet)는 auto/hug + in-flow reflow, 고정 높이 금지
+- Expanded meta는 non-interactive flat fill(outline/border/stroke 없음)
 - Expanded 본체 opacity `1.0` 유지
-- Expanded 카드 하이라이트 유지(backdrop이 카드 자체를 dim 처리하지 않음)
+- Desktop HOVER_LOCK 중 비대상 카드 dim/backdrop 금지 + 비대상 카드 `tabIndex=-1`
+- Mobile Expanded는 탭한 카드 위치 유지(top jump 금지), page scroll lock + 카드 내부 scroll 허용
+- Mobile Expanded header의 X 버튼은 title과 같은 행 우측 끝에 sticky로 유지
 
 #### Transition / Test Handshake
 - 랜딩 CTA(테스트/블로그)와 GNB 링크(홈/이력/블로그) 진입 시 locale 중복 URL(`/en/en/...`, `/kr/kr/...`)이 생성되지 않는다.
