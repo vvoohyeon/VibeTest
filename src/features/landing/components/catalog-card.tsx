@@ -108,7 +108,6 @@ function CatalogCardComponent({
   const tabIndex = shouldDisableByHoverLock ? -1 : 0;
   const showExpanded = isExpanded && isAvailable;
   const expandedControlTabIndex = showExpanded ? 0 : -1;
-  const frontTitleClass = `${styles.title} ${styles.titleClamp}`;
 
   return (
     <article
@@ -192,7 +191,7 @@ function CatalogCardComponent({
             .filter(Boolean)
             .join(' ')}
         >
-          <h3 className={!showExpanded || isMobile ? frontTitleClass : styles.title}>{card.cardTitle}</h3>
+          <h3 className={styles.title}>{card.cardTitle}</h3>
           {showExpanded && isMobile ? (
             <button
               type="button"
