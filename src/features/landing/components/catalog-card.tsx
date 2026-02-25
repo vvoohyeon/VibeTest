@@ -107,6 +107,7 @@ function CatalogCardComponent({
 
   const tabIndex = shouldDisableByHoverLock ? -1 : 0;
   const showExpanded = isExpanded && isAvailable;
+  const expandedControlTabIndex = showExpanded ? 0 : -1;
   const frontTitleClass = `${styles.title} ${styles.titleClamp}`;
 
   return (
@@ -154,7 +155,8 @@ function CatalogCardComponent({
           .join(' ')}
         style={{
           ['--origin-x' as string]: transformOriginX,
-          ['--motion-duration' as string]: pageState === 'REDUCED_MOTION' ? '180ms' : '220ms'
+          ['--motion-duration' as string]: pageState === 'REDUCED_MOTION' ? '180ms' : '220ms',
+          ['--full-bleed-duration' as string]: '280ms'
         }}
         onClick={() => {
           if (shouldIgnoreInput || !isAvailable) {
@@ -181,7 +183,15 @@ function CatalogCardComponent({
           }
         }}
       >
-        <div className={`${styles.titleRow} ${showExpanded && isMobile ? styles.mobileStickyHeader : ''}`}>
+        <div
+          className={[
+            styles.titleRow,
+            showExpanded ? styles.titleRowExpanded : '',
+            showExpanded && isMobile ? styles.mobileStickyHeader : ''
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
           <h3 className={!showExpanded || isMobile ? frontTitleClass : styles.title}>{card.cardTitle}</h3>
           {showExpanded && isMobile ? (
             <button
@@ -198,80 +208,11 @@ function CatalogCardComponent({
           ) : null}
         </div>
 
-        {showExpanded ? (
-          <div className={`${styles.expandedBlock} ${isMobile ? styles.expandedBodyMobile : ''}`}>
-            {card.type === 'test' ? (
-              <>
-                <p className={styles.previewQuestion}>{card.previewQuestion}</p>
-                <div className={styles.answerButtons}>
-                  <button
-                    type="button"
-                    className={styles.answerButton}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onTriggerTestChoice(card, 'A');
-                    }}
-                  >
-                    {card.answerChoiceA}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.answerButton}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onTriggerTestChoice(card, 'B');
-                    }}
-                  >
-                    {card.answerChoiceB}
-                  </button>
-                </div>
-                <div className={styles.metaRow}>
-                  <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>{t('landing.testEstimated')}</p>
-                    <p className={styles.metaValue}>{card.meta.estimatedMinutes} {t('common.minutes')}</p>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>{t('landing.testShares')}</p>
-                    <p className={styles.metaValue}>{card.meta.shares}</p>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>{t('landing.testRuns')}</p>
-                    <p className={styles.metaValue}>{card.meta.totalRuns}</p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className={styles.summary}>{card.summary}</p>
-                <div className={styles.metaRow}>
-                  <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>{t('landing.blogRead')}</p>
-                    <p className={styles.metaValue}>{card.meta.readMinutes} {t('common.minutes')}</p>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>{t('landing.blogShares')}</p>
-                    <p className={styles.metaValue}>{card.meta.shares}</p>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <p className={styles.metaLabel}>{t('landing.blogViews')}</p>
-                    <p className={styles.metaValue}>{card.meta.views}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onTriggerBlogReadMore(card);
-                  }}
-                >
-                  {t(card.primaryCTAKey)}
-                </button>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
+        <div className={styles.contentStack}>
+          <div
+            className={`${styles.frontContent} ${showExpanded ? styles.frontContentCollapsed : styles.frontContentOpen}`}
+            aria-hidden={showExpanded}
+          >
             <p className={styles.subtitle}>{card.cardSubtitle}</p>
             <Image
               src={card.thumbnailOrIcon}
@@ -288,8 +229,107 @@ function CatalogCardComponent({
                 </span>
               ))}
             </div>
-          </>
-        )}
+          </div>
+
+          <div
+            className={[
+              styles.expandedBlock,
+              showExpanded ? styles.expandedBlockOpen : styles.expandedBlockClosed,
+              isMobile ? styles.expandedBodyMobile : ''
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            aria-hidden={!showExpanded}
+          >
+            {card.type === 'test' ? (
+              <>
+                <div className={styles.detailItem}>
+                  <p className={styles.previewQuestion}>{card.previewQuestion}</p>
+                </div>
+                <div className={styles.detailItem}>
+                  <div className={styles.answerButtons}>
+                    <button
+                      type="button"
+                      className={styles.answerButton}
+                      tabIndex={expandedControlTabIndex}
+                      disabled={!showExpanded}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onTriggerTestChoice(card, 'A');
+                      }}
+                    >
+                      {card.answerChoiceA}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.answerButton}
+                      tabIndex={expandedControlTabIndex}
+                      disabled={!showExpanded}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onTriggerTestChoice(card, 'B');
+                      }}
+                    >
+                      {card.answerChoiceB}
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.detailItem}>
+                  <div className={styles.metaRow}>
+                    <div className={styles.metaItem}>
+                      <p className={styles.metaLabel}>{t('landing.testEstimated')}</p>
+                      <p className={styles.metaValue}>{card.meta.estimatedMinutes} {t('common.minutes')}</p>
+                    </div>
+                    <div className={styles.metaItem}>
+                      <p className={styles.metaLabel}>{t('landing.testShares')}</p>
+                      <p className={styles.metaValue}>{card.meta.shares}</p>
+                    </div>
+                    <div className={styles.metaItem}>
+                      <p className={styles.metaLabel}>{t('landing.testRuns')}</p>
+                      <p className={styles.metaValue}>{card.meta.totalRuns}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={styles.detailItem}>
+                  <p className={styles.summary}>{card.summary}</p>
+                </div>
+                <div className={styles.detailItem}>
+                  <div className={styles.metaRow}>
+                    <div className={styles.metaItem}>
+                      <p className={styles.metaLabel}>{t('landing.blogRead')}</p>
+                      <p className={styles.metaValue}>{card.meta.readMinutes} {t('common.minutes')}</p>
+                    </div>
+                    <div className={styles.metaItem}>
+                      <p className={styles.metaLabel}>{t('landing.blogShares')}</p>
+                      <p className={styles.metaValue}>{card.meta.shares}</p>
+                    </div>
+                    <div className={styles.metaItem}>
+                      <p className={styles.metaLabel}>{t('landing.blogViews')}</p>
+                      <p className={styles.metaValue}>{card.meta.views}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.detailItem}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    tabIndex={expandedControlTabIndex}
+                    disabled={!showExpanded}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onTriggerBlogReadMore(card);
+                    }}
+                  >
+                    {t(card.primaryCTAKey)}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         {showUnavailableOverlay ? <div className={styles.overlay}>{t('common.comingSoon')}</div> : null}
       </div>

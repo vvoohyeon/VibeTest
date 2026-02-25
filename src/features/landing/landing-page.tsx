@@ -12,9 +12,11 @@ import {
 } from '@/features/landing/data/landing-adapter';
 import {
   clearPendingTransition,
+  consumeLandingScrollY,
   getOrCreateSessionId,
   getPendingTransition,
   rollbackPreAnswer,
+  saveLandingScrollY,
   savePreAnswer,
   setLandingIngressFlag,
   setPendingTransition
@@ -28,14 +30,30 @@ import {lockBodyScroll, unlockBodyScroll} from '@/lib/body-lock';
 import {
   buildBlogRouteWithSource,
   buildTestQuestionRoute,
-  hasLocalePrefix,
   hasDuplicateLocaleSegment,
+  hasLocalePrefix,
 } from '@/lib/route-builder';
 import styles from './landing-page.module.css';
 
 const ROUTE_TIMEOUT_MS = 4500;
 const TRANSITION_PUSH_DELAY_MS = 180;
 const MOBILE_CLOSE_UNLOCK_MS = 240;
+const ACTIVE_RAMP_LOCK_MS = 140;
+
+type ForcedTransitionOutcome = 'cancel' | 'locale_duplicate' | 'route_entry_timeout';
+
+function readE2EForcedTransitionOutcome(): ForcedTransitionOutcome | null {
+  if (typeof window === 'undefined' || !window.navigator.webdriver) {
+    return null;
+  }
+
+  const forced = new URLSearchParams(window.location.search).get('__e2e_transition_outcome');
+  if (forced === 'cancel' || forced === 'locale_duplicate' || forced === 'route_entry_timeout') {
+    return forced;
+  }
+
+  return null;
+}
 
 function getOrigin(index: number, columns: number): '0%' | '50%' | '100%' {
   if (columns <= 1) {
@@ -82,16 +100,20 @@ export function LandingPage() {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [unavailableOverlayCardId, setUnavailableOverlayCardId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [activeRampLocked, setActiveRampLocked] = useState(false);
   const [mobileClosing, setMobileClosing] = useState(false);
   const routeTimeoutRef = useRef<number | null>(null);
+  const activeRampTimerRef = useRef<number | null>(null);
+  const hadInactiveSinceMountRef = useRef(false);
 
   const cardElementsRef = useRef<Record<string, HTMLElement | null>>({});
   const [normalHeights, setNormalHeights] = useState<Record<string, number>>({});
 
   const pageState = usePageState(transitioning);
+  const shouldIgnorePageInput = transitioning || pageState === 'INACTIVE' || activeRampLocked;
 
   const hoverLockTargetId =
-    capability.mode === 'HOVER_MODE' && capability.width >= 768
+    capability.mode === 'HOVER_MODE' && capability.width >= 768 && pageState !== 'INACTIVE'
       ? expandedCardId ?? unavailableOverlayCardId
       : null;
 
@@ -103,30 +125,58 @@ export function LandingPage() {
   }, [emit]);
 
   useEffect(() => {
+    const restored = consumeLandingScrollY();
+    if (typeof restored !== 'number') {
+      return;
+    }
+
+    const raf = window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: restored,
+        left: 0,
+        behavior: 'auto'
+      });
+    });
+
+    return () => window.cancelAnimationFrame(raf);
+  }, []);
+
+  const cancelTransition = useCallback(
+    (params: {transitionId: string; reason: string; variant?: string}) => {
+      if (routeTimeoutRef.current) {
+        window.clearTimeout(routeTimeoutRef.current);
+        routeTimeoutRef.current = null;
+      }
+
+      emit('transition_cancel', {
+        transitionId: params.transitionId,
+        reason: params.reason
+      });
+
+      if (params.variant) {
+        rollbackPreAnswer(params.variant, params.transitionId);
+      }
+
+      clearPendingTransition();
+      setTransitioning(false);
+      unlockBodyScroll({force: true});
+    },
+    [emit]
+  );
+
+  useEffect(() => {
     const stalePending = getPendingTransition();
 
     if (!stalePending) {
       return;
     }
 
-    emit('transition_cancel', {
+    cancelTransition({
       transitionId: stalePending.transitionId,
-      reason: 'landing_return_cancel'
+      reason: 'landing_return_cancel',
+      variant: stalePending.type === 'test' ? stalePending.variant : undefined
     });
-
-    if (stalePending.type === 'test' && stalePending.variant) {
-      rollbackPreAnswer(stalePending.variant, stalePending.transitionId);
-    }
-
-    if (routeTimeoutRef.current) {
-      window.clearTimeout(routeTimeoutRef.current);
-      routeTimeoutRef.current = null;
-    }
-
-    clearPendingTransition();
-    setTransitioning(false);
-    unlockBodyScroll({force: true});
-  }, [emit]);
+  }, [cancelTransition]);
 
   useEffect(() => {
     if (!transitioning) {
@@ -140,23 +190,11 @@ export function LandingPage() {
         return;
       }
 
-      emit('transition_cancel', {
+      cancelTransition({
         transitionId: pending.transitionId,
-        reason: 'popstate_cancel'
+        reason: 'popstate_cancel',
+        variant: pending.type === 'test' ? pending.variant : undefined
       });
-
-      if (pending.type === 'test' && pending.variant) {
-        rollbackPreAnswer(pending.variant, pending.transitionId);
-      }
-
-      if (routeTimeoutRef.current) {
-        window.clearTimeout(routeTimeoutRef.current);
-        routeTimeoutRef.current = null;
-      }
-
-      clearPendingTransition();
-      setTransitioning(false);
-      unlockBodyScroll({force: true});
     };
 
     window.addEventListener('popstate', onPopState);
@@ -164,7 +202,47 @@ export function LandingPage() {
     return () => {
       window.removeEventListener('popstate', onPopState);
     };
-  }, [emit, transitioning]);
+  }, [cancelTransition, transitioning]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        hadInactiveSinceMountRef.current = true;
+        if (activeRampTimerRef.current) {
+          window.clearTimeout(activeRampTimerRef.current);
+          activeRampTimerRef.current = null;
+        }
+        setActiveRampLocked(false);
+        return;
+      }
+
+      if (!hadInactiveSinceMountRef.current) {
+        return;
+      }
+
+      setActiveRampLocked(true);
+      if (activeRampTimerRef.current) {
+        window.clearTimeout(activeRampTimerRef.current);
+      }
+
+      activeRampTimerRef.current = window.setTimeout(() => {
+        setActiveRampLocked(false);
+        activeRampTimerRef.current = null;
+      }, ACTIVE_RAMP_LOCK_MS);
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    if (pageState !== 'INACTIVE') {
+      return;
+    }
+
+    setExpandedCardId(null);
+    setUnavailableOverlayCardId(null);
+  }, [pageState]);
 
   useEffect(() => {
     if (capability.width >= 768 || !expandedCardId) {
@@ -214,12 +292,15 @@ export function LandingPage() {
       if (routeTimeoutRef.current) {
         window.clearTimeout(routeTimeoutRef.current);
       }
+      if (activeRampTimerRef.current) {
+        window.clearTimeout(activeRampTimerRef.current);
+      }
       unlockBodyScroll({force: true});
     };
   }, []);
 
   const closeExpandedMobileCard = useCallback(() => {
-    if (transitioning) {
+    if (shouldIgnorePageInput) {
       return;
     }
 
@@ -235,23 +316,23 @@ export function LandingPage() {
       setMobileClosing(false);
       unlockBodyScroll();
     }, MOBILE_CLOSE_UNLOCK_MS);
-  }, [capability.width, expandedCardId, transitioning]);
+  }, [capability.width, expandedCardId, shouldIgnorePageInput]);
 
   const onExpandCard = useCallback(
     (cardId: string) => {
-      if (transitioning || pageState === 'INACTIVE') {
+      if (shouldIgnorePageInput) {
         return;
       }
 
       setUnavailableOverlayCardId(null);
       setExpandedCardId(cardId);
     },
-    [pageState, transitioning]
+    [shouldIgnorePageInput]
   );
 
   const onCollapseCard = useCallback(
     (cardId: string) => {
-      if (transitioning) {
+      if (shouldIgnorePageInput) {
         return;
       }
 
@@ -266,12 +347,12 @@ export function LandingPage() {
 
       setExpandedCardId(null);
     },
-    [capability.width, closeExpandedMobileCard, expandedCardId, transitioning]
+    [capability.width, closeExpandedMobileCard, expandedCardId, shouldIgnorePageInput]
   );
 
   const onUnavailableActiveChange = useCallback(
     (cardId: string, active: boolean) => {
-      if (transitioning) {
+      if (shouldIgnorePageInput) {
         return;
       }
 
@@ -287,7 +368,7 @@ export function LandingPage() {
 
       setUnavailableOverlayCardId((prev) => (prev === cardId ? null : prev));
     },
-    [capability.mode, capability.width, transitioning]
+    [capability.mode, capability.width, shouldIgnorePageInput]
   );
 
   const failTransition = useCallback(
@@ -320,7 +401,7 @@ export function LandingPage() {
       variant?: string;
       answer?: 'A' | 'B';
     }) => {
-      if (transitioning || pageState === 'INACTIVE') {
+      if (shouldIgnorePageInput) {
         return;
       }
 
@@ -356,6 +437,8 @@ export function LandingPage() {
         setLandingIngressFlag(target.variant);
       }
 
+      saveLandingScrollY(window.scrollY);
+
       setPendingTransition({
         transitionId,
         startedAt: Date.now(),
@@ -374,6 +457,25 @@ export function LandingPage() {
 
       setTransitioning(true);
       lockBodyScroll();
+
+      const forcedOutcome = readE2EForcedTransitionOutcome();
+      if (forcedOutcome === 'cancel') {
+        cancelTransition({
+          transitionId,
+          reason: 'e2e_forced_cancel',
+          variant: target.variant
+        });
+        return;
+      }
+
+      if (forcedOutcome === 'locale_duplicate' || forcedOutcome === 'route_entry_timeout') {
+        failTransition({
+          transitionId,
+          reason: forcedOutcome,
+          variant: target.variant
+        });
+        return;
+      }
 
       if (routeTimeoutRef.current) {
         window.clearTimeout(routeTimeoutRef.current);
@@ -404,7 +506,7 @@ export function LandingPage() {
         }
       }, TRANSITION_PUSH_DELAY_MS);
     },
-    [emit, failTransition, pageState, router, transitioning]
+    [cancelTransition, emit, failTransition, router, shouldIgnorePageInput]
   );
 
   const onTriggerTestChoice = useCallback(

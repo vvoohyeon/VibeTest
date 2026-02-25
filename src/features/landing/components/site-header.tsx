@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import {createPortal} from 'react-dom';
 import {appRoutes} from '@/lib/route-builder';
 import {lockBodyScroll, unlockBodyScroll} from '@/lib/body-lock';
 import {useThemeSetting} from '@/features/ui/theme-provider';
@@ -79,6 +80,7 @@ export function SiteHeader({context, capability, timerSeconds = 0, disableIntera
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileMenuClosing, setMobileMenuClosing] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const settingsRef = useRef<HTMLDivElement | null>(null);
   const hoverCloseTimerRef = useRef<number | null>(null);
 
@@ -193,6 +195,11 @@ export function SiteHeader({context, capability, timerSeconds = 0, disableIntera
     };
   }, [mobileMenuClosing, mobileMenuOpen]);
 
+  useEffect(() => {
+    setPortalReady(true);
+    return () => setPortalReady(false);
+  }, []);
+
   const handleBack = useCallback(() => {
     if (window.history.length > 1) {
       window.history.back();
@@ -203,6 +210,55 @@ export function SiteHeader({context, capability, timerSeconds = 0, disableIntera
   }, [router]);
 
   const canOpenHamburger = context !== 'test';
+  const mobileMenuOverlay =
+    mobileMenuOpen || mobileMenuClosing ? (
+      <div className={styles.mobileMenuLayer}>
+        <button type="button" className={styles.mobileBackdrop} onClick={closeMobileMenu} aria-label={t('closeMenu')} />
+        <aside
+          className={`${styles.mobilePanel} ${mobileMenuClosing ? styles.mobilePanelClosing : ''}`}
+          aria-label="Mobile menu"
+        >
+          <div>
+            <div className={styles.brand}>{t('brand')}</div>
+            <nav className={styles.mobileLinks}>
+              <Link href={appRoutes.landing} className={styles.mobileLink} onClick={closeMobileMenu}>
+                {t('brand')}
+              </Link>
+              <Link href={appRoutes.history} className={styles.mobileLink} onClick={closeMobileMenu}>
+                {t('history')}
+              </Link>
+              <Link href={appRoutes.blog} className={styles.mobileLink} onClick={closeMobileMenu}>
+                {t('blog')}
+              </Link>
+            </nav>
+          </div>
+          <div className={styles.mobileSettings}>
+            <button
+              type="button"
+              className={styles.mobileSettingButton}
+              onClick={changeLocale}
+              aria-label={`${t('language')}: ${languageValueLabel}`}
+            >
+              <span className={styles.mobileSettingContent}>
+                <LanguageIcon />
+                <span>{languageValueLabel}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={styles.mobileSettingButton}
+              onClick={toggleTheme}
+              aria-label={`${t('theme')}: ${resolvedTheme === 'dark' ? t('themeDark') : t('themeLight')}`}
+            >
+              <span className={styles.mobileSettingContent}>
+                <ThemeIcon resolvedTheme={resolvedTheme} />
+                <span>{resolvedTheme === 'dark' ? t('themeDark') : t('themeLight')}</span>
+              </span>
+            </button>
+          </div>
+        </aside>
+      </div>
+    ) : null;
 
   const desktopNavigation = useMemo<ReactNode>(() => {
     if (context === 'test') {
@@ -293,89 +349,38 @@ export function SiteHeader({context, capability, timerSeconds = 0, disableIntera
 
   if (isMobile) {
     return (
-      <header className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
-        <div className={`${styles.inner} ${styles.mobileInner}`}>
-          {context === 'test' || context === 'blog' ? (
-            <button type="button" className={styles.backButton} onClick={handleBack} aria-label={t('back')}>
-              {t('back')}
-            </button>
-          ) : (
-            <Link href={appRoutes.landing} className={styles.brand}>
-              {t('brand')}
-            </Link>
-          )}
+      <>
+        <header className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
+          <div className={`${styles.inner} ${styles.mobileInner}`}>
+            {context === 'test' || context === 'blog' ? (
+              <button type="button" className={styles.backButton} onClick={handleBack} aria-label={t('back')}>
+                {t('back')}
+              </button>
+            ) : (
+              <Link href={appRoutes.landing} className={styles.brand}>
+                {t('brand')}
+              </Link>
+            )}
 
-          {context === 'test' ? <div className={styles.timer}>{timerSeconds}s</div> : null}
+            {context === 'test' ? <div className={styles.timer}>{timerSeconds}s</div> : null}
 
-          {canOpenHamburger ? (
-            <button
-              type="button"
-              className={styles.mobileIconButton}
-              onClick={openMobileMenu}
-              aria-label={t('openMenu')}
-              disabled={disableInteractions}
-            >
-              |||
-            </button>
-          ) : (
-            <div />
-          )}
-        </div>
-
-        {mobileMenuOpen || mobileMenuClosing ? (
-          <div className={styles.mobileMenuLayer}>
-            <button
-              type="button"
-              className={styles.mobileBackdrop}
-              onClick={closeMobileMenu}
-              aria-label={t('closeMenu')}
-            />
-            <aside
-              className={`${styles.mobilePanel} ${mobileMenuClosing ? styles.mobilePanelClosing : ''}`}
-              aria-label="Mobile menu"
-            >
-              <div>
-                <div className={styles.brand}>{t('brand')}</div>
-                <nav className={styles.mobileLinks}>
-                  <Link href={appRoutes.landing} className={styles.mobileLink} onClick={closeMobileMenu}>
-                    {t('brand')}
-                  </Link>
-                  <Link href={appRoutes.history} className={styles.mobileLink} onClick={closeMobileMenu}>
-                    {t('history')}
-                  </Link>
-                  <Link href={appRoutes.blog} className={styles.mobileLink} onClick={closeMobileMenu}>
-                    {t('blog')}
-                  </Link>
-                </nav>
-              </div>
-              <div className={styles.mobileSettings}>
-                <button
-                  type="button"
-                  className={styles.mobileSettingButton}
-                  onClick={changeLocale}
-                  aria-label={`${t('language')}: ${languageValueLabel}`}
-                >
-                  <span className={styles.mobileSettingContent}>
-                    <LanguageIcon />
-                    <span>{languageValueLabel}</span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.mobileSettingButton}
-                  onClick={toggleTheme}
-                  aria-label={`${t('theme')}: ${resolvedTheme === 'dark' ? t('themeDark') : t('themeLight')}`}
-                >
-                  <span className={styles.mobileSettingContent}>
-                    <ThemeIcon resolvedTheme={resolvedTheme} />
-                    <span>{resolvedTheme === 'dark' ? t('themeDark') : t('themeLight')}</span>
-                  </span>
-                </button>
-              </div>
-            </aside>
+            {canOpenHamburger ? (
+              <button
+                type="button"
+                className={styles.mobileIconButton}
+                onClick={openMobileMenu}
+                aria-label={t('openMenu')}
+                disabled={disableInteractions}
+              >
+                |||
+              </button>
+            ) : (
+              <div />
+            )}
           </div>
-        ) : null}
-      </header>
+        </header>
+        {portalReady && mobileMenuOverlay ? createPortal(mobileMenuOverlay, document.body) : null}
+      </>
     );
   }
 

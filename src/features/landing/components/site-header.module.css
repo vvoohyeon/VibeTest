@@ -112,13 +112,16 @@
 .mobileMenuLayer {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: 1800;
 }
 
 .mobileBackdrop {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  border: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .mobilePanel {

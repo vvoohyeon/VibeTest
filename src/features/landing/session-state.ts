@@ -6,6 +6,7 @@ const PRE_ANSWERS_KEY = 'vt:pre-answers';
 const LANDING_INGRESS_KEY = 'vt:landing-ingress';
 const PENDING_TRANSITION_KEY = 'vt:pending-transition';
 const INSTRUCTION_SEEN_KEY = 'vt:instruction-seen';
+const LANDING_SCROLL_KEY = 'vt:landing-scroll-y';
 
 type StoredPreAnswer = {
   variant: string;
@@ -171,6 +172,35 @@ export function clearPendingTransition(): void {
   }
 
   sessionStorage.removeItem(PENDING_TRANSITION_KEY);
+}
+
+export function saveLandingScrollY(scrollY: number): void {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  const normalized = Number.isFinite(scrollY) ? Math.max(0, Math.floor(scrollY)) : 0;
+  sessionStorage.setItem(LANDING_SCROLL_KEY, String(normalized));
+}
+
+export function consumeLandingScrollY(): number | undefined {
+  if (!canUseStorage()) {
+    return undefined;
+  }
+
+  const raw = sessionStorage.getItem(LANDING_SCROLL_KEY);
+  sessionStorage.removeItem(LANDING_SCROLL_KEY);
+
+  if (!raw) {
+    return undefined;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return undefined;
+  }
+
+  return Math.max(0, parsed);
 }
 
 export function consumePendingTransition(): TransitionTarget | undefined {

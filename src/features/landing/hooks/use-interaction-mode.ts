@@ -21,6 +21,23 @@ const INITIAL_CAPABILITY: InteractionCapability = {
   isHoverCapable: false
 };
 
+function readE2EModeOverride(): InteractionMode | null {
+  if (typeof window === 'undefined' || !window.navigator.webdriver) {
+    return null;
+  }
+
+  const mode = new URLSearchParams(window.location.search).get('__e2e_mode');
+  if (mode === 'tap') {
+    return 'TAP_MODE';
+  }
+
+  if (mode === 'hover') {
+    return 'HOVER_MODE';
+  }
+
+  return null;
+}
+
 function readCapability(): InteractionCapability {
   const width = window.innerWidth;
   const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -29,7 +46,8 @@ function readCapability(): InteractionCapability {
   const isTablet = width >= 768 && width < 1024;
   const isDesktop = width >= 1024;
 
-  const mode: InteractionMode = isMobile ? 'TAP_MODE' : hoverCapable ? 'HOVER_MODE' : 'TAP_MODE';
+  const overrideMode = readE2EModeOverride();
+  const mode: InteractionMode = overrideMode ?? (isMobile ? 'TAP_MODE' : hoverCapable ? 'HOVER_MODE' : 'TAP_MODE');
 
   return {
     mode,

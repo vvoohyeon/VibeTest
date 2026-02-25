@@ -16,7 +16,11 @@
   transform-origin: var(--origin-x, 50%) 0%;
   transition:
     transform var(--motion-duration, 220ms) ease,
-    box-shadow var(--motion-duration, 220ms) ease;
+    box-shadow var(--motion-duration, 220ms) ease,
+    border-radius var(--full-bleed-duration, 280ms) ease,
+    max-height var(--full-bleed-duration, 280ms) ease,
+    margin var(--full-bleed-duration, 280ms) ease,
+    width var(--full-bleed-duration, 280ms) ease;
   opacity: 1;
 }
 
@@ -54,6 +58,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  transform: translateY(0);
+  transition: transform 220ms ease;
+}
+
+.titleRowExpanded {
+  transform: translateY(-4px);
 }
 
 .title {
@@ -111,6 +121,36 @@
   overflow: hidden;
 }
 
+.contentStack {
+  min-height: 0;
+}
+
+.frontContent {
+  display: grid;
+  gap: 12px;
+  max-height: 480px;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 200ms ease,
+    max-height 200ms ease,
+    transform 200ms ease;
+}
+
+.frontContentOpen {
+  max-height: 480px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.frontContentCollapsed {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .tag {
   max-width: 100%;
   padding: 4px 8px;
@@ -126,6 +166,54 @@
 .expandedBlock {
   display: grid;
   gap: 12px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    max-height 220ms ease,
+    transform 220ms ease;
+}
+
+.expandedBlockOpen {
+  max-height: 1200px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.expandedBlockClosed {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.detailItem {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.expandedBlockOpen .detailItem {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.expandedBlockOpen .detailItem:nth-child(1) {
+  transition-delay: 40ms;
+}
+
+.expandedBlockOpen .detailItem:nth-child(2) {
+  transition-delay: 100ms;
+}
+
+.expandedBlockOpen .detailItem:nth-child(3) {
+  transition-delay: 160ms;
 }
 
 .expandedBodyMobile {
@@ -163,6 +251,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.answerButton:disabled,
+.primaryButton:disabled {
+  cursor: default;
 }
 
 .metaRow {
