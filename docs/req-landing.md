@@ -371,24 +371,32 @@
 - 반응:
   - 비대상 카드 NORMAL 강제
   - 비대상 카드 시각 dim/backdrop 효과 금지(비대상 opacity `1.0` 고정)
-  - 비대상 카드 입력 기반 반응 0
-  - 비대상 카드 키보드 포커스 제외(`tabIndex=-1`)
+  - 비대상 카드 마우스 입력 기반 반응 0(`hover/click/pointer`) (MUST)
+  - 키보드 모드가 아닐 때 비대상 카드 키보드 포커스 제외(`tabIndex=-1`) (MUST)
+  - 키보드 모드일 때 비대상 카드 `Tab/Shift+Tab` 포커스는 허용하되 `Enter/Space` 활성화는 차단한다(MUST)
+  - 비대상 카드가 키보드 모드로 포커스 가능 상태일 때 `aria-disabled=true`를 부여한다(MUST)
   - 비대상 Expanded 진입 차단
 - 해제:
   - 대상 종료 시 즉시(0ms)
   - 카드 간 handoff 즉시 허용
+- 키보드 모드 전환:
+  - `Tab/Shift+Tab` 입력 감지 시 진입(MUST)
+  - `pointermove/mousedown/wheel` 중 하나 감지 시 즉시 종료(MUST)
 
 ## 8. Expanded Motion & Visual Contract
 ### 8.1 Core Motion
 - 본 섹션의 시간 범위는 권장이 아니라 검증 대상이다(MUST).
 - Normal→Expanded 시퀀스(MUST):
-  - Phase A: 비타이틀 정보 fade-out + collapse (`160~240ms`)
-  - Phase B: title 상단 이동 (`180~280ms`)
-  - Phase C: 상세 정보 stagger (항목 간 `40~80ms`, 항목당 `120~220ms`)
+  - Phase A: 비타이틀 정보 fade-out + collapse (`200ms`)
+  - Phase B: title 상단 이동 (`200ms`)
+  - Phase C: 상세 정보 reveal (`200ms`, stagger delay `40/100/160ms` 유지)
 - 시퀀스 제약(MUST):
   - Phase A/B는 전환 시작 프레임에서 즉시 개시 가능
   - Phase C는 상세 블록이 활성 상태가 된 뒤에만 시작
   - 항목 순서는 DOM 순서와 일치해야 한다
+- easing 제약(MUST):
+  - Expanded 관련 transition curve는 `ease-in-out` 계열로 통일한다
+  - spring/overshoot(탄성 튐) 효과를 금지한다
 - 내부 이중 박스 시각 금지.
 
 ### 8.2 Expanded Trigger/Visual on `width >= 768`
@@ -606,6 +614,7 @@
 - 릴리스 게이트 기본 명령은 `npm run qa:gate`로 고정한다(MUST).
 - `qa:gate`는 최소 `npm run build && npm run test && npm run test:e2e:smoke`를 포함해야 한다(MUST).
 - 위 체인 중 1건이라도 실패하면 릴리스 차단(MUST).
+- 최종 PASS 기준은 `npm run qa:gate` 3회 연속 통과(3/3)로 고정한다(MUST).
 
 #### SSR / Build
 - hydration mismatch warning 0건
@@ -645,6 +654,9 @@
 - Desktop HOVER_LOCK 중 비대상 카드 dim/backdrop 금지 + 비대상 카드 `tabIndex=-1`
 - `width < 768` Expanded는 탭한 카드 위치 유지(top jump 금지), page scroll lock + 카드 내부 scroll 허용
 - `width < 768` Expanded header의 X 버튼은 title과 같은 행 우측 끝에 sticky로 유지
+- `width >= 768`에서 한 카드 Expanded 시 같은 row 비확장 카드 높이는 변하지 않아야 한다(MUST).
+- `width >= 768`에서 빠른 hover 이동(Row1→Row2, Same-row 포함) 시 마지막 hover 카드만 최종 Expanded여야 한다(MUST).
+- `width >= 768`에서 직전 hover 카드의 pending transition은 즉시 취소되어야 한다(MUST).
 
 #### Transition / Test Handshake
 - Playwright에서 랜딩 CTA(테스트/블로그) 및 GNB 링크 진입 시 locale 중복 URL(`/en/en/...`, `/kr/kr/...`)이 0건임을 확인
