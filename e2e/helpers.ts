@@ -67,6 +67,7 @@ export async function getEvents(page: Page): Promise<TelemetryEnvelope[]> {
 
 export async function openTestCardAndRevealChoices(page: Page): Promise<void> {
   const testCard = page.locator('article').filter({hasText: 'Vibe Core Compass'}).first();
+  await testCard.scrollIntoViewIfNeeded();
   await expect(testCard).toBeVisible();
 
   await testCard.hover();
@@ -76,7 +77,7 @@ export async function openTestCardAndRevealChoices(page: Page): Promise<void> {
   });
 
   if (!(await answerButton.isVisible())) {
-    await testCard.click();
+    await page.waitForTimeout(220);
   }
 
   await expect(answerButton).toBeVisible();
@@ -84,13 +85,19 @@ export async function openTestCardAndRevealChoices(page: Page): Promise<void> {
 
 export async function openBlogCardAndRevealReadMore(page: Page): Promise<void> {
   const blogCard = page.locator('article').filter({hasText: 'Speed vs Depth: Choosing the Right Tempo'}).first();
+  await blogCard.scrollIntoViewIfNeeded();
   await expect(blogCard).toBeVisible();
 
   await blogCard.hover();
   const readMoreButton = page.getByRole('button', {name: 'Read more', exact: true});
 
   if (!(await readMoreButton.isVisible())) {
-    await blogCard.click();
+    await page.waitForTimeout(220);
+  }
+
+  if (!(await readMoreButton.isVisible())) {
+    await blogCard.hover();
+    await page.waitForTimeout(220);
   }
 
   await expect(readMoreButton).toBeVisible();

@@ -161,6 +161,9 @@
 - Desktop/Tablet에서 카드 1개가 Expanded로 전환될 때 Expanded 카드만 콘텐츠 높이에 맞춰 유동적으로 증가한다(MUST).
 - Desktop/Tablet에서 같은 row의 비확장 카드는 Expanded 진입 시점의 Normal 높이 snapshot을 유지한다(MUST).
 - snapshot 해제는 Expanded 종료 직후 1회만 수행한다(MUST).
+- Desktop/Tablet Expanded는 상위 레이어(Portal 또는 동등한 out-of-flow 레이어)에서 렌더링하여 row track 재계산을 유발하지 않아야 한다(MUST).
+- Expanded 카드가 이동한 원래 슬롯은 transparent placeholder로 snapshot 높이를 유지해야 한다(MUST).
+- Expanded는 단일 DOM 인스턴스를 유지해야 하며, Normal+Expanded 이중 렌더(동일 카드 2개 가시화)를 금지한다(MUST).
 - 비확장 카드 주변의 여백/빈 공간은 허용한다(MAY).
 - Expanded(Desktop/Tablet)는 fixed height를 사용하지 않는다(MUST).
 - 불필요한 하단 빈 공간 금지.
@@ -402,9 +405,17 @@
 ### 8.2 Expanded Trigger/Visual on `width >= 768`
 - hover-capable 모드:
   - available hover enter `120~200ms` 후 Expanded
+  - hover leave로 카드 영역을 완전히 벗어나면 즉시(0ms) collapse한다(MUST).
+  - 카드 간 handoff 시 직전 카드의 pending/진행 transition은 즉시 취소하고 마지막 hover 카드만 Expanded로 진입한다(MUST).
 - tap 모드(hover-capability 미감지):
   - available 카드 탭 시 Expanded
   - 탭은 hover를 대체하는 트리거이며, 전환 비주얼 계약은 동일하게 적용한다(MUST)
+
+- hover intent 스케줄러 규칙(MUST):
+  - 전역 단일 timer + intent token으로 관리한다.
+  - 새 hover 진입 시 이전 예약은 즉시 취소한다.
+  - 타이머 실행 직전에 `현재 hover 대상 == 예약 대상`을 재검증하고 불일치면 no-op 처리한다.
+  - handoff 경로는 지연 없이 즉시 전환한다.
 
 - 공통 비주얼 계약:
   - scale `1.1`
@@ -657,6 +668,7 @@
 - `width >= 768`에서 한 카드 Expanded 시 같은 row 비확장 카드 높이는 변하지 않아야 한다(MUST).
 - `width >= 768`에서 빠른 hover 이동(Row1→Row2, Same-row 포함) 시 마지막 hover 카드만 최종 Expanded여야 한다(MUST).
 - `width >= 768`에서 직전 hover 카드의 pending transition은 즉시 취소되어야 한다(MUST).
+- Row1→Row2 빠른 hover handoff 케이스는 최소 viewport `1024`와 `1280`에서 모두 검증한다(MUST).
 
 #### Transition / Test Handshake
 - Playwright에서 랜딩 CTA(테스트/블로그) 및 GNB 링크 진입 시 locale 중복 URL(`/en/en/...`, `/kr/kr/...`)이 0건임을 확인

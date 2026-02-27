@@ -16,9 +16,13 @@ test.describe('Test handshake smoke @smoke', () => {
     await page.goto('/en');
 
     await openTestCardAndRevealChoices(page);
-    await page
-      .getByRole('button', {name: 'Find one person and start a direct conversation.', exact: true})
-      .click();
+    const startChoiceButton = page.getByRole('button', {
+      name: 'Find one person and start a direct conversation.',
+      exact: true
+    });
+    await expect(startChoiceButton).toBeEnabled();
+    await startChoiceButton.focus();
+    await startChoiceButton.press('Enter');
 
     await expect(page).toHaveURL(/\/en\/test\/vibe-core\/question$/);
     await expect(page.getByRole('dialog')).toBeVisible();

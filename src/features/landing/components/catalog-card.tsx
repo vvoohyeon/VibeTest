@@ -1,6 +1,6 @@
 'use client';
 
-import {memo, useRef} from 'react';
+import {memo, type CSSProperties} from 'react';
 import {useTranslations} from 'next-intl';
 import Image from 'next/image';
 import type {BinaryChoiceCode} from '@/features/test/data/test-fixture';
@@ -17,9 +17,18 @@ type CatalogCardProps = {
   isTransitioning: boolean;
   isMobile: boolean;
   transformOriginX: '0%' | '50%' | '100%';
-  holdNormalHeightPx?: number;
+  normalHeightPx?: number;
+  isHoverLockActive: boolean;
+  isHoverLockTarget: boolean;
+  allowTabFocusWhileHoverLocked: boolean;
+  wrapperClassName?: string;
+  wrapperStyle?: CSSProperties;
   onExpand: (cardId: string) => void;
   onCollapse: (cardId: string) => void;
+  onHoverEnterAvailable: (cardId: string) => void;
+  onHoverLeaveAvailable: (cardId: string, handoffToAnotherCard: boolean) => void;
+  onHoverEnterUnavailable: (cardId: string) => void;
+  onHoverLeaveUnavailable: (cardId: string, handoffToAnotherCard: boolean) => void;
   onUnavailableActiveChange: (cardId: string, active: boolean) => void;
   onTriggerTestChoice: (card: Extract<CatalogCard, {type: 'test'}>, answer: BinaryChoiceCode) => void;
   onTriggerBlogReadMore: (card: Extract<CatalogCard, {type: 'blog'}>) => void;
@@ -36,85 +45,73 @@ function CatalogCardComponent({
   isTransitioning,
   isMobile,
   transformOriginX,
-  holdNormalHeightPx,
+  normalHeightPx,
+  isHoverLockActive,
+  isHoverLockTarget,
+  allowTabFocusWhileHoverLocked,
+  wrapperClassName,
+  wrapperStyle,
   onExpand,
   onCollapse,
+  onHoverEnterAvailable,
+  onHoverLeaveAvailable,
+  onHoverEnterUnavailable,
+  onHoverLeaveUnavailable,
   onUnavailableActiveChange,
   onTriggerTestChoice,
   onTriggerBlogReadMore,
   onRegisterElement
 }: CatalogCardProps) {
   const t = useTranslations();
-  const hoverDelayTimerRef = useRef<number | null>(null);
 
   const isAvailable = card.availability === 'available';
   const isHoverMode = interactionMode === 'HOVER_MODE';
   const canInteract = pageState === 'ACTIVE' || pageState === 'REDUCED_MOTION';
   const shouldExpandOnClick = isAvailable && interactionMode === 'TAP_MODE';
   const shouldIgnoreInput = isTransitioning || !canInteract;
+  const isLockedNonTarget = isHoverLockActive && !isHoverLockTarget;
 
-  const triggerHoverExpand = () => {
-    if (shouldIgnoreInput || !isHoverMode || !isAvailable || isMobile) {
-      return;
-    }
-
-    if (hoverDelayTimerRef.current) {
-      window.clearTimeout(hoverDelayTimerRef.current);
-    }
-
-    hoverDelayTimerRef.current = window.setTimeout(() => {
-      onExpand(card.id);
-    }, 150);
-  };
-
-  const clearHoverTimer = () => {
-    if (hoverDelayTimerRef.current) {
-      window.clearTimeout(hoverDelayTimerRef.current);
-      hoverDelayTimerRef.current = null;
-    }
-  };
-
-  const handleMouseLeave = () => {
-    clearHoverTimer();
-
-    if (isTransitioning) {
-      return;
-    }
-
-    if (!isHoverMode || isMobile) {
-      return;
-    }
-
-    if (isAvailable && isExpanded) {
-      onCollapse(card.id);
-    }
-
-    if (!isAvailable) {
-      onUnavailableActiveChange(card.id, false);
-    }
-  };
-
-  const handleMouseEnterUnavailable = () => {
-    if (shouldIgnoreInput || isAvailable || isMobile || interactionMode !== 'HOVER_MODE') {
-      return;
-    }
-
-    clearHoverTimer();
-    hoverDelayTimerRef.current = window.setTimeout(() => {
-      onUnavailableActiveChange(card.id, true);
-    }, 150);
-  };
-
-  const tabIndex = shouldDisableByHoverLock ? -1 : 0;
+  const tabIndex = shouldDisableByHoverLock ? (allowTabFocusWhileHoverLocked ? 0 : -1) : 0;
   const showExpanded = isExpanded && isAvailable;
   const expandedControlTabIndex = showExpanded ? 0 : -1;
+  const ariaDisabled = !isAvailable || isLockedNonTarget;
+  const combinedWrapperStyle: CSSProperties = {
+    ...(normalHeightPx && !isMobile ? {height: `${normalHeightPx}px`} : {}),
+    ...wrapperStyle
+  };
 
   return (
     <article
-      className={styles.wrapper}
+      data-catalog-card-root="true"
+      className={[styles.wrapper, wrapperClassName ?? ''].filter(Boolean).join(' ')}
       ref={(element) => onRegisterElement(card.id, element)}
-      onMouseEnter={isAvailable ? triggerHoverExpand : handleMouseEnterUnavailable}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => {
+        if (isTransitioning || isMobile || !isHoverMode) {
+          return;
+        }
+
+        if (isAvailable) {
+          onHoverEnterAvailable(card.id);
+          return;
+        }
+
+        onHoverEnterUnavailable(card.id);
+      }}
+      onMouseLeave={(event) => {
+        if (isTransitioning || isMobile || !isHoverMode) {
+          return;
+        }
+
+        const relatedTarget = event.relatedTarget as Element | null;
+        const handoffToAnotherCard = Boolean(relatedTarget?.closest('[data-catalog-card-root="true"]'));
+
+        if (isAvailable) {
+          onHoverLeaveAvailable(card.id, handoffToAnotherCard);
+          return;
+        }
+
+        onHoverLeaveUnavailable(card.id, handoffToAnotherCard);
+      }}
       onFocus={() => {
         if (isTransitioning) {
           return;
@@ -136,11 +133,11 @@ function CatalogCardComponent({
           }
         }
       }}
-      style={holdNormalHeightPx && !showExpanded && !isMobile ? {height: `${holdNormalHeightPx}px`} : undefined}
+      style={combinedWrapperStyle}
     >
       <div
         role={isAvailable ? 'button' : 'group'}
-        aria-disabled={!isAvailable}
+        aria-disabled={ariaDisabled}
         aria-expanded={isAvailable ? showExpanded : undefined}
         tabIndex={tabIndex}
         className={[
@@ -154,11 +151,11 @@ function CatalogCardComponent({
           .join(' ')}
         style={{
           ['--origin-x' as string]: transformOriginX,
-          ['--motion-duration' as string]: pageState === 'REDUCED_MOTION' ? '180ms' : '220ms',
+          ['--motion-duration' as string]: pageState === 'REDUCED_MOTION' ? '180ms' : '200ms',
           ['--full-bleed-duration' as string]: '280ms'
         }}
         onClick={() => {
-          if (shouldIgnoreInput || !isAvailable) {
+          if (shouldIgnoreInput || !isAvailable || isLockedNonTarget) {
             return;
           }
 
@@ -168,6 +165,11 @@ function CatalogCardComponent({
         }}
         onKeyDown={(event) => {
           if (!isAvailable || shouldIgnoreInput) {
+            return;
+          }
+
+          if (isLockedNonTarget && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
             return;
           }
 

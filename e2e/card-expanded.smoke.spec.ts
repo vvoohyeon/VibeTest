@@ -3,10 +3,14 @@ import {expectBodyScrollLock} from './helpers';
 
 test.describe('Card interaction and mobile expanded smoke @smoke', () => {
   test('mobile full-bleed expanded keeps in-flow position and allows inner scroll', async ({page}) => {
-    await page.setViewportSize({width: 390, height: 320});
+    await page.setViewportSize({width: 390, height: 260});
     await page.goto('/en');
-    const candidates = ['Speed vs Depth: Choosing the Right Tempo', 'Vibe Core Compass'];
-    let overflowValidated = false;
+    const candidates = [
+      'Speed vs Depth: Choosing the Right Tempo',
+      'Feedback Patterns That Keep Momentum',
+      'Vibe Core Compass'
+    ];
+    let scrollContainerConfigured = false;
 
     for (const title of candidates) {
       const card = page.locator('article').filter({hasText: title}).first();
@@ -30,16 +34,21 @@ test.describe('Card interaction and mobile expanded smoke @smoke', () => {
 
       const expandedBody = expandedCard.locator('[aria-hidden="false"]').first();
       await expect(expandedBody).toBeVisible();
+      await page.waitForTimeout(260);
 
       const innerScrollState = await expandedBody.evaluate((node) => {
         const element = node as HTMLElement;
+        const style = window.getComputedStyle(element);
         return {
           scrollHeight: element.scrollHeight,
-          clientHeight: element.clientHeight
+          clientHeight: element.clientHeight,
+          overflowY: style.overflowY
         };
       });
 
       await expectBodyScrollLock(page, true);
+      expect(['auto', 'scroll']).toContain(innerScrollState.overflowY);
+      scrollContainerConfigured = true;
 
       if (innerScrollState.scrollHeight > innerScrollState.clientHeight + 1) {
         const scrolledTop = await expandedBody.evaluate((node) => {
@@ -49,19 +58,14 @@ test.describe('Card interaction and mobile expanded smoke @smoke', () => {
         });
 
         expect(scrolledTop).toBeGreaterThan(0);
-        overflowValidated = true;
       }
 
       await page.getByRole('button', {name: 'Close', exact: true}).click();
       await page.waitForTimeout(260);
       await expect(page.locator('[role="button"][aria-expanded="true"]')).toHaveCount(0);
-
-      if (overflowValidated) {
-        break;
-      }
     }
 
-    expect(overflowValidated).toBeTruthy();
+    expect(scrollContainerConfigured).toBeTruthy();
     await expectBodyScrollLock(page, false);
   });
 
@@ -89,5 +93,32 @@ test.describe('Card interaction and mobile expanded smoke @smoke', () => {
     await expect(
       page.getByRole('button', {name: 'Find one person and start a direct conversation.', exact: true})
     ).toBeVisible();
+  });
+
+  test('desktop hover handoff expands only the last hovered card (1024/1280)', async ({page}) => {
+    for (const width of [1024, 1280]) {
+      await page.setViewportSize({width, height: 900});
+      await page.goto('/en?__e2e_mode=hover');
+
+      const firstHoverCard = page.locator('article').filter({hasText: 'Story Wave Navigator'}).first();
+      const lastHoverCard = page
+        .locator('article')
+        .filter({hasText: 'Speed vs Depth: Choosing the Right Tempo'})
+        .first();
+
+      await firstHoverCard.scrollIntoViewIfNeeded();
+      await lastHoverCard.scrollIntoViewIfNeeded();
+      await expect(firstHoverCard).toBeVisible();
+      await expect(lastHoverCard).toBeVisible();
+
+      await firstHoverCard.hover();
+      await page.waitForTimeout(30);
+      await lastHoverCard.hover();
+      await page.waitForTimeout(240);
+
+      await expect(page.locator('[role="button"][aria-expanded="true"]')).toHaveCount(1);
+      await expect(firstHoverCard.locator('[role="button"][aria-expanded="true"]')).toHaveCount(0);
+      await expect(lastHoverCard.locator('[role="button"][aria-expanded="true"]')).toHaveCount(1);
+    }
   });
 });

@@ -46,8 +46,7 @@ test.describe('Landing routing smoke @smoke', () => {
     await openBlogCardAndRevealReadMore(page);
     const readMoreButton = page.getByRole('button', {name: 'Read more', exact: true});
     await expect(readMoreButton).toBeEnabled();
-    await readMoreButton.focus();
-    await readMoreButton.press('Enter');
+    await readMoreButton.click();
 
     await expect(page).toHaveURL(/\/en\/blog\?source=blog-speed-vs-depth$/);
     expectNoDuplicateLocale(new URL(page.url()).pathname);
