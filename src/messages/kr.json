@@ -1,0 +1,68 @@
+{
+  "brand": "바이브 테스트",
+  "nav": {
+    "history": "이력",
+    "blog": "블로그",
+    "home": "홈",
+    "back": "뒤로"
+  },
+  "theme": {
+    "light": "라이트",
+    "dark": "다크",
+    "toggle": "테마 전환"
+  },
+  "language": {
+    "label": "언어",
+    "en": "EN",
+    "kr": "KR",
+    "switch": "언어 변경"
+  },
+  "landing": {
+    "eyebrow": "빠르고 가벼운 개인화 테스트",
+    "title": "원하는 바이브를 선택하세요.",
+    "subtitle": "탐색 중 카드는 컴팩트하고, 확장 상태에서만 진입 동작이 활성화됩니다.",
+    "heroTitle": "이번 주 추천",
+    "catalogTitle": "카탈로그"
+  },
+  "card": {
+    "comingSoon": "준비 중",
+    "readMore": "더 읽기",
+    "close": "카드 닫기",
+    "eta": "예상 시간",
+    "shares": "공유 수",
+    "attempts": "누적 참여",
+    "readTime": "읽기 시간",
+    "views": "조회수"
+  },
+  "settings": {
+    "open": "설정 열기",
+    "close": "설정 닫기",
+    "menu": "메뉴 열기",
+    "menuClose": "메뉴 닫기"
+  },
+  "blog": {
+    "title": "블로그",
+    "subtitle": "카드 source 쿼리와 함께 진입했습니다.",
+    "source": "진입 카드"
+  },
+  "history": {
+    "title": "이력",
+    "subtitle": "결과 이력 셸이 준비되었습니다."
+  },
+  "test": {
+    "instructionTitle": "시작 전 안내",
+    "instructionBody": "더 가까운 선택지를 고르세요. 필요하면 1번 문항은 나중에 다시 바꿀 수 있습니다.",
+    "start": "시작",
+    "next": "다음",
+    "prev": "이전",
+    "submit": "제출",
+    "questionOf": "문항 {index} / {total}",
+    "resultTitle": "결과",
+    "goHome": "랜딩으로 이동"
+  },
+  "notFound": {
+    "title": "페이지를 찾을 수 없습니다",
+    "body": "요청한 경로가 올바르지 않거나 더 이상 존재하지 않습니다.",
+    "home": "홈으로 이동"
+  }
+}

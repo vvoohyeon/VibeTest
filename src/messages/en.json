@@ -1,0 +1,68 @@
+{
+  "brand": "Vibe Test",
+  "nav": {
+    "history": "History",
+    "blog": "Blog",
+    "home": "Home",
+    "back": "Back"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "toggle": "Toggle theme"
+  },
+  "language": {
+    "label": "Language",
+    "en": "EN",
+    "kr": "KR",
+    "switch": "Switch language"
+  },
+  "landing": {
+    "eyebrow": "Personalized, quick, and lightweight",
+    "title": "Pick a vibe and jump in.",
+    "subtitle": "Cards stay compact in browse mode and reveal actions only when expanded.",
+    "heroTitle": "Featured this week",
+    "catalogTitle": "Catalog"
+  },
+  "card": {
+    "comingSoon": "Coming Soon",
+    "readMore": "Read more",
+    "close": "Close card",
+    "eta": "ETA",
+    "shares": "Shares",
+    "attempts": "Attempts",
+    "readTime": "Read time",
+    "views": "Views"
+  },
+  "settings": {
+    "open": "Open settings",
+    "close": "Close settings",
+    "menu": "Open menu",
+    "menuClose": "Close menu"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Source-aware entry is active.",
+    "source": "Card source"
+  },
+  "history": {
+    "title": "History",
+    "subtitle": "Result history shell is ready."
+  },
+  "test": {
+    "instructionTitle": "Before you start",
+    "instructionBody": "Choose what feels closer. You can still revisit Question 1 later.",
+    "start": "Start",
+    "next": "Next",
+    "prev": "Previous",
+    "submit": "Submit",
+    "questionOf": "Question {index} of {total}",
+    "resultTitle": "Result",
+    "goHome": "Back to landing"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The requested path is invalid or no longer available.",
+    "home": "Go to home"
+  }
+}
