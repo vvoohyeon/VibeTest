@@ -22,11 +22,16 @@
 ## 3) 카드 높이/레이아웃 안정성 (핵심)
 - [ ] Normal은 row equal-height stretch 유지. (`§4.5`)
 - [ ] Desktop/Tablet에서 Expanded 시 Expanded 카드만 커지고, 같은 row 비확장 카드는 높이 변화 없음. (`§4.5`)
+- [ ] Desktop/Tablet에서 Expanded `scale 1.1`은 카드 **외곽 컨테이너(card shell)** 기준으로 적용되고, 내부 콘텐츠-only 확대가 아님. (`§4.5`, `§8.2`)
+- [ ] Desktop/Tablet Expanded에서 title/body/CTA/meta가 경계에서 crop/clipping되지 않고 fully readable 상태를 유지. (`§4.5`, `§8.2`)
+- [ ] Normal에서 `tags`가 카드 하단 terminal slot이며, tags 하단 동적 여백이 없다. (`§4.5`, `§6.2`, `§6.6`)
+- [ ] same-row equal-height 보정 시 낮은 카드의 잔여 높이는 tags 상단 구간에서만 발생한다. (`§4.5`)
 - [ ] Same-row handoff(카드1→카드2)에서도 비대상 카드 하단 빈공간 추가 생성 금지(0px). (`§4.5`)
 - [ ] Expanded→Normal 전환 시 카드 높이 spike(일시적 과증가) 금지. (`§8.1`)
 - [ ] 전환 중 동일 카드 이중 가시화 금지. (`§4.5`)
 
 ## 4) 카드 콘텐츠/텍스트
+- [ ] Normal/Expanded 공통으로 title이 카드 최상단(first visible row)에 고정된다. (`§6.2`, `§6.4`, `§9.1`)
 - [ ] Normal title: 줄바꿈 허용, truncate 금지, top/left 정렬. (`§6.6`)
 - [ ] Normal subtitle: 1줄 truncate. (`§6.6`)
 - [ ] Expanded에서 `subtitle/thumbnail/tags` 제거(숨김 아님). (`§6.4`)
@@ -42,6 +47,8 @@
 ## 6) 모션 핵심
 - [ ] Core motion: 280ms/ease-in-out, spring/overshoot 금지. (`§8.1`)
 - [ ] 상세 reveal stagger 40/100/160ms 유지. (`§8.1`)
+- [ ] `width >= 768` Expanded는 외곽 컨테이너 scale `1.1` 고정 + 비대상 scale `1` 유지. (`§8.2`)
+- [ ] "정적 외곽 카드 + 내부 콘텐츠만 scale" 구현 패턴 금지. (`§8.1`)
 - [ ] Mobile full-bleed 전환: 220~360ms(기본 280ms), content-fit, overshoot 금지. (`§9.2`)
 
 ## 7) 모바일 full-bleed
@@ -60,4 +67,5 @@
 - [ ] 최종 PASS 기준은 `qa:gate` 3회 연속(3/3). (`§12.4`)
 - [ ] hydration warning 0건을 자동화 로그로 증명. (`§12.1`)
 - [ ] Card/Expanded 회귀 핵심 케이스(hover handoff, same-row 안정성, spike 금지) PASS. (`§12.4`)
-
+- [ ] Card/Expanded 회귀에 `외곽 컨테이너 1.1 확대` 및 `crop/clipping 0건` 검증이 포함됨. (`§12.4`)
+- [ ] Card/Expanded 회귀에 `title 최상단 고정` + `tags terminal slot` + `tags 하단 동적 여백 0건(단 row equal-height 예외)` 검증이 포함됨. (`§12.4`)

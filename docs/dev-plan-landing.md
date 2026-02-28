@@ -56,16 +56,16 @@
 | IA/경로 표면 | `/{locale}`, `/test/[variant]/question`, `/blog?source=<cardId>`, `/history` | §3.1 | REQ-F-001 |
 | 컨테이너/그리드 | max-width 1280, side padding, vertical rhythm, D/T 2-stage, M 1열, threshold(1160/900), minCardWidth 기본 280 | §4.1~4.4, Appendix C | REQ-F-001 |
 | Hero row 해석 | 정렬 목록 앞 N개를 hero row로 분리하되 Main과 동일 interaction/CTA 게이팅 적용 | §4.3, §4.4 | REQ-F-001, REQ-F-027 |
-| 카드 높이 정책 | Normal row equal-height, Expanded만 유동 증가, non-expanded 고정, fixed height 금지 | §4.5 | REQ-F-034, REQ-F-035 |
+| 카드 높이 정책 | Normal row equal-height, Expanded 외곽 컨테이너(card shell) 유동 증가, non-expanded 고정, fixed height 금지, crop/clipping 금지, Normal에서 tags terminal slot + tags 하단 동적 여백 금지(단 row equal-height 보정 예외) | §4.5 | REQ-F-034, REQ-F-035 |
 | GNB 공통/컨텍스트 | sticky/height/z-index, Landing/Test/Blog 컨텍스트별 구성, swap timing | §5.1~5.5, §3.3 | REQ-F-036 |
 | 설정 UI 계약 | Desktop/Tablet: hover-capable hover-open, non-hover-capable click/focus-open, Esc/outside/focus-out close, hover-gap 금지 | §5.3, §12.4 | REQ-F-033 |
 | Mobile 메뉴 계약 | fixed overlay + backdrop, body scroll lock, close transition 종료 후 unlock, 우측 끝 inset 고정 | §5.4, §12.4 | REQ-F-033, REQ-F-036 |
 | 테마/언어 상태 | system-follow 초기 + 수동 변경 localStorage 고정, 언어 변경 위치 제한 | §5.6 | REQ-F-026 |
-| 카드 슬롯 계약 | Normal 필수 슬롯/썸네일 6:1, Expanded 슬롯 분기(Test/Blog), front/back title 일치 | §6.1~6.6 | REQ-F-001, REQ-F-029 |
+| 카드 슬롯 계약 | Normal/Expanded 모두 title 최상단 고정, Normal 필수 슬롯/썸네일 6:1/tags terminal slot, Expanded 슬롯 분기(Test/Blog), front/back title 일치 | §6.1~6.6 | REQ-F-001, REQ-F-029 |
 | 누락/불가용 정책 | required 누락 시 빈값 유지, optional tags 컨테이너 유지, unavailable blog 금지, unavailable test 진입 차단 | §6.7~6.8 | REQ-F-030 |
 | 상호작용 모드 결정 | SSR 초기 tap-mode, mount 후 capability 동기화 | §4.2A | REQ-F-027 |
 | 상태기계/우선순위 | PageState/CardState/HOVER_LOCK, 우선순위와 반응 정책 | §7.1~7.5 | REQ-F-034, REQ-F-035 |
-| Expanded 모션 계약 | scale 1.1, transform-origin 규칙, opacity 1.0 고정, alpha 애니메이션 금지 | §8.1~8.4 | REQ-F-027 |
+| Expanded 모션 계약 | scale 1.1을 외곽 컨테이너(card shell)에 적용, transform-origin 규칙, opacity 1.0 고정, alpha 애니메이션 금지, 내부 콘텐츠-only scale 금지 | §8.1~8.4 | REQ-F-027 |
 | Mobile Expanded 계약 | in-flow full-bleed, top jump 금지, page lock + inner scroll, X sticky, layer order | §9.1~9.4 | REQ-F-035 |
 | 전환 잠금/복원 | CTA 시점 transition start, source GNB 유지, 완료 후 swap, scrollY 필수 복원 | §10.1~10.2 | REQ-F-031, REQ-F-032, REQ-F-036 |
 | Test 핸드셰이크 | Q1 pre-answer 저장, landing ingress flag, instruction 독립 시작 규칙, consume/read 분리, rollback 3케이스 | §10.3~10.7 | REQ-F-003, REQ-F-028 |
@@ -259,13 +259,17 @@
 
 ### 7.4 슬롯 렌더/클램프 규칙
 - Normal:
+  - title은 카드 최상단(first visible slot)에 고정
   - title/subtitle 1줄 truncate
   - thumbnail 6:1, `object-fit: cover`
+  - 슬롯 순서 고정: `title -> subtitle -> thumbnail -> tags`
   - tags 컨테이너는 값이 없어도 1줄 고정 유지
+  - tags는 카드 하단의 terminal slot
+  - tags 하단 동적 여백 금지(단 same-row equal-height 보정으로 인한 잔여 높이는 tags 상단 구간에만 허용)
   - tags chip은 정의된 값만 렌더(빈 chip 금지)
   - front face CTA 금지
 - Expanded:
-  - title만 헤더 유지
+  - title만 헤더 유지(카드 최상단 first row 고정)
   - subtitle/thumbnail/tags는 숨김이 아닌 미렌더링(또는 접근성 트리 비노출) 처리
   - Test: previewQuestion/answerChoice는 줄바꿈 허용, truncate 금지
   - Blog: summary 4줄 clamp, primaryCTA 1줄 truncate
@@ -313,6 +317,9 @@
 - 썸네일 6:1, text clamp, missing slot 처리 적용
 - unavailable overlay 규칙 적용
 - 완료 기준
+  - Normal/Expanded 모두 title이 카드 최상단에 고정
+  - Normal에서 tags가 하단 terminal slot이며 tags 하단 동적 여백 0
+  - row equal-height 보정 시 잔여 높이는 tags 상단 구간에서만 발생
   - front/back title 불일치 없음
   - Expanded에서 subtitle/thumbnail/tags 미렌더링 보장
   - unavailable overlay 시각/동시성/focus ring 계약 충족
@@ -328,10 +335,13 @@
 
 ### Phase 7. 모션/시각 계약
 - Expanded motion, transform-origin, opacity 1.0 고정
+- `width >= 768`에서 scale `1.1`은 Expanded 카드 외곽 컨테이너(card shell)에 적용하고, 내부 텍스트/버튼 블록만 단독 확대하는 구현은 금지
 - alpha 애니메이션 금지, backdrop/dim 금지(Desktop/Tablet)
 - reduced-motion 대체 경로 구현
 - 완료 기준
   - 모션 수치 범위 계약 충족
+  - Expanded 상태에서 title/body/CTA/meta fully readable 보장(crop/clipping 0건)
+  - 내부 콘텐츠-only scale 금지 규칙 반영
   - reduced-motion 시 대형 이동 없음
   - 내부 이중 박스 시각 금지 반영
 
@@ -394,6 +404,12 @@
   - unavailable overlay 노출 규칙
   - unavailable overlay 글로벌 동시 노출 금지
   - HOVER_LOCK 중 비대상 카드 `tabIndex=-1`
+  - `width >= 768` Expanded에서 scale `1.1`이 카드 외곽 컨테이너 기준으로 적용되는지 검증
+  - `width >= 768` Expanded 진입/유지/해제 동안 title/body/CTA/meta crop/clipping 0건 검증
+  - 내부 콘텐츠만 확대되고 외곽 카드가 고정되는 구현 패턴이 없는지 검증
+  - Normal/Expanded 공통으로 title이 카드 최상단(first visible row)인지 검증
+  - Normal에서 tags가 카드 하단 terminal slot인지 검증
+  - Normal에서 tags 하단 동적 여백 0건, same-row equal-height 보정 잔여 높이는 tags 상단 구간에서만 발생하는지 검증
   - Mobile full-bleed 위치 유지/X sticky
 - Transition/Test handshake
   - pre-answer 저장/consume 시점
@@ -416,6 +432,9 @@
 - 레이아웃 스로싱
   - 리스크: Expanded 높이 변화 + row 고정 정책 충돌
   - 대응: 측정 최소화, active row 기준 높이 스냅샷 사용
+- Expanded scale/crop 불일치
+  - 리스크: 내부 콘텐츠-only scale로 인해 카드 외곽 미확대 + 콘텐츠 crop 발생
+  - 대응: scale 적용 대상을 외곽 card shell로 고정하고, Playwright에서 crop 0건 회귀 검증 추가
 - capability 변동
   - 리스크: 하이브리드 기기에서 hover/tap 모드 튐
   - 대응: 모드 전환 시점에 상태 reset 규칙 명시(transition 중 전환 금지)

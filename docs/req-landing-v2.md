@@ -157,8 +157,13 @@
 - Normal 상태에서는 동일 row 내 equal-height stretch를 적용한다(MUST).
 - row equal-height stretch를 깨뜨리는 축 정렬 설정을 금지한다(MUST).
 - 카드 shell은 Normal 상태에서 row stretch를 수용해야 한다(`min-height: 100%` 또는 동등 규칙)(MUST).
+- Normal 상태에서 카드 하단의 마지막 콘텐츠 슬롯은 `tags`로 고정한다(MUST).
+- Normal 상태에서 `tags` 하단에는 카드 기본 내부 패딩 외의 추가 하단 여백(동적 spacer/보정 margin/pseudo-element 포함)을 두면 안 된다(MUST).
+- 단, 같은 row equal-height 보정을 위해 더 낮은 카드의 잔여 높이를 맞추는 것은 허용하며, 이 잔여 높이는 `tags` 상단 구간에서만 발생해야 한다(MUST).
 - Expanded 높이 정책은 Desktop/Tablet에만 적용한다(MUST). Mobile은 1-column full-bleed 정책(Section 9.x)을 따른다.
-- Desktop/Tablet에서 카드 1개가 Expanded로 전환될 때 Expanded 카드만 콘텐츠 높이에 맞춰 유동적으로 증가한다(MUST).
+- Desktop/Tablet에서 카드 1개가 Expanded로 전환될 때 Expanded 카드의 **외곽 컨테이너(card shell)** 가 콘텐츠 높이와 scale envelope를 수용하도록 유동적으로 증가해야 한다(MUST).
+- Desktop/Tablet에서 Expanded 카드의 scale 적용은 내부 텍스트/버튼 블록만이 아니라 **카드 외곽 컨테이너 전체**에 적용되어야 한다(MUST).
+- Desktop/Tablet에서 Expanded 상태의 제목/본문/CTA/meta는 카드 경계에서 잘리거나(crop) 마스킹되어 식별 불가 상태가 되면 안 된다(MUST).
 - Desktop/Tablet에서 같은 row의 비확장 카드는 Expanded 진입 시점의 Normal 높이 snapshot을 유지한다(MUST).
 - snapshot 해제는 Expanded 종료 직후 1회만 수행한다(MUST).
 - Normal baseline(height snapshot) 재측정은 레이아웃 안정 구간에서만 수행해야 한다(MUST).
@@ -174,6 +179,7 @@
 - Expanded 카드가 다른 row 위를 시각적으로 덮는 것은 허용한다(MAY).
 - 같은 row 비확장 카드의 하단 추가 빈 공간 생성은 허용하지 않는다(MUST).
 - Expanded(Desktop/Tablet)는 fixed height를 사용하지 않는다(MUST).
+- Desktop/Tablet Expanded에서 카드 본문 식별성에 영향을 주는 clipping(`overflow: hidden` 기반 crop 포함)을 금지한다(MUST). 단, 시각 효과를 유지하면서 콘텐츠 식별성을 보장하는 동등 구현은 허용한다(MAY).
 - 불필요한 하단 빈 공간 금지.
 
 ## 5. GNB Contract
@@ -250,6 +256,9 @@
 - `cardSubtitle` (required)
 - `thumbnailOrIcon` (required)
 - `tags[]` (0~3 노출)
+- Normal 슬롯 렌더 순서는 고정한다(MUST): `cardTitle -> cardSubtitle -> thumbnailOrIcon -> tags`.
+- Normal에서 `cardTitle`은 카드 본문 컨테이너의 최상단(first visible slot)에 위치해야 한다(MUST).
+- Normal에서 `tags`는 카드 하단의 마지막(terminal) 슬롯이어야 한다(MUST).
 
 ### 6.3 Normal Thumbnail Spec
 - width: 카드 콘텐츠 영역 100%
@@ -258,6 +267,7 @@
 
 ### 6.4 Expanded Header
 - `cardTitle`만 유지
+- Expanded에서 `cardTitle`은 카드의 최상단 헤더(first visible row)에 고정한다(MUST).
 - Normal의 `subtitle/thumbnail/tags`는 Expanded에서 슬롯 자체를 제거한다(MUST).
 - Expanded에서 제거된 슬롯은 시각적으로 숨김이 아니라 미렌더링 또는 접근성 트리 비노출(`aria-hidden` 포함)이어야 한다(MUST).
 - front/back title 불일치 금지
@@ -287,9 +297,11 @@
 - title: 줄바꿈 허용, truncate/ellipsis 금지(MUST).
 - title 행의 수직 정렬은 top(`align-items: flex-start`)으로 유지한다(MUST).
 - title의 수평 기준은 좌측 정렬을 유지한다(MUST).
+- title 슬롯은 Normal 카드의 최상단 첫 행으로 고정한다(MUST).
 - subtitle: 1줄 + truncate(MUST).
 - tags 영역: 항상 1줄 슬롯 고정.
 - tags chip: 각 1줄 + truncate, wrap 금지.
+- tags 영역은 Normal 카드 하단의 마지막 슬롯이어야 하며, tags 아래의 동적 추가 여백을 금지한다(MUST).
 - 상태 배지 텍스트 슬롯 미사용.
 
 #### Expanded
@@ -423,6 +435,7 @@
   - Expanded 관련 transition curve는 `ease-in-out` 계열로 통일한다
   - spring/overshoot(탄성 튐) 효과를 금지한다
 - 내부 이중 박스 시각 금지.
+- Expanded 연출을 위해 "정적 외곽 카드 + 내부 콘텐츠만 scale" 구조를 사용하는 것을 금지한다(MUST).
 - Motion parameter 관리 원칙:
   - Desktop/Mobile 공통으로 사용하는 duration/easing/stagger는 단일 규격에서 관리한다(MUST).
   - 플랫폼별 예외는 본문에 명시된 항목(예: Mobile full-bleed 시간 범위)으로만 제한한다(MUST).
@@ -444,15 +457,16 @@
   - handoff 경로는 지연 없이 즉시 전환한다.
 
 - 공통 비주얼 계약:
-  - scale `1.1`
+  - scale `1.1`은 Expanded 카드의 **외곽 컨테이너(card shell)** 에 적용한다(MUST).
   - transform-origin:
     - 좌측 끝 `0% 0%`
     - 우측 끝 `100% 0%`
     - 그 외 `50% 0%`
-  - Expanded 유지 동안 `1.1` 고정
+  - Expanded 유지 동안 외곽 컨테이너 scale은 `1.1`로 고정한다(MUST).
   - 비대상 카드 scale은 항상 1
   - Expanded 카드 본체 opacity는 항상 `1.0`
   - Expanded 외부 backdrop/dim 효과를 사용하지 않음
+  - Expanded 상태에서 카드 콘텐츠는 전 구간(진입/유지/해제)에서 fully readable 상태를 유지해야 하며, scale로 인한 crop/clip이 발생하면 안 된다(MUST).
 
 ### 8.3 Expanded Opacity
 - Expanded 카드 본체 opacity는 항상 `1.0`
@@ -468,6 +482,7 @@
 - available 카드 탭 시 탭된 해당 카드만 Expanded
 - Expanded는 카드의 in-flow 위치를 유지하며 상단으로 재배치(top jump)하지 않음
 - Expanded 헤더는 `title + X` 구조를 유지한다.
+- Expanded 헤더(`title + X`)는 카드의 최상단 첫 행에 위치해야 한다(MUST).
 - title은 줄바꿈 허용, truncate/ellipsis 금지(MUST).
 - title은 헤더 상단 기준 정렬(top align)로 표시한다(MUST).
 - X 버튼은 헤더 우측 끝에 고정하고, 카드 내부 스크롤 중에도 상단 sticky를 유지한다(MUST).
@@ -702,6 +717,11 @@
 - `width >= 768`에서 한 카드 Expanded 시 같은 row 비확장 카드 높이는 변하지 않아야 한다(MUST).
 - `width >= 768`에서 Expanded 진입/유지/해제 동안 비확장 row의 y-position 변화가 `0px`인지 확인한다(MUST).
 - `width >= 768`에서 Expanded 대상 카드는 전환 중 동일 카드가 이중 가시화되지 않고 연속 전이로 보여야 한다(MUST).
+- `width >= 768`에서 Expanded 대상 카드는 외곽 컨테이너 기준으로 110% 확대가 적용되며, 내부 콘텐츠만 확대되는 형태가 아님을 검증한다(MUST).
+- `width >= 768`에서 Expanded 진입/유지/해제 구간 동안 title/body/CTA/meta의 가시 영역 crop이 `0건`인지 검증한다(MUST).
+- Normal/Expanded 공통으로 `cardTitle`이 카드 최상단(first visible row)에 위치하는지 검증한다(MUST).
+- Normal에서 `tags`가 카드 하단의 마지막 슬롯인지, tags 아래 동적 추가 여백이 `0건`인지 검증한다(MUST).
+- 같은 row equal-height 보정 시 낮은 카드의 잔여 높이가 `tags` 상단 구간에만 형성되고, tags 하단으로 누수되지 않는지 검증한다(MUST).
 - `width >= 768`에서 빠른 hover 이동(Row1→Row2, Same-row 포함) 시 마지막 hover 카드만 최종 Expanded여야 한다(MUST).
 - `width >= 768`에서 직전 hover 카드의 pending transition은 즉시 취소되어야 한다(MUST).
 - Row1→Row2 빠른 hover handoff 케이스는 최소 viewport `1024`와 `1280`에서 모두 검증한다(MUST).
