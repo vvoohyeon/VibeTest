@@ -5,6 +5,11 @@
 ### 1.1 Scope (V1)
 **Rule**: V1 구현 범위는 랜딩 카탈로그 UI, 카드 상태 전이(Normal/Expanded), unavailable 계약, 랜딩→목적지 전환 핸드셰이크, 최소 텔레메트리, SSR/Hydration 안정성으로 한정한다.
 
+**Implementation Notes**:
+- 랜딩 카탈로그는 Test/Blog 카드 혼합 목록이다.
+- 카드 상태 전이는 입력 모드(mouse/touch/keyboard)와 뷰포트 규칙을 따른다.
+- 텔레메트리는 Section 12의 최소 이벤트셋만 포함한다.
+
 ### 1.2 Non-goals (V1)
 **Rule**: 배경 동적 연출, Google Sheets 실연동, 전역 택소노미 전체 구현, 테스트/블로그 본문 고도화는 V1 범위에서 제외한다.
 
@@ -15,6 +20,9 @@
 - 카드 tilt 효과는 전면 비활성화한다.
 - Desktop/Tablet Expanded scale은 `1.1` 고정이다.
 - Expanded 카드 본체 opacity는 `1.0` 고정이다.
+
+**Implementation Notes**:
+- 본 항목 변경 시 Section 6, 8, 14를 동일 변경셋으로 동기화해야 한다.
 
 **Verification**:
 1. Manual: 배경 동적 연출/tilt가 비활성 상태인지 확인한다.
@@ -62,10 +70,6 @@
 - 라우팅/locale 정책 변경 시 Section 5, 13, 14를 동기화한다.
 - 키보드 포커스/확장/Esc 정책 변경 시 Section 7, 9, 14를 동기화한다.
 - 테마/다크모드 정책 변경 시 Section 6, 8, 10, 14를 동기화한다.
-- 카드 높이/하단 여백/복귀 정책 변경 시 Section 6.7, 8.3, 14.3을 동기화한다.
-- 레이어/포인터 우선순위 정책 변경 시 Section 6.4, 8.4, 8.5, 14.3을 동기화한다.
-- 모바일 CTA 우선순위/닫기 경로 정책 변경 시 Section 8.5, 8.6, 13.3, 14.3을 동기화한다.
-- first-row 컬럼 규칙 변경 시 Section 6.1, 6.2, 14.3을 동기화한다.
 
 ### 3.3 Ambiguity Handling
 **Rule**: 구현자가 단일 해석을 확정할 수 없으면 릴리스를 멈추고 해당 섹션에 정책 옵션/선택 근거를 추가한 뒤 확정한다.
@@ -127,7 +131,10 @@
 2. 쿠키가 없거나 무효면 `Accept-Language`를 파싱해 지원 locale 최적 매치를 선택한다.
 3. 매치 실패 시 `defaultLocale`로 리다이렉트한다.
 - locale 없는 경로 처리(V2 고정): 허용 목록 기반 리다이렉트만 허용한다.
-- 허용 목록(locale-less redirect allowlist): `/blog`, `/history`, `/test/[variant]/question`
+- 허용 목록(locale-less redirect allowlist):
+1. `/blog`
+2. `/history`
+3. `/test/[variant]/question`
 - 허용 목록에 없는 locale-less 경로는 locale 주입 리다이렉트하지 않고 global unmatched 404로 처리한다.
 - duplicate locale prefix는 비정상 경로로 분기해 전역 unmatched 404 전략으로 처리한다.
 - `proxy.ts`에는 비즈니스 상태 로직을 넣지 않는다.
@@ -156,7 +163,9 @@
 **Implementation Notes**:
 - segment 내부 도메인 오류는 `notFound()`로 처리한다.
 - 라우팅 트리 외부 unmatched는 global-not-found에서 처리한다.
+- 파일 컨벤션은 `global-not-found.tsx`를 사용한다.
 - 현재 버전(Next.js `16.1.6`)에서는 global unmatched route 활성화를 위해 `experimental.globalNotFound: true` 설정을 요구한다.
+- 향후 버전에서 실험 설정이 제거되면 변경 이력에 근거를 남기고 설정을 정리한다.
 
 **Verification**:
 1. Manual: 존재하지 않는 locale 포함 경로와 완전 무관 경로를 각각 점검한다.
@@ -178,11 +187,7 @@
 
 ### 6.2 Grid Composition
 **Rule**: Grid는 breakpoint 별 고정 규칙을 따른다.
-- Desktop: hero/main 명칭은 유지하되 카드 흐름은 단일 연속 grid로 구성한다. hero/main은 시각 영역 분리가 아니라 row index 기반 규칙으로만 해석한다.
-- Desktop Wide(`availableWidth>=1160`): Row 1은 `3`, Row 2+는 `4` 컬럼을 강제한다.
-- Desktop Medium(`900<=availableWidth<1160`): Row 1은 `2`, Row 2+는 `3` 컬럼을 강제한다.
-- Desktop Narrow(`availableWidth<=899`): first-row 예외 없이 모든 row를 `2` 컬럼으로 고정한다.
-- Desktop first-row 예외 구간(Medium/Wide)에서 Row 1 카드가 목표 개수에 미달하면 이후 row 후보를 앞 row로 당겨 채운다.
+- Desktop: hero/main 명칭은 유지하되 카드 흐름은 단일 연속 grid로 구성한다. `availableWidth>=1160`이면 hero 3/main 4, 아니면 hero 2/main 3 기준을 따른다.
 - Desktop/Tablet: hero/main 경계가 강제 줄바꿈, 빈 track, 빈 카드 공간을 만들면 안 된다.
 - Tablet: hero 2 고정, main은 `availableWidth>=900`이면 3 아니면 2
 - Mobile: 1열, vertical gap `14~16px`
@@ -190,8 +195,7 @@
 **Verification**:
 1. Manual: threshold 근처 폭에서 컬럼 전환을 확인한다.
 2. Automated: viewport parameterized E2E로 컬럼 수를 검증한다.
-3. Automated: Desktop Narrow/Medium/Wide에서 Row 1/Row 2+ 컬럼 규칙이 정확히 적용되는지 검증한다.
-4. Automated: hero/main 경계에서 강제 줄바꿈·빈 track·빈 카드 공간 `0건`을 검증한다.
+3. Automated: hero/main 경계에서 강제 줄바꿈·빈 track·빈 카드 공간 `0건`을 검증한다.
 
 ### 6.3 Hero & Visual Baseline
 **Rule**: Hero는 입력 없는 정보 영역이며 outline/border/stroke를 사용하지 않는다.
@@ -209,14 +213,9 @@
 - Desktop 설정 레이어: hovered-out 방지용 닫힘 유예 `100~180ms`는 hover 경로에만 허용한다.
 - Mobile Landing: CI + 햄버거, 햄버거는 우측 끝(Mobile `16px` inset) 고정.
 - Mobile Landing: fixed overlay + backdrop, backdrop은 메뉴 패널 외 전체 viewport를 dimmed 처리한다.
-- Mobile Landing/Blog/History: 햄버거 확장 패널은 solid 표면으로 표시하고, 패널 외부 영역은 불투명 dim backdrop으로 처리한다.
 - Mobile Landing/Blog: 햄버거 확장 패널은 GNB를 포함한 페이지 요소보다 상위 레이어에 표시되어야 하며, 상단 클리핑을 금지한다.
 - Mobile Landing: body scroll lock을 적용한다.
 - Mobile Landing: backdrop 탭으로 닫고, body scroll unlock은 close transition 종료 시점에 수행한다.
-- Mobile Landing/Blog/History: 메뉴 확장 상태에서 패널 외부 영역 입력은 `pointer down` 시점에 닫힘을 시작해야 한다.
-- Mobile Landing/Blog/History: 위 입력이 스크롤 제스처로 판정되면 닫힘 시작을 취소해야 한다.
-- Mobile Landing/Blog/History: 닫힘 transition 진행 중 추가 닫힘 입력은 무시해야 한다.
-- Mobile Landing/Blog/History: 닫힘 완료 후 포커스는 햄버거 트리거로 복귀해야 한다.
 - Mobile Landing: 최하단 설정 컨트롤은 언어/테마 2개만 허용한다.
 - Mobile Test: Back + Timer만 제공하며 instruction/question/result 전 상태에서 동일 구성을 유지한다.
 - Mobile Test Back: 우선 `history.back`, 불가 시 `/{locale}`로 fallback.
@@ -248,8 +247,6 @@
 - Normal subtitle: 1줄 truncate
 - Normal tags 영역: 1줄 슬롯 고정, chip은 1줄 truncate, wrap 금지
 - Expanded Test preview/choices: 줄바꿈 허용, truncate 금지
-- Expanded Test answer choices 텍스트는 버튼 내부 좌측 정렬을 강제하며 줄 수 제한 없이 줄바꿈을 허용한다.
-- Expanded Test answer choices 텍스트는 truncate/ellipsis/clamp를 금지한다.
 - Expanded Blog summary: 4줄 clamp
 - Expanded meta/CTA: overflow 시 truncate
 - 카드 타이포그래피는 동일 locale에서 Normal/Expanded 상태 간 대표 폰트 1종을 유지해야 하며 상태별 폰트 분기를 금지한다.
@@ -265,21 +262,21 @@
 - row equal-height stretch를 깨뜨리는 축 정렬 설정을 금지한다.
 - 카드 shell은 Normal 상태에서 row stretch를 수용해야 한다(`min-height: 100%` 또는 동등 규칙).
 - Normal 마지막 슬롯은 `tags`로 고정한다.
-- Desktop Normal settled에서 같은 row 카드 하단 기준선 오차는 `0px`여야 한다.
-- Desktop Normal에서 같은 row에 더 높은 카드가 없는 경우 카드 높이는 콘텐츠를 감싸는 높이여야 하며, 카드 내부/외부 하단 잔여 공간을 허용하지 않는다.
 - `tags` 하단에 동적 spacer/margin/pseudo-element 추가를 금지한다.
 - 같은 row equal-height 보정 잔여 높이는 `tags` 상단에서만 허용한다.
-- Desktop Normal에서 잔여 높이 보정은 같은 row의 더 높은 카드에 맞추는 불가피한 경우에만 허용한다.
+- Normal에서 row equal-height 보정으로 생기는 잔여 높이는 시각적으로 최소여야 하며 `tags` 직전 구간 외 생성은 금지한다.
 - optional tags 값이 없어도 `tags` 슬롯 1줄 높이는 유지해야 한다.
 - Expanded 높이 정책은 Desktop/Tablet에만 적용하고 Mobile은 full-bleed 규칙을 따른다.
 - Desktop/Tablet Expanded는 fixed height를 금지한다.
-- Desktop Expanded settled에서 카드 높이는 시각 최외곽 기준 content-fit이어야 하며 하단 잔여 공간을 허용하지 않는다.
-- Desktop Expanded 초장문 콘텐츠는 카드 고정 높이로 수용하지 않고 페이지 스크롤로 수용한다.
+- Desktop/Tablet Expanded는 전환 중 일시적 여백을 허용하되 settled 시점에는 content-fit 하단 무여백을 강제한다.
 - Expanded 진입 시 같은 row 비확장 카드는 Normal 높이 snapshot을 유지한다.
 - snapshot 해제는 Expanded 종료 직후 1회만 허용한다.
 - baseline(height snapshot) 재측정은 레이아웃 안정 구간에서만 허용한다.
 - Expanded 활성, handoff 정리 중, instant 종료 처리 중에는 baseline 재측정을 금지한다.
+- handoff 연쇄 중 baseline이 중간 프레임 값으로 갱신되어 row 안정성이 깨지는 것을 금지한다.
+- Expanded 전환 방식이 같은 row 비확장 카드의 row track 재계산을 유발하면 안 된다.
 - handoff 직후부터 대상 카드 settled 시점까지 비대상 카드 bottom edge 오차는 baseline 대비 `0px`여야 한다.
+- 같은 구간에서 비대상 카드에 카드 내부 콘텐츠-외곽 shell 사이 신규 하단 빈 영역이 생기면 안 된다.
 - 전환 중 동일 카드가 Normal/Expanded로 동시에 보이면 안 된다.
 - Expanded 진입/유지/해제 동안 비확장 row의 수직 위치 오차는 `0px`여야 한다.
 - Expanded 카드가 다른 row 위를 시각적으로 덮는 것은 허용한다.
@@ -287,12 +284,10 @@
 - 콘텐츠 식별성을 해치는 clipping(`overflow: hidden` 기반 crop 포함)은 금지한다. 단, 동일 가독성을 보장하는 동등 구현은 허용한다.
 
 **Verification**:
-1. Automated: Desktop Normal settled에서 same-row 카드 하단 기준선 오차 `0px`를 검증한다.
-2. Automated: Same-row handoff에서 비대상 카드 하단 추가 빈 공간 `0px`를 검증한다.
-3. Automated: Row1→Row2 handoff에서 baseline 대비 bottom edge 오차 `0px`를 검증한다.
-4. Automated: Expanded 전환 중 dual-visibility(동일 카드 이중 가시화) `0건`을 검증한다.
-5. Automated: Desktop Expanded settled 프레임에서 확장 대상 카드 하단 불필요 빈 공간 `0건`을 검증한다.
-6. Automated: 초기 렌더/미세 리사이즈 후 Desktop Normal 하단 정렬 규칙이 동일하게 유지되는지 검증한다.
+1. Automated: Same-row handoff에서 비대상 카드 하단 추가 빈 공간 `0px`를 검증한다.
+2. Automated: Row1→Row2 handoff에서 baseline 대비 bottom edge 오차 `0px`를 검증한다.
+3. Automated: Expanded 전환 중 dual-visibility(동일 카드 이중 가시화) `0건`을 검증한다.
+4. Automated: Expanded settled 프레임에서 확장 대상 카드 하단 불필요 빈 공간 `0건`을 검증한다.
 
 ### 6.8 Normal Thumbnail & Expanded Slot Semantics
 **Rule**: Normal 썸네일 규격과 Expanded 타입별 슬롯 의미론은 아래 규칙으로 고정한다.
@@ -365,6 +360,7 @@
 - 비대상 카드: 마우스 입력 기반 반응(`hover/click/pointer`)을 차단한다.
 - 키보드 모드 아님: 비대상 카드 `tabIndex=-1`.
 - 키보드 모드: Tab 포커스 허용, `Enter/Space` 활성화 차단, `aria-disabled=true`.
+- 비대상 카드 Expanded 진입은 차단한다.
 - handoff: 직전 카드 이탈 전이는 `0ms` 즉시 종료를 허용하고 최종 대상만 전이를 유지한다.
 - handoff 외 종료는 일반 복귀 모션 규칙을 따른다.
 - 키보드 모드 진입: `Tab/Shift+Tab` 입력 감지.
@@ -430,9 +426,8 @@
 - Phase A/B는 전환 시작 프레임에서 시작 가능, Phase C는 상세 블록 활성 이후 시작.
 - reveal 항목 순서는 DOM 순서와 일치해야 한다.
 - Expanded→Normal은 동일 축/곡선으로 대칭 복귀해야 한다.
+- Expanded→Normal 동안 카드 외곽 높이는 spike 없이 목표 Normal 높이로 수렴해야 한다.
 - Expanded→Normal 동안 카드 외곽 높이는 non-increasing(단조 감소/정체)이어야 하며 시작 높이를 초과하는 프레임을 금지한다.
-- Expanded→Normal 완료 시 카드 높이는 확장 진입 직전 Normal 스냅샷 높이와 `0px` 오차로 일치해야 한다.
-- Mobile에서는 전환 중 임시 오차를 허용할 수 있으나, 완료 시점에는 위 복원 규칙을 동일하게 강제한다.
 - `0ms` 전이는 handoff의 직전 카드 이탈 경로에서만 허용한다.
 - 동일 카드 일반 leave/close, 최종 hover 대상 진입, tap 기반 일반 전이에서는 `0ms` 전이를 금지한다.
 - HOVER_LOCK 등 보조 잠금 상태는 비대상 반응 차단에만 사용하며 대상 카드 core motion 무효화를 금지한다.
@@ -442,12 +437,13 @@
 - 내부 이중 박스 시각을 금지한다.
 - 정적 외곽 카드 + 내부 콘텐츠만 scale 구조를 금지한다.
 - Desktop/Mobile 공통 duration/easing/stagger는 단일 규격으로 관리한다.
+- 플랫폼 예외는 문서에 명시된 항목으로만 허용한다.
+- `prefers-reduced-motion`에서는 상세 슬롯 reveal stagger를 동시 노출로 단순화할 수 있다.
 
 **Verification**:
 1. Automated: Phase 순서/시간/stagger를 타임라인 단언으로 검증한다.
 2. Automated: Expanded→Normal non-increasing 위반 프레임 `0건`을 검증한다.
 3. Automated: same-card leave에서 `0ms` 강제 종료가 발생하지 않는지 검증한다.
-4. Automated: Desktop/Mobile 반복 토글에서 Expanded→Normal 완료 높이 복원 오차 `0px`를 검증한다.
 
 ### 8.4 Expanded Shell Scale and Readability
 **Rule**:
@@ -456,15 +452,13 @@
 - Expanded 전 구간(진입/유지/해제)에서 title/body/CTA/meta crop 0건
 - transform-origin: 좌측 끝 `0% 0%`, 우측 끝 `100% 0%`, 그 외 `50% 0%`
 - Expanded 카드 opacity는 항상 `1.0`
-- Desktop/Tablet에서 Expanded 카드는 GNB와 Settings 레이어를 제외한 카드 레이어 중 최상위여야 하며, 인접 카드에 의해 가려지면 안 된다.
-- 다중 Expanded는 금지하며, 활성 Expanded 카드는 항상 1개여야 한다.
 
 **Verification**:
 1. Automated: 스크린샷 기반으로 shell 스케일 적용과 crop 0건을 검증한다.
-2. Automated: Desktop/Tablet에서 인접 카드 가림 현상 `0건`과 Expanded hit-target 우선순위를 검증한다.
 
 ### 8.5 Mobile Expanded (`width<768`)
 **Rule**: Mobile Expanded는 in-flow full-bleed와 닫기/스크롤/레이어 규칙을 준수해야 한다.
+- 본 규칙은 `width<768`에서만 적용한다.
 - 탭한 해당 카드만 Expanded로 진입한다.
 - Expanded는 in-flow 위치를 유지하며 top jump를 금지한다.
 - Expanded 헤더는 `title + X` 구조를 유지한다.
@@ -479,6 +473,7 @@
 - Normal 카드에서 Expanded 카드로의 전환은 동일 카드의 연속 전이로 지각되어야 하며, 분리된 별도 카드가 돌출되는 듯한 강한 불연속 전이를 금지한다.
 - 모바일 외곽 컨테이너 높이 전이는 content-fit 목표 높이까지 monotonic(증가/감소)이어야 하며 overshoot를 금지한다.
 - content-fit 높이 계산은 런타임 실측(`from px -> to px -> auto`) 또는 동등 정확도 방식으로 수행한다.
+- 구조는 `header(auto) + body(minmax(0, 1fr))`를 사용한다.
 - 내부 스크롤은 body에서만 허용한다.
 - 콘텐츠가 viewport를 넘지 않으면 내부 스크롤이 없어야 한다.
 - 자동 viewport 보정 스크롤을 금지한다.
@@ -487,20 +482,16 @@
 - unavailable 카드는 Expanded 진입/닫기 토글 대상이 아니다.
 - 레이어 순서는 `GNB > Expanded 카드 > backdrop > 기타 카드`로 고정한다.
 - backdrop은 Expanded 카드를 덮으면 안 된다.
+- Expanded 카드는 항상 불투명/상호작용 가능 상태를 유지해야 한다.
 - dim 처리는 Expanded 외부 영역에만 적용한다.
 - X 버튼은 backdrop보다 상위 레이어에 위치하고 항상 클릭 가능해야 한다.
-- Mobile Expanded settled 상태에서 활성 카드 본체 위 dim/tint는 `0%`여야 한다.
-- Mobile Expanded 내부 상호작용 우선순위는 `CTA(응답 A/B, Read more) > X 버튼 > 카드 외부 영역`으로 고정한다.
-- Mobile Expanded 내부 비-CTA 영역 탭은 no-op이어야 하며, 닫기/전환을 유발하면 안 된다.
 
 **Verification**:
 1. Automated: 모바일에서 닫기 경로(X/backdrop)와 자연 복귀를 검증한다.
 2. Automated: content-fit 높이 전이 overshoot `0건`을 검증한다.
 3. Automated: 내부 스크롤 영역이 body로 제한되는지 검증한다.
 4. Automated: z-index/포인터 타깃 검증으로 모바일 레이어 순서를 확인한다.
-5. Automated: Mobile Expanded settled 상태에서 활성 카드 본체 dim/tint `0%`를 검증한다.
-6. Automated: 모바일 CTA 우선순위(`CTA > X > outside`) 및 내부 non-CTA no-op를 검증한다.
-7. Manual: 모바일 Expanded 진입/해제에서 카드 연속성(강한 단절 없음)을 확인한다.
+5. Manual: 모바일 Expanded 진입/해제에서 카드 연속성(강한 단절 없음)을 확인한다.
 
 ### 8.6 Transition Start Trigger (Landing→Destination)
 **Rule**: 라우팅 전환 시작은 Expanded의 유효 CTA 활성화 시점에만 허용한다.
@@ -508,8 +499,6 @@
 - Blog: Read more
 - Blog CTA 전환은 선택된 article 식별자를 목적지로 전달해야 하며, 목적지는 해당 식별자 기준으로 콘텐츠 컨텍스트를 결정해야 한다.
 - article 식별자 누락/무효 시에는 문서에 정의된 안전 fallback으로 처리해야 한다.
-- Mobile에서도 CTA 입력(마우스 클릭/터치 탭)은 닫기 동작보다 우선하며 반드시 `transition_start`로 귀결되어야 한다.
-- 본 섹션의 전환 시작 규칙은 Section 13.3/13.6의 fail/cancel/rollback 계약을 변경하지 않는다.
 
 ---
 
@@ -548,6 +537,12 @@
 ---
 
 ## 10. Responsive Requirements
+
+### 10.1 Behavior Matrix
+**Rule**: 반응형 동작은 아래와 같이 고정한다.
+- Mobile(0~767): Tap Mode 전용, full-bleed Expanded, unavailable 오버레이 상시
+- Tablet(768~1023): capability 기반 모드 결정, Desktop과 동일 Expanded 원칙
+- Desktop(>=1024): capability 기반 모드 + hover 기본 경로
 
 ### 10.2 GNB by Context
 **Rule**: GNB 컨텍스트 규칙은 Section 6.4를 단일 소스로 따른다(중복 정의 금지).
@@ -598,8 +593,18 @@
 - 클라이언트 텔레메트리 네트워크 전송은 `consent_state=OPTED_IN`에서만 허용한다.
 - `OPTED_OUT/UNKNOWN`에서는 클라이언트 이벤트를 로컬 큐에 보관할 수 있으나 네트워크 전송은 금지한다.
 - 동의 UI 도입 전 V1 운영에서는 strictly-necessary 범위의 비식별 서버 집계(예: 총 페이지뷰)만 허용한다.
-- V1 필수 이벤트: `landing_view` 1회, `transition_start` 1회, `transition_complete|transition_fail|transition_cancel` 중 1회(상호배타), `attempt_start` 1회, `final_submit` 1회.
-- 기본 미수집: `scroll`, `hover`, `expanded/tap 토글`, `tilt/조명 상호작용`, `unavailable hover/tap 시도`.
+- V1 필수 이벤트:
+1. `landing_view` 1회
+2. `transition_start` 1회
+3. `transition_complete|transition_fail|transition_cancel` 중 1회(상호배타)
+4. `attempt_start` 1회
+5. `final_submit` 1회
+- 기본 미수집:
+1. 스크롤
+2. hover
+3. expanded/tap 토글
+4. tilt/조명 상호작용
+5. unavailable hover/tap 시도
 
 ### 12.2 Transition Correlation & Required Fields
 **Rule**: 전환 이벤트는 상관키 일관성과 중복 방지 규칙을 준수해야 한다.
@@ -675,7 +680,6 @@
 - destination GNB는 목적지 진입 완료 시점에 1회 교체한다.
 - 전환 종료 이벤트는 `complete|fail|cancel` 중 정확히 1회만 발생해야 한다.
 - 실패/취소 시 pre-answer 및 pending 상태를 롤백해야 한다.
-- fail/cancel/rollback 계약은 모바일 CTA 우선순위 보완 여부와 무관하게 항상 동일하게 유지해야 한다.
 
 ### 13.4 Test Q1 Pre-answer & Instruction Start Rule
 **Rule**: Q1 pre-answer와 시작 문항 결정은 ingress flag 기준으로만 판단한다.
@@ -758,12 +762,11 @@
 1. SSR/Hydration: warning `0건`, typedRoutes build PASS, `useSearchParams()` Suspense 경계 위반 `0건` (Section 5, 11).
 2. Routing/i18n: single locale prefix, duplicate prefix `0건`, `proxy.ts` 단일 책임, locale-less allowlist/404 분기 PASS (Section 5, 13).
 3. GNB/Settings: Desktop 설정 레이어 open/close/fallback, Mobile overlay/backdrop/scroll lock, History의 Blog형 GNB 컨텍스트 PASS (Section 6, 10).
-4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, Desktop Narrow/Medium/Wide 컬럼 규칙, Desktop Normal same-row bottom edge `0px`, Expanded settled content-fit 하단 무여백, Expanded→Normal 높이 복원 `0px`, shell scale/crop PASS (Section 6, 7, 8, 9).
+4. Card/Grid/Expanded: capability gate, unavailable 가드, hero/main 연속 배치, same-row 안정성 `0px`, settled 하단 무여백, shell scale/crop PASS (Section 6, 7, 8, 9).
 5. Keyboard/A11y: 카드 Shell focus 경계, Tab 순차 Expanded override, 카드 내부 포커스 순회, Esc 우선순위 해제, aria 규칙 PASS (Section 7, 9).
-6. Transition/Test Handshake: ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, Q2→Q1 역전 `0건`, Blog article 식별자 전달, Mobile CTA 우선순위(`CTA > Close > outside`) 및 non-CTA no-op PASS (Section 8, 12, 13).
-7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
-8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
-9. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
+6. Transition/Test Handshake: ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, Q2→Q1 역전 `0건`, Blog article 식별자 전달 PASS (Section 8, 12, 13).
+7. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
+8. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
 
 ---
 
