@@ -1,9 +1,15 @@
-# Last Status (Reset Preparation Snapshot)
+# Last Status (Post-Rollback Reference Snapshot)
 
 ## Scope
-- 이 문서는 리셋 이후 코드베이스의 **최소 잔존 상태**를 기록하는 스냅샷이다.
+- 이 문서는 **이미 롤백이 완료된 코드베이스**의 최소 잔존 상태를 기록한 참조 스냅샷이다.
 - 구현 기준의 SSOT는 항상 [`docs/req-landing-final.md`](/Users/woohyeon/Local/VibeTest/docs/req-landing-final.md)이며, 이 문서는 이를 대체하지 않는다.
-- 목적은 재구현 시작 시 "무엇을 남기고 무엇을 금지하는지"를 빠르게 확인하는 것이다.
+- 목적은 롤백된 기준점 이후 재구현을 시작할 때 "무엇을 기반으로 이어서 구현할지"를 빠르게 확인하는 것이다.
+
+## Usage Contract (Important)
+- 이 문서는 **롤백/리셋 실행 지시문이 아니다**.
+- 롤백은 이미 완료된 것으로 간주하며, 에이전트는 현재 워크트리를 출발점으로 이후 구현을 진행한다.
+- 이 문서를 전달받았다는 이유만으로 `git reset`, `git revert`, 대규모 삭제를 다시 수행하지 않는다.
+- KEEP 셋은 "되돌릴 목표 상태"가 아니라 "이미 확보된 기반(또는 누락 여부 점검 기준)"으로 사용한다.
 
 ## Authoritative Minimal KEEP Set
 
@@ -34,17 +40,18 @@
 | `src/app/[locale]/history/page.tsx` | history placeholder 경로 유지 |
 | `src/app/[locale]/test/[variant]/question/page.tsx` | test question placeholder 경로 유지 |
 
-## Reset Boundaries (Do / Don’t)
+## Post-Rollback Guardrails (Do / Don’t)
 
 ### Do
 - 라우팅/i18n/404 동작 확인을 위한 **기능 없는 placeholder 페이지**만 유지한다.
-- KEEP 셋 외 구현물은 재구현 전제에서 제거 대상으로 본다.
+- KEEP 셋은 롤백 이후 기준점으로 간주하고, 이후 구현 시 재도입 범위를 통제하는 기준으로 사용한다.
 - 문서 판단이 필요하면 SSOT(`docs/req-landing-final.md`)를 우선한다.
 
 ### Don’t
 - 랜딩 UI/카드/상태모델/핸드셰이크/텔레메트리/훅/fixture 로직을 재도입하지 않는다.
 - 과거 구현 디테일(컴포넌트 구조, 전술, 최적화 방식)을 기준으로 설계를 고정하지 않는다.
 - placeholder 범위를 넘어서는 기능/스타일/모션 구현을 선반영하지 않는다.
+- 이 문서를 근거로 롤백/리셋 절차를 다시 수행하지 않는다.
 
 ## Minimal Verification
 
@@ -60,5 +67,5 @@
 - segment not-found와 global unmatched not-found가 분리 동작한다.
 
 ## Notes (TODO only when uncertain)
-- TODO: 실제 리셋 적용 후 기준 커밋 해시를 이 문서에 갱신.
+- TODO: 적용된 롤백 기준 커밋 해시가 확정되면 이 문서에 갱신.
 - TODO: `package.json`에 Node/npm 엔진 계약이 추가되면 이 문서에 반영.
