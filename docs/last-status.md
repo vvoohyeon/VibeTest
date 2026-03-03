@@ -86,22 +86,17 @@
 - `docs/last-status.md`: 다음 세션 인수인계를 위한 스냅샷/Delta 기록.
 - `docs/requirements.md`: SSOT 보조 전역 제약 참고 문서로 보존.
 
-### Deleted by Error Mapping (Error 1~9)
-- Error 1/2/2-1/3/4/5/6/7 연관 삭제:
-  - `src/features/landing/**`
-- Error 8/9 연관 삭제:
-  - `src/features/gnb/**`
-- Error 7/8/9 및 전환 연관 하위 의존 삭제:
-  - `src/features/blog/**`
-  - `src/features/history/**`
-  - `src/features/test/**`
-  - `src/features/telemetry/**`
-  - `src/features/ui/theme/**`
-- 재구현 시 재정의 예정 유틸 삭제:
-  - `src/lib/format/number.ts`
-  - `src/lib/routes/locale-switch.ts`
+### Cleanse History Handling
+- 과거 세션의 정리/삭제 이력은 "상세 파일 경로" 단위로 인수인계하지 않는다.
+- 재구현은 SSOT와 현재 베이스라인 상태를 기준으로 진행하며, 과거 삭제 목록 참조로 인한 편향을 금지한다.
 
 ### Next Reimplementation Boundaries (carry-over)
 - `src/app/[locale]/**`는 현재 placeholder만 유지한다. 기능 로직 재도입은 SSOT 섹션 단위로 진행한다.
 - 라우팅/i18n/404/typed-routes 골격(`src/proxy.ts`, `src/i18n/**`, `src/lib/routes/route-builder.ts`)은 유지하고, 비기능적인 구조 안정성을 우선한다.
 - 리셋 범위에서는 테스트/이력/텔레메트리/카드 인터랙션 구현을 복원하지 않는다.
+
+## Session Handoff Note (2026-03-03, Partial Reset Planning Cancelled)
+
+- 운영자 결정에 따라 이번 턴의 실행 정책은 `KEEP_REUSE 0건`을 근거로 신뢰 커밋 `ef9fab09a22cb728d5e467c2ebb07871aafe4cb5` 기준 롤백으로 확정되었다.
+- 결과적으로 코드베이스는 신뢰 커밋 상태를 다시 시작점으로 사용한다.
+- 인수인계 목적상, 재구현 시 삭제 파일 목록/과거 제거 이력을 참조 기준으로 삼지 않고 SSOT(`docs/req-landing-final.md`)와 현재 베이스라인 상태만 기준으로 진행한다.
