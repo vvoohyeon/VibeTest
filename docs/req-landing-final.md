@@ -40,7 +40,6 @@
 | Landing Ingress Flag | 랜딩 Test 카드에서 Q1 pre-answer 후 유입되었음을 나타내는 플래그 |
 | Question Index | UI/Telemetry 모두 **1-based** 인덱스 |
 | Transition Correlation | start/complete/fail/cancel를 묶는 상관키 |
-| Locale Resolution (V2) | `/` 또는 locale-less allowlist 경로에서 locale을 결정하는 정책(쿠키 우선, Accept-Language 차순위) |
 
 ---
 
@@ -62,10 +61,6 @@
 - 라우팅/locale 정책 변경 시 Section 5, 13, 14를 동기화한다.
 - 키보드 포커스/확장/Esc 정책 변경 시 Section 7, 9, 14를 동기화한다.
 - 테마/다크모드 정책 변경 시 Section 6, 8, 10, 14를 동기화한다.
-- 레이어/포인터 우선순위 정책 변경 시 Section 6.4, 8.4, 8.5, 14.3을 동기화한다.
-- 모바일 CTA 우선순위/닫기 경로 정책 변경 시 Section 8.5, 8.6, 13.3, 14.3을 동기화한다.
-- first-row 컬럼 규칙 변경 시 Section 6.1, 6.2, 14.3을 동기화한다.
-- Expanded lifecycle atomicity/snapshot lock/input arbitration 정책 변경 시 Section 6.2, 6.7, 8.3, 8.5, 14.3을 동기화한다.
 
 ### 3.3 Ambiguity Handling
 **Rule**: 구현자가 단일 해석을 확정할 수 없으면 릴리스를 멈추고 해당 섹션에 정책 옵션/선택 근거를 추가한 뒤 확정한다.
@@ -89,8 +84,7 @@
 11. locale 없는 경로는 V2에서 허용 목록 기반으로만 locale 주입 리다이렉트한다.
 
 **Verification**:
-1. Manual: 카드 UI(제목 위치, tags 하단, scale, crop), 키보드 포커스, 전환 실패 롤백을 점검한다.
-2. Automated: Playwright 시각/상태 검증 + telemetry payload schema 테스트를 수행한다.
+1. Automated: Section 14.3 Detailed QA Matrix(Release Blocking)를 단일 게이트로 사용한다.
 
 ---
 
@@ -153,7 +147,7 @@
 **Implementation Notes**:
 - segment 내부 도메인 오류는 `notFound()`로 처리한다.
 - 라우팅 트리 외부 unmatched는 global-not-found에서 처리한다.
-- 현재 버전(Next.js `16.1.6`)에서는 global unmatched route 활성화를 위해 `experimental.globalNotFound: true` 설정을 요구한다.
+- 전역 unmatched 404의 버전/설정 종속 사항은 Section 15(EX-001)에서만 정의한다.
 
 **Verification**:
 1. Manual: 존재하지 않는 locale 포함 경로와 완전 무관 경로를 각각 점검한다.
@@ -264,11 +258,8 @@
 - row equal-height stretch를 깨뜨리는 축 정렬 설정을 금지한다.
 - 카드 shell은 Normal 상태에서 row stretch를 수용해야 한다(`min-height: 100%` 또는 동등 규칙).
 - Normal 마지막 슬롯은 `tags`로 고정한다.
-- Desktop Normal settled에서 같은 row 카드 하단 기준선 오차는 `0px`여야 한다.
-- Desktop Normal에서 같은 row에 더 높은 카드가 없는 경우 카드 높이는 콘텐츠를 감싸는 높이여야 하며, 카드 내부/외부 하단 잔여 공간을 허용하지 않는다.
 - `tags` 하단에 동적 spacer/margin/pseudo-element 추가를 금지한다.
 - 같은 row equal-height 보정 잔여 높이는 `tags` 상단에서만 허용한다.
-- Desktop Normal에서 잔여 높이 보정은 같은 row의 더 높은 카드에 맞추는 불가피한 경우에만 허용한다.
 - optional tags 값이 없어도 `tags` 슬롯 1줄 높이는 유지해야 한다.
 - Desktop/Tablet Normal settled에서 row 보정이 필요하지 않은 카드는 `thumbnail` 다음 가시 슬롯이 즉시 `tags`여야 하며, 두 슬롯 사이 빈 구간 생성을 금지한다.
 - Desktop/Tablet Normal settled에서 row 보정이 필요한 카드만 `tags` 상단 보정 공간을 가질 수 있다.
@@ -282,7 +273,6 @@
 - Expanded 활성 또는 handoff 정리 중 활성 카드 이외 모든 카드의 top/bottom/outer height 오차는 snapshot 대비 `0px`여야 한다.
 - Row 1에서 성립하는 비대상 카드 안정 규칙(top/bottom/outer height 불변)은 Desktop/Tablet의 모든 row(row 2+)에 동일하게 적용해야 한다.
 - Expanded 활성 중 layout 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤에만 baseline/배치를 재측정할 수 있다.
-- handoff 직후부터 대상 카드 settled 시점까지 비대상 카드 bottom edge 오차는 baseline 대비 `0px`여야 한다.
 - handoff(row A→B)에서 row A snapshot은 row B settled 직후에만 해제할 수 있다.
 - 전환 중 동일 카드가 Normal/Expanded로 동시에 보이면 안 된다.
 - Expanded 카드가 다른 row 위를 시각적으로 덮는 것은 허용한다.
@@ -522,12 +512,6 @@
 4. Automated: z-index/포인터 타깃 검증으로 모바일 레이어 순서를 확인한다.
 5. Automated: Mobile Expanded settled 상태에서 활성 카드 본체 dim/tint `0%`를 검증한다.
 6. Automated: 모바일 CTA 우선순위(`CTA > X > outside`) 및 내부 non-CTA no-op를 검증한다.
-7. Automated: OPENING 중 닫기 입력이 OPEN settled 직후 queue-close 1회로만 처리되는지 검증한다.
-8. Automated: 모바일 close 완료 시 pre-entry snapshot 높이 복원 오차 `0px`를 검증한다.
-9. Automated: 미세 이동 gesture가 scroll로 분류되어 카드 open/close 전이를 시작하지 않는지 검증한다.
-10. Automated: 카드 인덱스 전 구간에서 X 버튼의 시각 노출 상태를 OPENING/OPEN/CLOSING 전 구간으로 검증한다.
-11. Automated: CLOSING 동안 X 버튼 비활성 상태와 추가 닫기 입력 무시를 검증한다.
-12. Automated: 카드 인덱스/스크롤 위치/콘텐츠 길이 조합에서 활성 카드 상단 y-anchor(뷰포트 기준) 편차 `0px`를 검증한다.
 
 ### 8.6 Transition Start Trigger (Landing→Destination)
 **Rule**: 라우팅 전환 시작은 Expanded의 유효 CTA 활성화 시점에만 허용한다.
@@ -791,10 +775,6 @@
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
 8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
 9. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
-10. Normal Slot Compaction: Desktop/Tablet Normal settled에서 row 보정 불필요 카드의 `thumbnail -> tags` 빈 구간 생성 `0건` PASS (Section 6.7).
-11. Row-edge Origin: Desktop/Tablet Wide/Medium/Narrow 및 hero/main 연속 배치에서 row-edge transform-origin 판정 정확성 PASS (Section 6.2, 8.4).
-12. Row Stability Consistency: row 1과 row 2+에서 비대상 카드 top/bottom/outer height 오차 `0px`, handoff의 row A snapshot 해제 시점(row B settled 이후) PASS (Section 6.7, 8.2, 8.3).
-13. Mobile Anchor & Close Control: 카드 인덱스/스크롤 위치/콘텐츠 길이 조합에서 활성 카드 상단 y-anchor(뷰포트 기준) 편차 `0px`, X 버튼 전 구간 노출 및 CLOSING 비활성 PASS (Section 8.5, 9.1).
 
 ---
 
@@ -803,14 +783,11 @@
 ### EX-001: `global-not-found` 설정 운용(버전 종속)
 **Exception**: 전역 unmatched 404를 위해 `global-not-found` 파일 컨벤션과 버전 종속 설정을 함께 운용한다.
 
-**Why Needed**: top-level dynamic segment 루트 문제를 회피하고 운영 404를 명확히 분리하기 위함.
-
-**Risk**: Next.js 버전 업데이트 시 `globalNotFound` 설정 요구사항이 변동될 수 있다.
+**Risk**: Next.js 업그레이드 시 global unmatched 404 동작/설정 요구사항이 변동될 수 있다.
 
 **Guardrails**:
-- CI에서 Next 버전 고정 및 릴리스 전 404 회귀 테스트 필수.
-- 현재 버전(16.1.6)에서는 `experimental.globalNotFound: true`를 유지한다.
-- 설정 요구사항이 변경되는 버전으로 업그레이드할 때는 변경 근거와 회귀 결과를 Change Log에 남긴다.
+- CI에서 Next 버전 고정 + 릴리스 전 404 E2E 회귀 테스트를 필수로 수행한다.
+- 현행 버전(Next.js `16.1.6`)은 `experimental.globalNotFound: true`를 요구하며, 변경 시 근거/회귀 결과를 Change Log에 기록한다.
 
 **Verification**:
 1. Automated: unmatched URL E2E 회귀 테스트.
