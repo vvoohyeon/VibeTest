@@ -1,35 +1,89 @@
 # Reimplementation Checklist (SSOT-Aligned)
 
-## 0. Routing / i18n / 404 Baseline
+## 0. Scope / Sync / Non-goals
+- [ ] Reimplementation scope is limited to V1 contracts only (`§1.1`).
+- [ ] Explicitly exclude non-goals (dynamic background, sheets live integration, full taxonomy, advanced article bodies) (`§1.2`).
+- [ ] Keep locked decisions (Visual package B, background intensity 0, tilt disabled) (`§1.3`).
+- [ ] Resolve policy conflicts strictly by priority order (Global Invariants -> Routing/Layout -> Section 6~13 -> Exceptions) (`§3.1`).
+- [ ] Apply single-change synchronization when touching linked policies (`§3.2`).
+- [ ] Stop and resolve ambiguity before implementation when a single interpretation is not guaranteed (`§3.3`).
+
+## 1. Routing / i18n / 404 Baseline
+- [ ] Keep root vs locale layout responsibility split (`§5.1`).
+- [ ] Enforce single locale prefix policy (`§5.2`).
 - [ ] Keep `proxy.ts` single-entry locale policy and allowlist behavior (`§5.3`).
-- [ ] Keep root vs locale layout split (`§5.1`).
-- [ ] Keep typed route builder as locale-free input/output (`§5.4`).
+- [ ] Keep typed route builder as locale-free input/output; no manual path concat bypass (`§5.4`).
+- [ ] Preserve two-layer 404 strategy: segment vs global unmatched (`§5.5`, `§15 EX-001`).
+- [ ] Keep Global Invariants active: real pages live only under locale segment, and Expanded content remains identifiable (no crop/clip loss) (`§4.1`).
 
-## 1. Landing Grid / Slot / Height Contracts
-- [ ] Implement Desktop/Tablet/Mobile grid plan and row composition (`§6.1`, `§6.2`).
-- [ ] Enforce Normal slot order and Expanded slot swap contract (`§6.5`, `§6.8`).
-- [ ] Enforce Normal compact behavior and tags-terminal policy (`§6.7`).
-- [ ] Enforce no synthetic gap between thumbnail and tags on non-compensated cards (`§6.7`, `§14.3-10`).
+## 2. Layout / Grid / Slots
+- [ ] Apply container/breakpoint baseline exactly (`§6.1`).
+- [ ] Implement Desktop/Tablet/Mobile grid plan and row composition (`§6.2`).
+- [ ] Enforce underfilled last-row start alignment on Desktop+Tablet and prevent width fill/stretch (`§6.2`, `§14.3-12`).
+- [ ] Treat underfilled final-row residual space as explicit allowed exception only (`§6.2`).
+- [ ] Keep Hero visual baseline as non-input informational block (`§6.3`).
+- [ ] Enforce GNB context contracts end-to-end (Desktop settings open/close fallback, Mobile overlay/backdrop/scroll lock, Mobile Test back fallback, History=Blog context) (`§6.4`, `§10.2`, `§14.3-3`, `§14.3-7`).
+- [ ] Enforce card slot order and Expanded slot removal contract (`§6.5`, `§6.8`).
+- [ ] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
+- [ ] Enforce Expanded meta formatting/localization contracts (no abbreviated counts, locale switch + default fallback correctness) (`§6.8`).
+- [ ] Enforce theme coverage on Landing/Test/Blog/History for both Normal/Expanded, light/dark matrix quality gate (`§6.9`, `§14.3-8`).
 
-## 2. Expanded Motion / Row Stability
-- [ ] Enforce shell scale 1.1 and no content crop (`§8.4`).
-- [ ] Compute transform-origin from settled row edges (first/last/center, single-card row left) (`§8.4`, `§14.3-11`).
-- [ ] Freeze non-target card top/bottom/outer-height across row1 and row2+ during expanded/handoff (`§6.7`, `§14.3-12`).
-- [ ] Enforce handoff snapshot release only after target settled (`§6.7`).
+## 3. Normal Height / Spacing Contracts
+- [ ] Enforce Normal compact + same-row equal-height stretch (`§6.7`).
+- [ ] Keep tags terminal slot and forbid dynamic space under tags (`§6.7`).
+- [ ] Apply `thumbnail -> tags` two-level spacing model: `base + compensation` (`§6.7`).
+- [ ] Keep `base spacing` non-zero across Desktop/Tablet/Mobile and aligned with title-subtitle-thumbnail rhythm (`§6.7`, `§14.3-10`).
+- [ ] Allow compensation spacing only on cards requiring row equalization (`§6.7`).
+- [ ] Determine compensation-need using row-local Normal natural height comparison (row-index independent) (`§6.7`, `§14.3-11`).
+- [ ] Preserve row1/row2+ non-target stability consistency in Expanded/handoff paths (`§6.7`, `§14.3-11`).
 
-## 3. Mobile Expanded Lifecycle
-- [ ] Enforce lifecycle `OPENING -> OPEN -> CLOSING -> NORMAL` and queue-close semantics (`§8.5`).
-- [ ] Keep in-flow full-bleed card expansion and scroll lock/backdrop layering (`§8.5`).
-- [ ] Show `X` icon in first row header, keep visible through OPENING/OPEN/CLOSING, disable during CLOSING (`§8.5`, `§14.3-13`).
-- [ ] Enforce viewport-based top y-anchor zero drift across index/scroll/content cases (`§8.5`, `§14.3-13`).
+## 4. State Model / Desktop-Tablet Interaction
+- [ ] Implement page/card state sets and fixed priority ordering (`§7.1`, `§7.2`).
+- [ ] Respect guard rules for INACTIVE/ACTIVE-ramp/TRANSITIONING (`§7.3`).
+- [ ] Ensure deterministic transitions and settled semantics (`§7.4`).
+- [ ] Implement HOVER_LOCK contracts for non-target cards and keyboard override behavior (`§7.5`).
+- [ ] Implement keyboard sequential expansion override across all viewports (`§7.6`).
+- [ ] Apply capability gate split for hover-capable vs tap mode (`§8.1`).
+- [ ] Implement Desktop/Tablet trigger timing, cancel, and handoff behavior (`§8.2`).
+- [ ] Enforce hover-out collapse independence from other-card hover, using live boundary decision and 100~180ms close window (`§8.2`, `§14.3-13`).
+- [ ] Keep core motion phase/timing symmetry and no forbidden 0ms paths outside handoff exception (`§8.3`).
+- [ ] Enforce shell-scale/readability/origin policy including single-card-row origin (`§8.4`).
 
-## 4. Handshake / Test / History / Telemetry Minimum
-- [ ] Enforce CTA-only transition start + transition correlation closure (`§8.6`, `§13.3`, `§12.2`).
-- [ ] Enforce Test pre-answer + ingress flag + Q2 start rule (`§13.4`, `§13.6`).
-- [ ] Keep history per-run storage (max 50, newest-first, delete/clear, invalid mark) (global req + `§13`).
-- [ ] Keep consent default OPTED_OUT and no client send under UNKNOWN/OPTED_OUT (`§12.1`, `§12.4`, `§15 EX-002`).
+## 5. Mobile Expanded Lifecycle
+- [ ] Enforce lifecycle `OPENING -> OPEN -> CLOSING -> NORMAL` and one-transition-per-sequence rule (`§8.5`).
+- [ ] Keep in-flow full-bleed behavior with scroll lock and fixed layer order (`§8.5`).
+- [ ] Keep close controls limited to `X` and outside tap, with queue-close and closing-ignore rules (`§8.5`).
+- [ ] Keep X visible in OPENING/OPEN/CLOSING and disabled during CLOSING (`§8.5`).
+- [ ] Enforce viewport y-anchor zero drift across index/scroll/content combinations (`§8.5`).
+- [ ] Enforce title baseline zero drift at Mobile Expanded settled state (`§8.5`, `§14.3-14`).
+- [ ] Keep CTA priority over close/outside and non-CTA internal no-op (`§8.5`).
 
-## 5. Verification Gate
+## 6. Accessibility / Responsive / Performance
+- [ ] Enforce keyboard reachability, shell-aligned focus boundary, and Esc unwind order (`§9.1`).
+- [ ] Enforce disabled semantics with semantic controls and aria-disabled activation blocking (`§9.2`).
+- [ ] Enforce overlay readability and title visibility under unavailable overlays (`§9.3`).
+- [ ] Keep GNB responsive behavior as single source from context contract (`§10.2`, `§6.4`).
+- [ ] Enforce SSR/hydration determinism and zero-warning gate (`§11.1`).
+- [ ] Enforce animation/reduced-motion/cursor guardrails (`§11.2`, `§11.3`, `§11.4`).
+
+## 7. Telemetry / Data / Error Handling
+- [ ] Keep telemetry to V1 minimal event set and collection boundaries (`§12.1`, `§12.3`).
+- [ ] Enforce transition correlation closure and required payload fields (`§12.2`).
+- [ ] Enforce consent state machine and EX-002 default operating policy (`§12.4`, `§15 EX-002`).
+- [ ] Enforce anonymous ID generation policy and random-source fallback boundaries (`§12.5`).
+- [ ] Enforce fixture+adapter data source contract and minimum fixture diversity counts (`§12.6`).
+- [ ] Enforce missing-slot behavior and unavailable behavior split by interaction mode (`§13.1`, `§13.2`).
+- [ ] Enforce landing→destination handshake and rollback cleanup (`§13.3`, `§13.6`).
+- [ ] Enforce transition start trigger contract: routing starts only from valid Expanded CTA and preserves destination context handoff (`§8.6`, `§13.3`).
+- [ ] Enforce test ingress/pre-answer/instruction/start-question contracts (`§13.4`, `§13.5`).
+- [ ] Enforce dwell accumulation and return restoration contracts (`§13.7`, `§13.8`).
+
+## 8. Release Blocking Matrix Traceability
+- [ ] Map implementation checks to all release-blocking items 1~14 (`§14.3`).
+- [ ] Explicitly include new blockers: normal spacing model, row consistency, underfilled-row alignment, hover-out collapse independence, mobile title baseline stability (`§14.3-10`~`§14.3-14`).
+
+## 9. Verification Gate
+- [ ] Keep release gate contract fixed: `qa:gate` includes minimum `build && test && test:e2e:smoke`, and release pass requires consecutive 3/3 (`§14.1`).
 - [ ] `npm run typecheck`
 - [ ] `npm run build`
 - [ ] `npm test`
