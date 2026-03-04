@@ -277,56 +277,78 @@
 4. Automated: subtitle 길이 변화가 Normal 카드의 형제 슬롯 inline-size를 변경하지 않는지 검증한다.
 
 ### 6.7 Card Height & Bottom Spacing Contract
-**Rule**: 카드 높이, 하단 여백, row 안정성은 아래 규칙을 모두 동시에 만족해야 한다.
-- Normal은 콘텐츠 기반 compact(auto) + 같은 row equal-height stretch를 적용한다.
-- row equal-height stretch를 깨뜨리는 축 정렬 설정을 금지한다.
-- 카드 shell은 Normal 상태에서 row stretch를 수용해야 한다(`min-height: 100%` 또는 동등 규칙).
+**Rule**: 카드 높이/하단 여백/row 안정성은 아래 5개 불변식을 동시에 만족해야 한다.
+
+1) Normal Compactness & Slot Integrity
+- Normal은 콘텐츠 기반 compact(auto) + same-row equal-height stretch를 적용한다.
+- row stretch를 깨뜨리는 축 정렬 설정을 금지하며, 카드 shell은 row stretch를 수용해야 한다(`min-height: 100%` 또는 동등 규칙).
 - Normal 마지막 슬롯은 `tags`로 고정한다.
 - `tags` 하단에 동적 spacer/margin/pseudo-element 추가를 금지한다.
-- 같은 row equal-height 보정 잔여 높이는 `tags` 상단에서만 허용한다.
-- optional tags 값이 없어도 `tags` 슬롯 1줄 높이는 유지해야 한다.
-- `thumbnail -> tags` 구간은 `기본 간격 + 보정 간격` 이원 정책으로 고정한다.
-- `기본 간격`은 Desktop/Tablet/Mobile 전 구간에서 비-0으로 유지해야 하며, 카드 내부의 기본 수직 리듬 간격(`title -> subtitle -> thumbnail`)과 동일 기준으로 유지해야 한다.
-- `보정 간격`은 same-row equal-height 보정이 필요한 카드에서만 허용한다.
-- `보정 필요` 판정은 해당 row의 Normal 자연 높이 비교 결과를 기준으로 수행해야 하며, row index(Row 1/Row 2+)에 따라 판정 규칙이 달라지면 안 된다.
-- Desktop/Tablet Normal settled에서 row 보정이 불필요한 카드는 `보정 간격=0`이어야 하며, 보정이 필요한 카드만 `tags` 상단 보정 공간을 가질 수 있다.
-- Desktop/Tablet Normal settled에서 row 보정이 불필요한 카드는 `thumbnail -> tags` 구간의 추가 잉여 여백을 가져서는 안 된다(`comp_gap=0`과 동치).
-- `base_gap`은 Normal 상태의 `thumbnail 하단`과 `tags container 상단` 시각 거리로 정의한다.
-- `comp_gap`은 `actual_gap - base_gap`으로 정의하며, row equal-height 보정 대상 카드에서만 `comp_gap>0`을 허용한다.
-- row 보정 불필요 카드의 `comp_gap`은 `0px`여야 한다.
-- tags 값이 비어 있는 경우에도 tags 슬롯 1줄 높이는 container 규격으로 유지해야 하며, placeholder chip/공백 chip/pseudo spacer를 사용하면 안 된다.
-- Expanded 높이 정책은 Desktop/Tablet에만 적용하고 Mobile은 full-bleed 규칙을 따른다.
+- same-row equal-height 보정 잔여 높이는 `tags` 상단에서만 허용한다.
+- tags 값이 비어 있어도 `tags` 슬롯 1줄 높이는 유지해야 하며, chip 렌더 개수는 `0`이어야 한다(placeholder/공백 chip/pseudo spacer 금지).
+
+2) Spacing Model (`base_gap + comp_gap`) & Compensation Determinism
+- `thumbnail -> tags` 구간은 `기본 간격(base_gap) + 보정 간격(comp_gap)` 이원 정책으로 고정한다.
+- `base_gap`은 Normal 상태의 `thumbnail 하단`과 `tags container 상단` 시각 거리이며, Desktop/Tablet/Mobile 전 구간에서 비-0을 유지해야 한다.
+- `base_gap`은 `title -> subtitle -> thumbnail` 기본 수직 리듬과 동일 기준으로 유지해야 한다.
+- `comp_gap = actual_gap - base_gap`으로 정의한다.
+- `needs_comp(card_i) = (natural_height_i < max(natural_height_row))` 판정식을 고정한다.
+- `needs_comp=true` 카드만 `comp_gap>0`을 허용한다.
+- `needs_comp=false` 카드의 `comp_gap`은 항상 `0px`여야 하며, 전이 중 단 1프레임이라도 `comp_gap>0`이면 안 된다.
+- 동일 row 모든 카드의 natural height가 같으면 해당 row의 모든 카드는 `needs_comp=false` 및 `comp_gap=0`이어야 한다.
+- `needs_comp` 판정 규칙은 row index(Row 1/Row 2+)와 무관해야 한다.
+- `tags` 상단 보정은 계산된 `comp_gap` 값으로만 허용한다.
+- 자동 여백/자동 분배 기반 보정(`margin-top:auto`, `justify-content: space-between`, filler flex, pseudo spacer 및 동등 메커니즘)을 보정 수단으로 사용하면 안 된다.
+- Desktop/Tablet Normal settled에서 `needs_comp=false` 카드는 `thumbnail -> tags` 구간의 추가 잉여 여백을 가져서는 안 된다(`comp_gap=0`과 동치).
+
+3) Expanded Geometry Isolation (Desktop/Tablet)
+- Expanded 높이 정책은 Desktop/Tablet에만 적용하고, Mobile은 full-bleed 규칙을 따른다.
 - Desktop/Tablet Expanded는 fixed height를 금지한다.
-- Desktop Expanded settled에서 카드 높이는 시각 최외곽 기준 content-fit이어야 하며 하단 잔여 공간을 허용하지 않는다.
+- Desktop Expanded settled는 시각 최외곽 기준 content-fit이어야 하며 하단 잔여 공간을 허용하지 않는다.
 - Desktop Expanded 초장문 콘텐츠는 카드 고정 높이로 수용하지 않고 페이지 스크롤로 수용한다.
+- Expanded 상세 슬롯은 same-row non-target 카드의 row track sizing에 영향을 주면 안 된다(geometry isolation 강제).
+- Expanded/handoff 활성 중 same-row non-target 카드의 top/bottom/outer height 오차는 snapshot 대비 `0px`여야 한다.
+- Row 1에서 성립하는 same-row non-target 안정 규칙은 Desktop/Tablet 모든 row(row 2+)에 동일 적용한다.
+- same-row 비확장 카드 하단 추가 빈 공간 생성은 금지한다.
+- Expanded 종료 직후 same-row non-target 카드의 높이 잔류 변화는 `0px`여야 하며 row 2+에서도 동일해야 한다.
+- same-row non-target 카드의 높이 복귀가 완료되기 전에는 Normal settled 판정을 허용하면 안 된다.
+
+4) Baseline Freeze/Restore State Model (Desktop/Tablet)
+- Expanded lifecycle에는 baseline freeze/restore 상태모델을 필수 적용한다.
+- baseline 상태 전이는 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_RESTORE_PENDING -> BASELINE_READY` 순서를 벗어나면 안 된다.
+- Expanded/handoff 시작 시 same-row baseline snapshot은 즉시 freeze되어야 하며, 종료 정착 전까지 freeze 해제/재측정을 금지한다.
 - snapshot 해제는 Expanded 종료 직후 1회만 허용한다.
-- baseline(height snapshot) 재측정은 레이아웃 안정 구간에서만 허용한다.
-- Expanded 활성, handoff 정리 중, instant 종료 처리 중에는 baseline 재측정을 금지한다.
-- Expanded 활성 또는 handoff 정리 중 same-row 비대상 카드의 top/bottom/outer height 오차는 snapshot 대비 `0px`여야 한다.
-- Row 1에서 성립하는 same-row 비대상 카드 안정 규칙(top/bottom/outer height 불변)은 Desktop/Tablet의 모든 row(row 2+)에 동일하게 적용해야 한다.
+- baseline 재측정은 레이아웃 안정 구간에서만 허용한다.
+- Expanded 활성/ handoff 정리/instant 종료 처리 중 baseline 재측정을 금지한다.
 - Expanded 활성 중 layout 재계산이 필요하면 활성 Expanded를 강제 종료해 Normal settled로 복귀한 뒤에만 baseline/배치를 재측정할 수 있다.
 - handoff(row A→B)에서 row A snapshot은 row B settled 직후에만 해제할 수 있다.
+
+5) Visibility & Readability Safety
 - 전환 중 동일 카드가 Normal/Expanded로 동시에 보이면 안 된다.
 - Expanded 카드가 다른 row 위를 시각적으로 덮는 것은 허용한다.
-- same-row 비확장 카드 하단 추가 빈 공간 생성은 금지한다.
-- Expanded 종료(Expanded->Normal) 직후 same-row 비대상 카드의 높이 잔류 변화는 `0px`여야 하며 row 2+에서도 동일해야 한다.
 - 콘텐츠 식별성을 해치는 clipping(`overflow: hidden` 기반 crop 포함)은 금지한다. 단, 동일 가독성을 보장하는 동등 구현은 허용한다.
+
+**Implementation Notes (Prevention Focus)**:
+- 반복 재발 원인 1: `tags` 영역에 auto-margin이 상시 적용되면 non-comp 카드에서도 `thumbnail -> tags` 구간 잉여 여백이 발생할 수 있다.
+- 반복 재발 원인 2: Expanded 상세 슬롯이 row sizing에 참여하면 same-row non-target 카드 높이 동조 및 종료 후 잔류 변화가 발생할 수 있다.
+- 위 원인에 해당하는 구현은 본 섹션 Rule의 간격/row 안정성/기하 불변식 항목과 불일치한다.
 
 **Verification**:
 1. Automated: Desktop Normal settled에서 same-row 카드 하단 기준선 오차 `0px`를 검증한다.
-2. Automated: Expanded 전환 중 dual-visibility(동일 카드 이중 가시화) `0건`을 검증한다.
-3. Automated: 초기 렌더/미세 리사이즈 후 Desktop Normal 하단 정렬 규칙이 동일하게 유지되는지 검증한다.
-4. Automated: Desktop/Tablet Normal settled에서 row 보정 불필요 카드의 `보정 간격=0`을 검증한다.
-5. Automated: Expanded/handoff 활성 중 same-row 비대상 카드의 top/bottom/outer height 오차 `0px`를 검증한다.
-6. Automated: row 1과 row 2+에서 동일한 same-row 비대상 카드 안정 규칙이 유지되는지 검증한다.
-7. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
-8. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지 검증한다.
-9. Automated: Desktop/Tablet/Mobile에서 `thumbnail -> tags` 기본 간격이 비-0으로 유지되고, `title -> subtitle -> thumbnail` 기본 간격과 동일 기준인지 검증한다.
-10. Automated: row 1과 row 2+에서 `보정 필요` 판정이 동일 규칙으로 동작하는지 검증한다.
-11. Automated: breakpoint별 `base_gap>0`을 computed 거리 기준으로 검증한다.
-12. Automated: row 보정 불필요 카드의 `comp_gap=0`을 검증한다.
-13. Automated: empty-tags fixture에서 chip 개수 `0`과 tags 슬롯 높이 유지를 동시에 검증한다.
-14. Automated: Expanded 종료 직후 same-row 비대상 카드 높이 잔류 변화 `0px`(row 1/row 2+)를 검증한다.
+2. Automated: Desktop/Tablet/Mobile에서 `base_gap>0`과 기본 수직 리듬 기준 일치를 검증한다.
+3. Automated: `needs_comp(card_i) = (natural_height_i < max(natural_height_row))` 판정식이 row 1/row 2+ 모두에서 동일하게 적용되는지 검증한다.
+4. Automated: `needs_comp=false` 카드의 `comp_gap=0`과 추가 잉여 여백 `0`(전이 프레임 포함)을 검증한다.
+5. Automated: 동일 row 자연 높이가 모두 같은 fixture에서 전 카드 `needs_comp=false` 및 `comp_gap=0`을 검증한다.
+6. Automated: empty-tags fixture에서 chip 개수 `0`과 tags 슬롯 높이 유지를 동시에 검증한다.
+7. Automated: non-comp 카드에서 auto-spacer 패턴(`margin-top:auto`, `space-between`, filler flex, pseudo spacer) 활성 `0건`을 검증한다.
+8. Automated: Expanded/handoff 활성 프레임 구간에서 same-row non-target row track size 변화 `0px`를 검증한다.
+9. Automated: Expanded/handoff 활성 중 same-row non-target 카드의 top/bottom/outer height 오차 `0px`를 검증한다.
+10. Automated: Expanded 종료 직후 same-row non-target 카드 높이 잔류 변화 `0px`(row 1/row 2+)를 검증한다.
+11. Automated: baseline 상태 전이가 `BASELINE_READY -> BASELINE_FROZEN -> BASELINE_RESTORE_PENDING -> BASELINE_READY` 순서를 위반하지 않는지 검증한다.
+12. Automated: Expanded 활성 중 폭 변경 시 강제 종료 이후에만 재측정/재배치가 수행되는지 검증한다.
+13. Automated: handoff(row A→B)에서 row A snapshot 해제가 row B settled 이후에만 발생하는지 검증한다.
+14. Automated: Expanded 전환 중 dual-visibility(동일 카드 이중 가시화) `0건`을 검증한다.
+15. Automated: 반복 handoff/open-close(최소 100회) 후 same-row non-target 누적 높이 오차 `0px`를 검증한다.
 
 ### 6.8 Normal Thumbnail & Expanded Slot Semantics
 **Rule**: Normal 썸네일 규격과 Expanded 타입별 슬롯 의미론은 아래 규칙으로 고정한다.
