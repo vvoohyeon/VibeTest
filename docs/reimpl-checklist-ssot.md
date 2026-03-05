@@ -76,7 +76,7 @@
 - [ ] Enforce transition correlation closure and required payload fields (`start=1`, `terminal=1`, `complete` after destination-ready, fail/cancel reason required) (`§12.2`, `§13.3`, `§14.3-15`).
 - [ ] Enforce consent state machine and EX-002 default operating policy (`§12.4`, `§15 EX-002`).
 - [ ] Enforce anonymous ID generation policy and random-source fallback boundaries (`§12.5`).
-- [ ] Enforce fixture+adapter data source contract and minimum fixture diversity counts (`§12.6`).
+- [x] Enforce fixture+adapter data source contract and minimum fixture diversity counts (`§12.6`).
 - [ ] Enforce missing-slot behavior and unavailable behavior split by interaction mode (`§13.1`, `§13.2`).
 - [ ] Enforce landing→destination handshake and rollback cleanup (`§13.3`, `§13.6`).
 - [ ] Enforce rollback cleanup-set closure on fail/cancel for the 3 mandatory scenarios with zero leakage (`§13.3`, `§13.6`, `§14.3-16`).
