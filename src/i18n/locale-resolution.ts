@@ -1,6 +1,7 @@
 import {defaultLocale, isLocale, locales, type AppLocale} from '@/config/site';
 
 const allowlistPattern = [/^\/blog\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/question\/?$/u] as const;
+export const globalUnmatchedPath = '/__global_unmatched__';
 
 function normalizeLocaleToken(token: string): AppLocale | null {
   const lowered = token.toLowerCase();

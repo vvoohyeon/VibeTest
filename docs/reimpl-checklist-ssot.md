@@ -9,12 +9,12 @@
 - [ ] Stop and resolve ambiguity before implementation when a single interpretation is not guaranteed (`§3.3`).
 
 ## 1. Routing / i18n / 404 Baseline
-- [ ] Keep root vs locale layout responsibility split (`§5.1`).
-- [ ] Enforce single locale prefix policy (`§5.2`).
-- [ ] Keep `proxy.ts` single-entry locale policy and allowlist behavior (`§5.3`).
-- [ ] Keep typed route builder as locale-free input/output; no manual path concat bypass (`§5.4`).
-- [ ] Preserve two-layer 404 strategy: segment vs global unmatched (`§5.5`, `§15 EX-001`).
-- [ ] Keep Global Invariants active: real pages live only under locale segment, and Expanded content remains identifiable (no crop/clip loss) (`§4.1`).
+- [x] Keep root vs locale layout responsibility split (`§5.1`).
+- [x] Enforce single locale prefix policy (`§5.2`).
+- [x] Keep `proxy.ts` single-entry locale policy and allowlist behavior (`§5.3`).
+- [x] Keep typed route builder as locale-free input/output; no manual path concat bypass (`§5.4`).
+- [x] Preserve two-layer 404 strategy: segment vs global unmatched (`§5.5`, `§15 EX-001`).
+- [x] Keep Global Invariants active: real pages live only under locale segment, and Expanded content remains identifiable (no crop/clip loss) (`§4.1`).
 
 ## 2. Layout / Grid / Slots
 - [ ] Apply container/breakpoint baseline exactly (`§6.1`).
@@ -94,8 +94,8 @@
 
 ## 9. Verification Gate
 - [ ] Keep release gate contract fixed: `qa:gate` includes minimum `build && test && test:e2e:smoke`, and release pass requires consecutive 3/3 (`§14.1`).
-- [ ] `npm run typecheck`
-- [ ] `npm run build`
-- [ ] `npm test`
-- [ ] `npm run test:e2e:smoke`
-- [ ] `npm run qa:gate` (3/3)
+- [x] `npm run typecheck`
+- [x] `npm run build`
+- [x] `npm test`
+- [x] `npm run test:e2e:smoke`
+- [x] `npm run qa:gate` (3/3)

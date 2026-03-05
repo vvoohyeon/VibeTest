@@ -2,49 +2,30 @@ import type {NextRequest} from 'next/server';
 import {NextResponse} from 'next/server';
 
 import {localeCookieName} from '@/config/site';
-import {
-  hasDuplicateLocalePrefix,
-  isBypassPath,
-  isLocaleLessAllowlistedPath,
-  parseLocalePrefix,
-  resolveLocaleFromCookieOrHeader,
-  withLocalePrefix
-} from '@/i18n/locale-resolution';
+import {resolveProxyDecision} from '@/i18n/proxy-policy';
 
 export default function proxy(request: NextRequest) {
-  const {pathname} = request.nextUrl;
-
-  if (isBypassPath(pathname)) {
-    return NextResponse.next();
-  }
-
-  if (hasDuplicateLocalePrefix(pathname)) {
-    const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = '/__global_unmatched__';
-    rewriteUrl.search = '';
-    return NextResponse.rewrite(rewriteUrl);
-  }
-
-  const pathnameLocale = parseLocalePrefix(pathname);
-  if (pathnameLocale) {
-    return NextResponse.next();
-  }
-
-  const resolvedLocale = resolveLocaleFromCookieOrHeader({
+  const decision = resolveProxyDecision({
+    pathname: request.nextUrl.pathname,
     cookieLocale: request.cookies.get(localeCookieName)?.value,
     acceptLanguage: request.headers.get('accept-language')
   });
 
-  if (pathname === '/') {
+  if (decision.action === 'next') {
+    return NextResponse.next();
+  }
+
+  if (decision.action === 'redirect') {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = withLocalePrefix('/', resolvedLocale);
+    redirectUrl.pathname = decision.pathname;
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (isLocaleLessAllowlistedPath(pathname)) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = withLocalePrefix(pathname, resolvedLocale);
-    return NextResponse.redirect(redirectUrl);
+  if (decision.action === 'rewrite') {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = decision.pathname;
+    rewriteUrl.search = '';
+    return NextResponse.rewrite(rewriteUrl);
   }
 
   return NextResponse.next();
