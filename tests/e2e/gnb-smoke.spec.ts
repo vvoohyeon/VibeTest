@@ -41,7 +41,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const trigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
 
-    await trigger.click();
+    await trigger.hover();
     await expect(panel).toBeVisible();
 
     await page.locator('.page-shell-main').click();
