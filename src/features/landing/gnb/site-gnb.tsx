@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
+import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
@@ -21,6 +21,8 @@ import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
 
 const MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS = 220;
+const CURRENT_PATH_STORAGE_KEY = 'vibetest-current-path';
+const PREVIOUS_PATH_STORAGE_KEY = 'vibetest-previous-path';
 
 type CloseReason = 'button' | 'outside' | 'escape';
 
@@ -39,6 +41,7 @@ interface OutsideGesture {
 export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const t = useTranslations('gnb');
   const router = useRouter();
+  const pathname = usePathname();
   const {viewportWidth, hoverCapable, elevated} = useGnbCapability();
   const {themePreference, applyManualTheme} = useThemePreference();
 
@@ -52,6 +55,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const mobileMenuCloseTimerRef = useRef<number | null>(null);
   const mobileMenuCloseReasonRef = useRef<CloseReason | null>(null);
   const mobileBackFallbackTimerRef = useRef<number | null>(null);
+  const previousInternalPathRef = useRef<string | null>(null);
   const outsideGestureRef = useRef<OutsideGesture>({
     active: false,
     startX: 0,
@@ -145,7 +149,10 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       return;
     }
 
-    if (window.history.length <= 1) {
+    const previousInternalPath = previousInternalPathRef.current;
+    const hasInternalPrevious = !!previousInternalPath && previousInternalPath !== pathname;
+
+    if (!hasInternalPrevious || window.history.length <= 1) {
       router.push(homeHref);
       return;
     }
@@ -159,7 +166,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         router.push(homeHref);
       }
     }, MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS);
-  }, [clearMobileBackFallbackTimer, homeHref, router]);
+  }, [clearMobileBackFallbackTimer, homeHref, pathname, router]);
 
   const handleStandardBack = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -179,6 +186,23 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
 
     router.push(homeHref);
   }, [homeHref, router]);
+
+  useEffect(() => {
+    if (pathname.length === 0) {
+      return;
+    }
+
+    try {
+      const currentStoredPath = window.sessionStorage.getItem(CURRENT_PATH_STORAGE_KEY);
+      if (currentStoredPath && currentStoredPath !== pathname) {
+        window.sessionStorage.setItem(PREVIOUS_PATH_STORAGE_KEY, currentStoredPath);
+      }
+      window.sessionStorage.setItem(CURRENT_PATH_STORAGE_KEY, pathname);
+      previousInternalPathRef.current = window.sessionStorage.getItem(PREVIOUS_PATH_STORAGE_KEY);
+    } catch {
+      previousInternalPathRef.current = null;
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!settingsOpen) {
