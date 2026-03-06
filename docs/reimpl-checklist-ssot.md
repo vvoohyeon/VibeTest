@@ -17,15 +17,15 @@
 - [x] Keep Global Invariants active: real pages live only under locale segment, and Expanded content remains identifiable (no crop/clip loss) (`§4.1`).
 
 ## 2. Layout / Grid / Slots
-- [ ] Apply container/breakpoint baseline exactly (`§6.1`).
-- [ ] Implement Desktop/Tablet/Mobile grid plan and row composition (`§6.2`).
-- [ ] Enforce underfilled last-row start alignment on Desktop+Tablet and prevent width fill/stretch (`§6.2`, `§14.3-12`).
-- [ ] Treat underfilled final-row residual space as explicit allowed exception only (`§6.2`).
+- [x] Apply container/breakpoint baseline exactly (`§6.1`).
+- [x] Implement Desktop/Tablet/Mobile grid plan and row composition (`§6.2`).
+- [x] Enforce underfilled last-row start alignment on Desktop+Tablet and prevent width fill/stretch (`§6.2`, `§14.3-12`).
+- [x] Treat underfilled final-row residual space as explicit allowed exception only (`§6.2`).
 - [x] Keep Hero visual baseline as non-input informational block (`§6.3`).
 - [x] Enforce GNB context contracts end-to-end (Desktop settings open/close fallback + trigger-layer gap `0px` + focus-out close `<=1 frame`, Mobile overlay/backdrop/scroll lock, Mobile Test back fallback, History=Blog context) (`§6.4`, `§10.2`, `§14.3-3`, `§14.3-7`).
 - [ ] Enforce card slot order and Expanded slot removal contract (`§6.5`, `§6.8`).
 - [ ] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
-- [ ] Enforce subtitle-only single-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).
+- [ ] Enforce subtitle max-2-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).
 - [ ] Enforce Expanded meta formatting/localization contracts (no abbreviated counts, locale switch + default fallback correctness) (`§6.8`).
 - [ ] Enforce theme coverage on Landing/Test/Blog/History for both Normal/Expanded, light/dark matrix quality gate (`§6.9`, `§14.3-8`).
 

@@ -184,8 +184,8 @@
 **Rule**: Grid는 breakpoint 별 고정 규칙을 따른다.
 - Desktop: hero/main 명칭은 유지하되 카드 흐름은 단일 연속 grid로 구성한다. hero/main은 시각 영역 분리가 아니라 row index 기반 규칙으로만 해석한다.
 - Desktop Wide(`availableWidth>=1160`): Row 1은 `3`, Row 2+는 `4` 컬럼을 강제한다.
-- Desktop Medium(`900<=availableWidth<1160`): Row 1은 `2`, Row 2+는 `3` 컬럼을 강제한다.
-- Desktop Narrow(`availableWidth<=899`): first-row 예외 없이 모든 row를 `2` 컬럼으로 고정한다.
+- Desktop Medium(`1040<=availableWidth<1160`): Row 1은 `2`, Row 2+는 `3` 컬럼을 강제한다.
+- Desktop Narrow(`900<=availableWidth<1040`): first-row 예외 없이 모든 row를 `2` 컬럼으로 고정한다.
 - Desktop first-row 예외 구간(Medium/Wide)에서 Row 1 카드가 목표 개수에 미달하면 이후 row 후보를 앞 row로 당겨 채운다.
 - Desktop/Tablet: hero/main 경계가 강제 줄바꿈, 빈 track, 빈 카드 공간을 만들면 안 된다.
 - Desktop/Tablet 마지막 row가 underfilled(카드 수가 목표 컬럼 수 미만)인 경우에도 row 컬럼 폭은 목표 컬럼 규칙을 유지해야 하며, 카드는 row 시작측 정렬을 유지해야 한다.
@@ -259,7 +259,7 @@
 ### 6.6 Text & Clamp Contract
 **Rule**: 텍스트 정책은 아래와 같이 고정한다.
 - Normal title: 줄바꿈 허용, truncate/ellipsis 금지
-- Normal subtitle: 1줄 truncate + overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
+- Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
 - Normal subtitle overflow 처리 결과는 동일 카드의 형제 슬롯 기하(썸네일/태그 포함)의 inline-size를 변경하면 안 된다.
 - Normal tags 영역: 1줄 슬롯 고정, chip은 1줄 truncate, wrap 금지
 - Expanded Test preview/choices: 줄바꿈 허용, truncate 금지

@@ -39,7 +39,7 @@
   - source 카드는 `0ms` 즉시 Normal, target 카드는 표준 Expanded 모션 유지.
   - 위 분리 규칙은 pointer/keyboard 모두 동일 적용.
 - Normal 텍스트/기하 불변식:
-  - subtitle은 1줄 truncate + ellipsis(`...`) 시각 노출 강제.
+  - subtitle은 최대 2줄 truncate + ellipsis(`...`) 시각 노출 강제.
   - subtitle overflow가 카드/row/형제 슬롯(썸네일/태그) inline-size를 오염시키면 안 된다.
 - Normal spacing 정책:
   - `thumbnail -> tags`는 `base_gap + comp_gap` 이원 정책.
@@ -363,7 +363,7 @@
 ### 7.4 슬롯 렌더/클램프/spacing 규칙
 - Normal
   - title: 줄바꿈 허용, truncate/ellipsis 금지
-  - subtitle: 1줄 truncate + ellipsis(`...`) 시각 노출
+  - subtitle: 최대 2줄 truncate + ellipsis(`...`) 시각 노출
   - thumbnail: 6:1, `object-fit: cover`
   - tags: terminal slot, 1줄 슬롯 유지, chip은 1줄 truncate
   - subtitle overflow가 카드/row/형제 슬롯 기하를 바꾸지 않음

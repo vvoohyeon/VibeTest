@@ -76,6 +76,12 @@ a {
   }
 }
 
+@media (width >= 768px) and (width <= 899px) {
+  .page-shell-main {
+    padding-inline: 20px;
+  }
+}
+
 .landing-hero {
   display: grid;
   gap: 12px;
@@ -93,6 +99,55 @@ a {
   max-width: 70ch;
   margin: 0;
   color: var(--muted-ink);
+}
+
+.landing-grid-shell {
+  padding-bottom: 20px;
+}
+
+.landing-grid-container {
+  display: grid;
+  gap: 16px;
+}
+
+.landing-grid-row {
+  --landing-grid-columns: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--landing-grid-columns), minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.landing-grid-card {
+  min-width: 0;
+  min-height: 176px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel-solid) 90%, transparent);
+  box-shadow: 0 14px 30px rgb(11 15 22 / 10%);
+  padding: 16px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.landing-grid-card-title {
+  margin: 0;
+  font-size: 1.04rem;
+  line-height: 1.35;
+}
+
+.landing-grid-card-subtitle {
+  margin: 0;
+  color: var(--muted-ink);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
 }
 
 .landing-shell-card {
@@ -369,5 +424,18 @@ a {
 
   .gnb-mobile {
     display: none;
+  }
+}
+
+@media (width >= 768px) and (width <= 899px) {
+  .gnb-inner {
+    padding-inline: 20px;
+  }
+}
+
+@media (width <= 767px) {
+  .landing-grid-container,
+  .landing-grid-row {
+    gap: 15px;
   }
 }
