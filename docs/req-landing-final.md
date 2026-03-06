@@ -55,7 +55,7 @@
 - 라우팅/locale 정책 변경 시 Section 5, 13, 14를 동기화한다.
 - 키보드 포커스/확장/Esc 정책 변경 시 Section 7, 9, 14를 동기화한다.
 - 테마/다크모드 정책 변경 시 Section 6, 8, 10, 14를 동기화한다.
-- `thumbnail -> tags` 기본/보정 간격 정책 변경 시 Section 6.7, 14.3을 동기화한다.
+- `subtitle -> tags` 기본/보정 간격 정책 변경 시 Section 6.7, 14.3을 동기화한다.
 - underfilled 마지막 row 정렬/예외 정책 변경 시 Section 6.2, 14.3을 동기화한다.
 - Desktop hover-out collapse 경계/유예 정책 변경 시 Section 8.2, 14.3을 동기화한다.
 - Mobile Expanded 내부 title baseline 정책 변경 시 Section 8.5, 14.3을 동기화한다.
@@ -246,7 +246,7 @@
 
 ### 6.5 Card Slot Order Contract
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
-- Normal 순서: `cardTitle -> cardSubtitle -> thumbnailOrIcon -> tags`
+- Normal 순서: `cardTitle -> thumbnailOrIcon -> cardSubtitle -> tags`
 - Expanded 공통 헤더: `cardTitle`만 유지
 - Expanded에서 `subtitle/thumbnail/tags`는 제거(숨김 아님, 비노출)
 - Test Expanded: `previewQuestion`, `answerChoiceA/B`, `meta(3)`
@@ -288,9 +288,9 @@
 - tags 값이 비어 있어도 `tags` 슬롯 1줄 높이는 유지해야 하며, chip 렌더 개수는 `0`이어야 한다(placeholder/공백 chip/pseudo spacer 금지).
 
 2) Spacing Model (`base_gap + comp_gap`) & Compensation Determinism
-- `thumbnail -> tags` 구간은 `기본 간격(base_gap) + 보정 간격(comp_gap)` 이원 정책으로 고정한다.
-- `base_gap`은 Normal 상태의 `thumbnail 하단`과 `tags container 상단` 시각 거리이며, Desktop/Tablet/Mobile 전 구간에서 비-0을 유지해야 한다.
-- `base_gap`은 `title -> subtitle -> thumbnail` 기본 수직 리듬과 동일 기준으로 유지해야 한다.
+- `subtitle -> tags` 구간은 `기본 간격(base_gap) + 보정 간격(comp_gap)` 이원 정책으로 고정한다.
+- `base_gap`은 Normal 상태의 `subtitle 하단`과 `tags container 상단` 시각 거리이며, Desktop/Tablet/Mobile 전 구간에서 비-0을 유지해야 한다.
+- `base_gap`은 `title -> thumbnail -> subtitle` 기본 수직 리듬과 동일 기준으로 유지해야 한다.
 - `comp_gap = actual_gap - base_gap`으로 정의한다.
 - `needs_comp(card_i) = (natural_height_i < max(natural_height_row))` 판정식을 고정한다.
 - `needs_comp=true` 카드만 `comp_gap>0`을 허용한다.
@@ -299,7 +299,7 @@
 - `needs_comp` 판정 규칙은 row index(Row 1/Row 2+)와 무관해야 한다.
 - `tags` 상단 보정은 계산된 `comp_gap` 값으로만 허용한다.
 - 자동 여백/자동 분배 기반 보정(`margin-top:auto`, `justify-content: space-between`, filler flex, pseudo spacer 및 동등 메커니즘)을 보정 수단으로 사용하면 안 된다.
-- Desktop/Tablet Normal settled에서 `needs_comp=false` 카드는 `thumbnail -> tags` 구간의 추가 잉여 여백을 가져서는 안 된다(`comp_gap=0`과 동치).
+- Desktop/Tablet Normal settled에서 `needs_comp=false` 카드는 `subtitle -> tags` 구간의 추가 잉여 여백을 가져서는 안 된다(`comp_gap=0`과 동치).
 
 3) Expanded Geometry Isolation (Desktop/Tablet)
 - Expanded 높이 정책은 Desktop/Tablet에만 적용하고, Mobile은 full-bleed 규칙을 따른다.
@@ -329,7 +329,7 @@
 - 콘텐츠 식별성을 해치는 clipping(`overflow: hidden` 기반 crop 포함)은 금지한다. 단, 동일 가독성을 보장하는 동등 구현은 허용한다.
 
 **Implementation Notes (Prevention Focus)**:
-- 반복 재발 원인 1: `tags` 영역에 auto-margin이 상시 적용되면 non-comp 카드에서도 `thumbnail -> tags` 구간 잉여 여백이 발생할 수 있다.
+- 반복 재발 원인 1: `tags` 영역에 auto-margin이 상시 적용되면 non-comp 카드에서도 `subtitle -> tags` 구간 잉여 여백이 발생할 수 있다.
 - 반복 재발 원인 2: Expanded 상세 슬롯이 row sizing에 참여하면 same-row non-target 카드 높이 동조 및 종료 후 잔류 변화가 발생할 수 있다.
 - 위 원인에 해당하는 구현은 본 섹션 Rule의 간격/row 안정성/기하 불변식 항목과 불일치한다.
 
@@ -882,7 +882,7 @@
 7. Mobile Menu Overlay: 패널 solid 표면, 패널 외부 불투명 dim, 외부 `pointer down` 즉시 닫힘(스크롤 제스처 취소), 닫힘 중 추가 입력 무시, 닫힘 후 햄버거 트리거 포커스 복귀 PASS (Section 6, 10).
 8. Theme Matrix: Landing/Test/Blog/History 전 페이지 light/dark, Expanded 다크모드, 핵심 요소/보조요소 톤 정합 PASS (Section 6, 10).
 9. Privacy/Consent: `UNKNOWN/OPTED_OUT` 전송 `0건`, `OPTED_IN`에서만 전송, 랜덤 소스 불가 환경 전송 차단 PASS (Section 12, 15).
-10. Normal Spacing Model: Desktop/Tablet Normal에서 `thumbnail -> tags` 기본 간격 비-0 유지, 보정 불필요 카드의 `보정 간격=0` + 추가 잉여 여백 `0`, 보정 필요 카드만 추가 보정 간격 허용, empty-tags에서 chip `0개` + 슬롯 높이 유지 PASS (Section 6.7, 13.1).
+10. Normal Spacing Model: Desktop/Tablet Normal에서 `subtitle -> tags` 기본 간격 비-0 유지, 보정 불필요 카드의 `보정 간격=0` + 추가 잉여 여백 `0`, 보정 필요 카드만 추가 보정 간격 허용, empty-tags에서 chip `0개` + 슬롯 높이 유지 PASS (Section 6.7, 13.1).
 11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되고, row index 기반 우회 신호 사용 `0건` PASS (Section 6.7).
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 available 카드 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).

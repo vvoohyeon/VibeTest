@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import type {CSSProperties} from 'react';
+import type {
+  CSSProperties,
+  FocusEventHandler,
+  KeyboardEventHandler,
+  MouseEventHandler,
+  PointerEventHandler,
+  WheelEventHandler
+} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import type {LandingCard} from '@/features/landing/data';
@@ -14,7 +21,7 @@ const metaValueFormatter = new Intl.NumberFormat('en-US', {
 const thumbnailDataUriCache = new Map<string, string>();
 const SPACING_PRECISION_SCALE = 10000;
 
-export type LandingCardVisualState = 'normal' | 'expanded';
+export type LandingCardVisualState = 'normal' | 'expanded' | 'focused';
 export type LandingCardInteractionMode = 'hover' | 'tap';
 
 export interface LandingCardSpacingContract {
@@ -43,6 +50,19 @@ interface LandingGridCardProps {
   spacing?: LandingCardSpacingContract;
   copy: LandingCardCopy;
   sequence?: number;
+  tabIndex?: number;
+  ariaDisabled?: boolean;
+  interactionBlocked?: boolean;
+  hoverLockEnabled?: boolean;
+  keyboardMode?: boolean;
+  onFocus?: FocusEventHandler<HTMLElement>;
+  onKeyDown?: KeyboardEventHandler<HTMLElement>;
+  onClick?: MouseEventHandler<HTMLElement>;
+  onMouseEnter?: MouseEventHandler<HTMLElement>;
+  onMouseLeave?: MouseEventHandler<HTMLElement>;
+  onPointerMove?: PointerEventHandler<HTMLElement>;
+  onMouseDown?: MouseEventHandler<HTMLElement>;
+  onWheel?: WheelEventHandler<HTMLElement>;
 }
 
 function roundSpacing(value: number): number {
@@ -116,7 +136,20 @@ export function LandingGridCard({
   interactionMode = 'tap',
   spacing,
   copy,
-  sequence
+  sequence,
+  tabIndex = 0,
+  ariaDisabled = false,
+  interactionBlocked = false,
+  hoverLockEnabled = false,
+  keyboardMode = false,
+  onFocus,
+  onKeyDown,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  onPointerMove,
+  onMouseDown,
+  onWheel
 }: LandingGridCardProps) {
   const isUnavailable = card.availability === 'unavailable';
   const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
@@ -124,7 +157,7 @@ export function LandingGridCard({
   const resolvedSpacing = resolveSpacingContract(spacing);
 
   return (
-    <article
+    <div
       className="landing-grid-card"
       data-testid="landing-grid-card"
       data-card-id={card.id}
@@ -133,15 +166,29 @@ export function LandingGridCard({
       data-card-availability={card.availability}
       data-card-state={resolvedState}
       data-interaction-mode={interactionMode}
+      data-hover-lock={hoverLockEnabled ? 'true' : 'false'}
+      data-keyboard-mode={keyboardMode ? 'true' : 'false'}
+      data-hover-lock-blocked={interactionBlocked ? 'true' : 'false'}
       data-base-gap={resolvedSpacing.baseGapPx}
       data-comp-gap={resolvedSpacing.compGapPx}
       data-needs-comp={resolvedSpacing.needsComp ? 'true' : 'false'}
       data-natural-height={resolvedSpacing.naturalHeightPx}
       data-row-natural-max={resolvedSpacing.rowMaxNaturalHeightPx}
+      tabIndex={tabIndex}
+      aria-disabled={ariaDisabled ? 'true' : undefined}
+      onFocus={onFocus}
+      onKeyDown={onKeyDown}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onPointerMove={onPointerMove}
+      onMouseDown={onMouseDown}
+      onWheel={onWheel}
       style={
         {
           '--landing-card-base-gap': `${resolvedSpacing.baseGapPx}px`,
-          '--landing-card-comp-gap': `${resolvedSpacing.compGapPx}px`
+          '--landing-card-comp-gap': `${resolvedSpacing.compGapPx}px`,
+          pointerEvents: interactionBlocked ? 'none' : 'auto'
         } as CSSProperties
       }
     >
@@ -215,10 +262,6 @@ export function LandingGridCard({
           </div>
         ) : (
           <>
-            <p className="landing-grid-card-subtitle" data-slot="cardSubtitle">
-              {card.subtitle}
-            </p>
-
             <div className="landing-grid-card-thumbnail-slot" data-slot="thumbnailOrIcon" aria-hidden="true">
               <Image
                 className="landing-grid-card-thumbnail"
@@ -229,6 +272,10 @@ export function LandingGridCard({
                 unoptimized
               />
             </div>
+
+            <p className="landing-grid-card-subtitle" data-slot="cardSubtitle">
+              {card.subtitle}
+            </p>
 
             <div className="landing-grid-card-tags-gap" aria-hidden="true" />
 
@@ -248,7 +295,7 @@ export function LandingGridCard({
           <span className="landing-grid-card-unavailable-badge">{copy.comingSoon}</span>
         </div>
       ) : null}
-    </article>
+    </div>
   );
 }
 

@@ -1,6 +1,13 @@
 'use client';
 
-import {type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  type CSSProperties,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
 
 import {defaultLocale, isLocale} from '@/config/site';
@@ -12,6 +19,7 @@ import {
   deriveNaturalHeightFromGeometry,
   LANDING_CARD_BASE_GAP_PX
 } from '@/features/landing/grid/spacing-plan';
+import {useLandingInteractionController} from '@/features/landing/grid/use-landing-interaction-controller';
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
 
@@ -72,8 +80,12 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
   const locale = isLocale(localeFromContext) ? localeFromContext : defaultLocale;
 
   const [viewportWidth, setViewportWidth] = useState<number>(readViewportWidth);
-  const [interactionMode, setInteractionMode] = useState<'hover' | 'tap'>('tap');
   const [spacingModel, setSpacingModel] = useState<CardSpacingMap>({});
+  const {interactionMode, interactionState, resolveCardInteractionBindings} = useLandingInteractionController({
+    cards,
+    viewportWidth,
+    shellRef
+  });
   const availableWidth = useMemo(() => resolveLandingAvailableWidth(viewportWidth), [viewportWidth]);
   const cardCopy = {
     comingSoon: t('comingSoon'),
@@ -122,25 +134,6 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
         window.cancelAnimationFrame(frame);
       }
       window.removeEventListener('resize', scheduleSync);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return;
-    }
-
-    const query = window.matchMedia('(hover: hover) and (pointer: fine)');
-
-    const syncInteractionMode = () => {
-      setInteractionMode(query.matches ? 'hover' : 'tap');
-    };
-
-    syncInteractionMode();
-    query.addEventListener('change', syncInteractionMode);
-
-    return () => {
-      query.removeEventListener('change', syncInteractionMode);
     };
   }, []);
 
@@ -273,6 +266,11 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       data-grid-tier={plan.tier}
       data-row1-columns={plan.row1Columns}
       data-rown-columns={plan.rowNColumns}
+      data-page-state={interactionState.pageState}
+      data-active-ramp={interactionState.activeRampUntilMs !== null ? 'true' : 'false'}
+      data-hover-lock-enabled={interactionState.hoverLock.enabled ? 'true' : 'false'}
+      data-hover-lock-card-id={interactionState.hoverLock.cardId ?? ''}
+      data-keyboard-mode={interactionState.hoverLock.keyboardMode ? 'true' : 'false'}
     >
       <div className="landing-grid-container" data-testid="landing-grid-container">
         {plan.rows.map((row) => (
@@ -289,16 +287,28 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
           >
             {cards.slice(row.startIndex, row.endIndex).map((card, offset) => {
               const sequence = row.startIndex + offset;
+              const interactionBindings = resolveCardInteractionBindings(card);
 
               return (
                 <LandingGridCard
                   key={card.id}
                   card={card}
+                  state={interactionBindings.state}
                   locale={locale}
                   interactionMode={interactionMode}
                   spacing={spacingModel[card.id]}
                   sequence={sequence}
                   copy={cardCopy}
+                  hoverLockEnabled={interactionBindings.hoverLockEnabled}
+                  keyboardMode={interactionBindings.keyboardMode}
+                  interactionBlocked={interactionBindings.interactionBlocked}
+                  ariaDisabled={interactionBindings.ariaDisabled}
+                  tabIndex={interactionBindings.tabIndex}
+                  onFocus={interactionBindings.onFocus}
+                  onKeyDown={interactionBindings.onKeyDown}
+                  onClick={interactionBindings.onClick}
+                  onMouseEnter={interactionBindings.onMouseEnter}
+                  onMouseLeave={interactionBindings.onMouseLeave}
                 />
               );
             })}

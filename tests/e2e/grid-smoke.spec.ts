@@ -188,15 +188,15 @@ test.describe('Phase 4 grid smoke', () => {
       const rowMetrics = await rowCards.evaluateAll((cardElements) =>
         cardElements.map((cardElement) => {
           const content = cardElement.querySelector('.landing-grid-card-content');
-          const thumbnail = cardElement.querySelector('[data-slot="thumbnailOrIcon"]');
+          const subtitle = cardElement.querySelector('[data-slot="cardSubtitle"]');
           const tags = cardElement.querySelector('[data-slot="tags"]');
-          if (!content || !thumbnail || !tags) {
+          if (!content || !subtitle || !tags) {
             return null;
           }
 
           const cardRect = cardElement.getBoundingClientRect();
           const contentRect = content.getBoundingClientRect();
-          const thumbnailRect = thumbnail.getBoundingClientRect();
+          const subtitleRect = subtitle.getBoundingClientRect();
           const tagsRect = tags.getBoundingClientRect();
 
           return {
@@ -204,7 +204,7 @@ test.describe('Phase 4 grid smoke', () => {
             cardBottom: cardRect.bottom,
             contentTop: contentRect.top,
             contentBottom: contentRect.bottom,
-            thumbnailBottom: thumbnailRect.bottom,
+            subtitleBottom: subtitleRect.bottom,
             tagsTop: tagsRect.top,
             tagsBottom: tagsRect.bottom,
             baseGapAttr: Number.parseFloat(cardElement.getAttribute('data-base-gap') ?? '0') || 0,
@@ -218,11 +218,11 @@ test.describe('Phase 4 grid smoke', () => {
       expect(settledMetrics).toHaveLength(rowCardCount);
 
       const rowBottom = settledMetrics[0]?.cardBottom ?? 0;
-      const rowBaseGapFromGeometry = Math.min(...settledMetrics.map((metric) => metric.tagsTop - metric.thumbnailBottom));
+      const rowBaseGapFromGeometry = Math.min(...settledMetrics.map((metric) => metric.tagsTop - metric.subtitleBottom));
       expect(rowBaseGapFromGeometry).toBeGreaterThan(0);
 
       const derivedMetrics = settledMetrics.map((metric) => {
-        const compFromGeometry = Math.max(0, metric.tagsTop - metric.thumbnailBottom - rowBaseGapFromGeometry);
+        const compFromGeometry = Math.max(0, metric.tagsTop - metric.subtitleBottom - rowBaseGapFromGeometry);
         const naturalFromGeometry = Math.max(0, metric.tagsBottom - metric.contentTop - compFromGeometry);
         return {
           ...metric,
@@ -273,7 +273,7 @@ test.describe('Phase 4 grid smoke', () => {
         .filter((value): value is string => value !== null);
     });
 
-    expect(orderedSlots).toEqual(['cardTitle', 'cardSubtitle', 'thumbnailOrIcon', 'tags']);
+    expect(orderedSlots).toEqual(['cardTitle', 'thumbnailOrIcon', 'cardSubtitle', 'tags']);
     await expect(emptyTagsCard.locator('[data-slot="tags"] .landing-grid-card-tag-item')).toHaveCount(0);
 
     const minHeight = await emptyTagsCard

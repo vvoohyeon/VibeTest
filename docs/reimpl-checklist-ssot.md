@@ -23,7 +23,7 @@
 - [x] Treat underfilled final-row residual space as explicit allowed exception only (`§6.2`).
 - [x] Keep Hero visual baseline as non-input informational block (`§6.3`).
 - [x] Enforce GNB context contracts end-to-end (Desktop settings open/close fallback + trigger-layer gap `0px` + focus-out close `<=1 frame`, Mobile overlay/backdrop/scroll lock, Mobile Test back fallback, History=Blog context) (`§6.4`, `§10.2`, `§14.3-3`, `§14.3-7`).
-- [x] Enforce card slot order and Expanded slot removal contract (`§6.5`, `§6.8`).
+- [x] Enforce card slot order (`cardTitle -> thumbnailOrIcon -> cardSubtitle -> tags`) and Expanded slot removal contract (`§6.5`, `§6.8`).
 - [x] Enforce text/wrap/truncate/clamp policy by slot (`§6.6`).
 - [x] Enforce subtitle max-2-line truncation with visible ellipsis and block overflow-driven inline-size contamination (card/row width + sibling-slot width unchanged) (`§6.6`, `§6.8`, `§14.3-4`).
 - [x] Enforce Expanded meta formatting/localization contracts (no abbreviated counts, locale switch + default fallback correctness) (`§6.8`).
@@ -32,21 +32,21 @@
 ## 3. Normal Height / Spacing Contracts
 - [x] Enforce Normal compact + same-row equal-height stretch (`§6.7`).
 - [x] Keep tags terminal slot and forbid dynamic space under tags (`§6.7`).
-- [ ] Apply and verify `thumbnail -> tags` two-level spacing model with `base_gap + comp_gap` measurement (`§6.7`, `§14.3-10`, `§14.3-11`).
-- [ ] Keep `base spacing` non-zero across Desktop/Tablet/Mobile and aligned with title-subtitle-thumbnail rhythm (`§6.7`, `§14.3-10`).
+- [ ] Apply and verify `subtitle -> tags` two-level spacing model with `base_gap + comp_gap` measurement (`§6.7`, `§14.3-10`, `§14.3-11`).
+- [ ] Keep `base spacing` non-zero across Desktop/Tablet/Mobile and aligned with title-thumbnail-subtitle rhythm (`§6.7`, `§14.3-10`).
 - [ ] Allow compensation spacing only on cards requiring row equalization (`§6.7`).
-- [ ] For Desktop/Tablet settled rows, keep non-comp cards at `comp_gap=0` with extra residual `thumbnail -> tags` gap `0` (`§6.7`, `§14.3-10`).
+- [ ] For Desktop/Tablet settled rows, keep non-comp cards at `comp_gap=0` with extra residual `subtitle -> tags` gap `0` (`§6.7`, `§14.3-10`).
 - [ ] Determine compensation-need using row-local Normal natural height comparison (row-index independent) (`§6.7`, `§14.3-11`).
 - [ ] Preserve row1/row2+ non-target stability consistency in Expanded/handoff paths (`§6.7`, `§14.3-11`).
 - [x] Enforce empty-tags contract: tags slot height is preserved by container metrics while rendered chip count remains `0` (no placeholder/blank chip) (`§6.7`, `§13.1`, `§14.3-10`).
 
 ## 4. State Model / Desktop-Tablet Interaction
-- [ ] Implement page/card state sets and fixed priority ordering (`§7.1`, `§7.2`).
-- [ ] Respect guard rules for INACTIVE/ACTIVE-ramp/TRANSITIONING (`§7.3`).
-- [ ] Ensure deterministic transitions and settled semantics with explicit allowed-transition table + guard no-op assertions (`§7.4`, `§7.7`, `§14.3-4`, `§14.3-5`).
-- [ ] Implement HOVER_LOCK contracts for non-target cards and keyboard override behavior (`§7.5`).
-- [ ] Implement keyboard sequential expansion override across all viewports (`§7.6`).
-- [ ] Apply capability gate split for hover-capable vs tap mode (`§8.1`).
+- [x] Implement page/card state sets and fixed priority ordering (`§7.1`, `§7.2`).
+- [x] Respect guard rules for INACTIVE/ACTIVE-ramp/TRANSITIONING (`§7.3`).
+- [x] Ensure deterministic transitions and settled semantics with explicit allowed-transition table + guard no-op assertions (`§7.4`, `§7.7`, `§14.3-4`, `§14.3-5`).
+- [x] Implement HOVER_LOCK contracts for non-target cards and keyboard override behavior (`§7.5`).
+- [x] Implement keyboard sequential expansion override across all viewports (`§7.6`).
+- [x] Apply capability gate split for hover-capable vs tap mode (`§8.1`).
 - [ ] Implement Desktop/Tablet trigger timing, cancel, and handoff behavior with single global timer + intent token + execution-time target revalidation (`§8.2`, `§14.3-13`).
 - [ ] Classify handoff only on entering another available card; unavailable entry must never be treated as handoff (`§8.2`, `§14.3-13`).
 - [ ] Enforce hover-out collapse independence from other-card hover, using live boundary decision and 100~180ms close window (`§8.2`, `§14.3-13`).

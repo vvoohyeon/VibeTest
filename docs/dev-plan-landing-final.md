@@ -56,7 +56,7 @@
 | 라우팅/locale | 5, 13, 14 |
 | 키보드 포커스/확장/Esc | 7, 9, 14 |
 | 테마/다크모드 | 6, 8, 10, 14 |
-| `thumbnail -> tags` 간격 | 6.7, 14.3 |
+| `subtitle -> tags` 간격 | 6.7, 14.3 |
 | underfilled 마지막 row | 6.2, 14.3 |
 | Desktop hover-out collapse | 8.2, 14.3 |
 | Mobile title baseline | 8.5, 14.3 |
@@ -157,7 +157,7 @@
 
 ### 3.6 카드/텍스트/슬롯 계약
 - 슬롯:
-1. Normal: `title -> subtitle -> thumbnailOrIcon -> tags`.
+1. Normal: `title -> thumbnailOrIcon -> subtitle -> tags`.
 2. Expanded 공통 헤더: title만 유지.
 3. Expanded에서 subtitle/thumbnail/tags는 제거(숨김 아님).
 4. Test Expanded: previewQuestion, answerChoiceA/B, meta(3).
@@ -179,7 +179,7 @@
 5. 텍스트는 활성 locale 우선, 누락 시 default locale fallback.
 
 ### 3.7 spacing/geometry 불변식
-- `thumbnail -> tags`는 `base_gap + comp_gap`.
+- `subtitle -> tags`는 `base_gap + comp_gap`.
 - `base_gap`은 비-0 + 기본 수직 리듬 일치.
 - `needs_comp(card_i) = (natural_height_i < max(natural_height_row))` 고정.
 - `needs_comp=false` 카드의 `comp_gap=0`은 전이 프레임 포함 항상 유지.
