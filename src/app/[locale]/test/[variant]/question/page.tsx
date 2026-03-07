@@ -3,6 +3,7 @@ import {getTranslations} from 'next-intl/server';
 
 import {isLocale} from '@/config/site';
 import {PageShell} from '@/features/landing/shell';
+import {TestQuestionClient} from '@/features/landing/test/test-question-client';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
 export default async function QuestionPage({
@@ -20,17 +21,11 @@ export default async function QuestionPage({
     notFound();
   }
 
-  const t = await getTranslations({locale, namespace: 'test'});
+  await getTranslations({locale, namespace: 'test'});
 
   return (
     <PageShell locale={locale} context="test" currentRoute={RouteBuilder.question(variant)}>
-      <section className="landing-shell-card">
-        <h1>Test Shell</h1>
-        <p>{`Locale: ${locale}`}</p>
-        <p>{`Variant: ${variant}`}</p>
-        <p>{t('instructionTitle')}</p>
-        <p>{t('progress', {current: 1, total: 12})}</p>
-      </section>
+      <TestQuestionClient locale={locale} variant={variant} />
     </PageShell>
   );
 }

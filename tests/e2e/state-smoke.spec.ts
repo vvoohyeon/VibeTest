@@ -42,6 +42,8 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const firstTrigger = firstCard.getByTestId('landing-grid-card-trigger');
+    const secondTrigger = secondCard.getByTestId('landing-grid-card-trigger');
 
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(secondCard).toHaveAttribute('data-hover-lock-blocked', 'true');
@@ -54,12 +56,12 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(page.locator('[data-slot="answerChoiceB"]:focus')).toHaveCount(1);
 
     await page.keyboard.press('Tab');
-    await expect(secondCard).toBeFocused();
+    await expect(secondTrigger).toBeFocused();
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
 
     await page.keyboard.press('Shift+Tab');
-    await expect(firstCard).toBeFocused();
+    await expect(firstTrigger).toBeFocused();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(secondCard).toHaveAttribute('data-card-state', 'normal');
   });

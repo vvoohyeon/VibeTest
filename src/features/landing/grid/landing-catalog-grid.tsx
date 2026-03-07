@@ -19,7 +19,9 @@ import {
   deriveNaturalHeightFromGeometry,
   LANDING_CARD_BASE_GAP_PX
 } from '@/features/landing/grid/spacing-plan';
+import {resolveDesktopTransformOriginX} from '@/features/landing/grid/hover-intent';
 import {useLandingInteractionController} from '@/features/landing/grid/use-landing-interaction-controller';
+import {useLandingTransition} from '@/features/landing/transition/use-landing-transition';
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
 
@@ -81,22 +83,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
 
   const [viewportWidth, setViewportWidth] = useState<number>(readViewportWidth);
   const [spacingModel, setSpacingModel] = useState<CardSpacingMap>({});
-  const {interactionMode, interactionState, resolveCardInteractionBindings} = useLandingInteractionController({
-    cards,
-    viewportWidth,
-    shellRef
-  });
   const availableWidth = useMemo(() => resolveLandingAvailableWidth(viewportWidth), [viewportWidth]);
-  const cardCopy = {
-    comingSoon: t('comingSoon'),
-    metaEstimated: t('metaEstimated'),
-    metaShares: t('metaShares'),
-    metaAttempts: t('metaAttempts'),
-    metaReadTime: t('metaReadTime'),
-    metaViews: t('metaViews'),
-    readMore: t('readMore')
-  };
-
   const plan = useMemo(
     () =>
       buildLandingGridPlan({
@@ -106,6 +93,45 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       }),
     [availableWidth, cards.length, viewportWidth]
   );
+  const {beginBlogTransition, beginTestTransition} = useLandingTransition({locale});
+  const {
+    interactionMode,
+    interactionState,
+    mobileLifecycleState,
+    mobileBackdropBindings,
+    resolveCardInteractionBindings,
+    collapseExpandedCard
+  } = useLandingInteractionController({
+    cards,
+    viewportWidth,
+    viewportTier: plan.tier,
+    shellRef,
+    onAnswerChoiceSelect: (card, choice) => {
+      if (card.type !== 'test') {
+        return false;
+      }
+
+      return beginTestTransition(card, choice);
+    },
+    onPrimaryCtaSelect: (card) => {
+      if (card.type !== 'blog') {
+        return false;
+      }
+
+      return beginBlogTransition(card);
+    }
+  });
+  const cardCopy = {
+    comingSoon: t('comingSoon'),
+    close: t('close'),
+    closeExpandedAria: t('closeExpandedAria'),
+    metaEstimated: t('metaEstimated'),
+    metaShares: t('metaShares'),
+    metaAttempts: t('metaAttempts'),
+    metaReadTime: t('metaReadTime'),
+    metaViews: t('metaViews'),
+    readMore: t('readMore')
+  };
 
   useEffect(() => {
     let frame = 0;
@@ -139,6 +165,10 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (plan.tier !== 'mobile' && interactionState.expandedCardId) {
       return;
     }
 
@@ -232,7 +262,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [cards, plan, viewportWidth]);
+  }, [cards, interactionState.expandedCardId, plan, viewportWidth]);
 
   useEffect(() => {
     const nextPlanKey = `${plan.tier}:${plan.row1Columns}:${plan.rowNColumns}:${plan.rows
@@ -244,6 +274,10 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       previousPlanKeyRef.current !== nextPlanKey &&
       typeof window !== 'undefined'
     ) {
+      if (plan.tier !== 'mobile' && interactionState.expandedCardId) {
+        collapseExpandedCard();
+      }
+
       window.dispatchEvent(
         new CustomEvent(LANDING_GRID_PLAN_CHANGED_EVENT, {
           detail: {
@@ -255,7 +289,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     }
 
     previousPlanKeyRef.current = nextPlanKey;
-  }, [plan]);
+  }, [collapseExpandedCard, interactionState.expandedCardId, plan]);
 
   return (
     <section
@@ -271,7 +305,19 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
       data-hover-lock-enabled={interactionState.hoverLock.enabled ? 'true' : 'false'}
       data-hover-lock-card-id={interactionState.hoverLock.cardId ?? ''}
       data-keyboard-mode={interactionState.hoverLock.keyboardMode ? 'true' : 'false'}
+      data-mobile-phase={mobileLifecycleState.phase}
     >
+      {mobileBackdropBindings.active ? (
+        <div
+          className="landing-grid-mobile-backdrop"
+          data-testid="landing-grid-mobile-backdrop"
+          data-state={mobileBackdropBindings.state}
+          onPointerDown={mobileBackdropBindings.onPointerDown}
+          onPointerMove={mobileBackdropBindings.onPointerMove}
+          onPointerUp={mobileBackdropBindings.onPointerUp}
+          onPointerCancel={mobileBackdropBindings.onPointerCancel}
+        />
+      ) : null}
       <div className="landing-grid-container" data-testid="landing-grid-container">
         {plan.rows.map((row) => (
           <div
@@ -296,6 +342,12 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
                   state={interactionBindings.state}
                   locale={locale}
                   interactionMode={interactionMode}
+                  viewportTier={plan.tier}
+                  mobilePhase={interactionBindings.mobilePhase}
+                  desktopTransformOriginX={resolveDesktopTransformOriginX({
+                    cardOffset: offset,
+                    rowCardCount: row.cardCount
+                  })}
                   spacing={spacingModel[card.id]}
                   sequence={sequence}
                   copy={cardCopy}
@@ -309,6 +361,9 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
                   onClick={interactionBindings.onClick}
                   onMouseEnter={interactionBindings.onMouseEnter}
                   onMouseLeave={interactionBindings.onMouseLeave}
+                  onAnswerChoiceSelect={interactionBindings.onAnswerChoiceSelect}
+                  onPrimaryCtaClick={interactionBindings.onPrimaryCtaClick}
+                  onMobileClose={interactionBindings.onMobileClose}
                 />
               );
             })}

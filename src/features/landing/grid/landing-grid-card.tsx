@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type {
   CSSProperties,
   FocusEventHandler,
+  MouseEvent,
   KeyboardEventHandler,
   MouseEventHandler,
   PointerEventHandler,
@@ -23,6 +24,8 @@ const SPACING_PRECISION_SCALE = 10000;
 
 export type LandingCardVisualState = 'normal' | 'expanded' | 'focused';
 export type LandingCardInteractionMode = 'hover' | 'tap';
+export type LandingCardViewportTier = 'mobile' | 'tablet' | 'desktop';
+export type LandingCardMobilePhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSING';
 
 export interface LandingCardSpacingContract {
   baseGapPx: number;
@@ -34,6 +37,8 @@ export interface LandingCardSpacingContract {
 
 export interface LandingCardCopy {
   comingSoon: string;
+  close: string;
+  closeExpandedAria: string;
   metaEstimated: string;
   metaShares: string;
   metaAttempts: string;
@@ -47,6 +52,9 @@ interface LandingGridCardProps {
   locale: AppLocale;
   state?: LandingCardVisualState;
   interactionMode?: LandingCardInteractionMode;
+  viewportTier?: LandingCardViewportTier;
+  mobilePhase?: LandingCardMobilePhase;
+  desktopTransformOriginX?: '0%' | '50%' | '100%';
   spacing?: LandingCardSpacingContract;
   copy: LandingCardCopy;
   sequence?: number;
@@ -63,6 +71,9 @@ interface LandingGridCardProps {
   onPointerMove?: PointerEventHandler<HTMLElement>;
   onMouseDown?: MouseEventHandler<HTMLElement>;
   onWheel?: WheelEventHandler<HTMLElement>;
+  onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
+  onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
+  onMobileClose?: MouseEventHandler<HTMLButtonElement>;
 }
 
 function roundSpacing(value: number): number {
@@ -129,11 +140,62 @@ function resolveThumbnailDataUri(token: string): string {
   return dataUri;
 }
 
+interface NormalContentSlotsProps {
+  card: LandingCard;
+  includeSlotAttributes: boolean;
+}
+
+function NormalContentSlots({card, includeSlotAttributes}: NormalContentSlotsProps) {
+  return (
+    <>
+      <div
+        className="landing-grid-card-thumbnail-slot"
+        data-slot={includeSlotAttributes ? 'thumbnailOrIcon' : undefined}
+        aria-hidden="true"
+      >
+        <Image
+          className="landing-grid-card-thumbnail"
+          src={resolveThumbnailDataUri(card.thumbnailOrIcon)}
+          alt=""
+          fill
+          sizes="100vw"
+          unoptimized
+        />
+      </div>
+
+      <p
+        className="landing-grid-card-subtitle"
+        data-slot={includeSlotAttributes ? 'cardSubtitle' : undefined}
+      >
+        {card.subtitle}
+      </p>
+
+      <div className="landing-grid-card-tags-gap" aria-hidden="true" />
+
+      <ul
+        className="landing-grid-card-tags"
+        data-slot={includeSlotAttributes ? 'tags' : undefined}
+        data-tag-count={card.tags.length}
+        aria-label="Card tags"
+      >
+        {card.tags.map((tag) => (
+          <li key={`${card.id}-${tag}`} className="landing-grid-card-tag-item">
+            <span className="landing-grid-card-tag-chip">{tag}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 export function LandingGridCard({
   card,
   locale,
   state = 'normal',
   interactionMode = 'tap',
+  viewportTier = 'desktop',
+  mobilePhase = 'NORMAL',
+  desktopTransformOriginX = '50%',
   spacing,
   copy,
   sequence,
@@ -149,12 +211,24 @@ export function LandingGridCard({
   onMouseLeave,
   onPointerMove,
   onMouseDown,
-  onWheel
+  onWheel,
+  onAnswerChoiceSelect,
+  onPrimaryCtaClick,
+  onMobileClose
 }: LandingGridCardProps) {
   const isUnavailable = card.availability === 'unavailable';
   const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
   const isExpanded = resolvedState === 'expanded';
+  const isMobileViewport = viewportTier === 'mobile';
+  const isDesktopExpanded = isExpanded && !isMobileViewport;
+  const isMobileExpanded = isExpanded && isMobileViewport;
   const resolvedSpacing = resolveSpacingContract(spacing);
+
+  const handlePrimaryCtaClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
+    if (onPrimaryCtaClick) {
+      onPrimaryCtaClick(event);
+    }
+  };
 
   return (
     <div
@@ -174,11 +248,10 @@ export function LandingGridCard({
       data-needs-comp={resolvedSpacing.needsComp ? 'true' : 'false'}
       data-natural-height={resolvedSpacing.naturalHeightPx}
       data-row-natural-max={resolvedSpacing.rowMaxNaturalHeightPx}
-      tabIndex={tabIndex}
+      data-card-viewport-tier={viewportTier}
+      data-mobile-phase={isMobileViewport ? mobilePhase : undefined}
+      data-expanded-layer={isDesktopExpanded ? 'desktop-overlay' : isMobileExpanded ? 'mobile-in-flow' : 'none'}
       aria-disabled={ariaDisabled ? 'true' : undefined}
-      onFocus={onFocus}
-      onKeyDown={onKeyDown}
-      onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onPointerMove={onPointerMove}
@@ -188,17 +261,46 @@ export function LandingGridCard({
         {
           '--landing-card-base-gap': `${resolvedSpacing.baseGapPx}px`,
           '--landing-card-comp-gap': `${resolvedSpacing.compGapPx}px`,
+          '--landing-card-origin-x': desktopTransformOriginX,
           pointerEvents: interactionBlocked ? 'none' : 'auto'
         } as CSSProperties
       }
     >
-      <div className="landing-grid-card-content">
-        <h2 className="landing-grid-card-title" data-slot="cardTitle">
-          {card.title}
-        </h2>
+      <button
+        type="button"
+        className="landing-grid-card-trigger"
+        data-testid="landing-grid-card-trigger"
+        data-slot="primaryTrigger"
+        data-trigger-state={isExpanded ? 'expanded' : 'collapsed'}
+        tabIndex={tabIndex}
+        aria-disabled={ariaDisabled ? 'true' : undefined}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+        onClick={onClick}
+      >
+        <div className="landing-grid-card-content">
+          <h2 className="landing-grid-card-title" data-slot="cardTitle">
+            {card.title}
+          </h2>
 
-        {isExpanded ? (
+          {isExpanded ? null : (
+            <NormalContentSlots card={card} includeSlotAttributes />
+          )}
+
+          {isDesktopExpanded ? (
+            <div className="landing-grid-card-shell-ghost" aria-hidden="true">
+              <NormalContentSlots card={card} includeSlotAttributes={false} />
+            </div>
+          ) : null}
+        </div>
+      </button>
+
+      {isDesktopExpanded ? (
+        <div className="landing-grid-card-expanded-layer" data-slot="expandedLayer">
           <div className="landing-grid-card-expanded" data-slot="expandedBody">
+            <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
+              {card.title}
+            </h2>
             {card.type === 'test' ? (
               <>
                 <p className="landing-grid-card-preview-question" data-slot="previewQuestion">
@@ -206,10 +308,24 @@ export function LandingGridCard({
                 </p>
 
                 <div className="landing-grid-card-answer-grid" data-slot="answerChoices">
-                  <button type="button" className="landing-grid-card-answer-choice" data-slot="answerChoiceA">
+                  <button
+                    type="button"
+                    className="landing-grid-card-answer-choice"
+                    data-slot="answerChoiceA"
+                    onClick={(event) => {
+                      onAnswerChoiceSelect?.('A', event);
+                    }}
+                  >
                     {card.test.answerChoiceA}
                   </button>
-                  <button type="button" className="landing-grid-card-answer-choice" data-slot="answerChoiceB">
+                  <button
+                    type="button"
+                    className="landing-grid-card-answer-choice"
+                    data-slot="answerChoiceB"
+                    onClick={(event) => {
+                      onAnswerChoiceSelect?.('B', event);
+                    }}
+                  >
                     {card.test.answerChoiceB}
                   </button>
                 </div>
@@ -254,41 +370,107 @@ export function LandingGridCard({
                   className="landing-grid-card-primary-cta"
                   href={buildLocalizedPath(RouteBuilder.blog(), locale)}
                   data-slot="primaryCTA"
+                  onClick={handlePrimaryCtaClick}
                 >
                   {card.blog.primaryCTA || copy.readMore}
                 </Link>
               </>
             )}
           </div>
-        ) : (
-          <>
-            <div className="landing-grid-card-thumbnail-slot" data-slot="thumbnailOrIcon" aria-hidden="true">
-              <Image
-                className="landing-grid-card-thumbnail"
-                src={resolveThumbnailDataUri(card.thumbnailOrIcon)}
-                alt=""
-                fill
-                sizes="100vw"
-                unoptimized
-              />
-            </div>
+        </div>
+      ) : null}
 
-            <p className="landing-grid-card-subtitle" data-slot="cardSubtitle">
-              {card.subtitle}
-            </p>
+      {isMobileExpanded ? (
+        <>
+          <button
+            type="button"
+            className="landing-grid-card-mobile-close"
+            aria-label={copy.closeExpandedAria}
+            data-slot="mobileClose"
+            onClick={onMobileClose}
+            disabled={mobilePhase === 'CLOSING'}
+          >
+            {copy.close}
+          </button>
+          <div className="landing-grid-card-mobile-expanded" data-slot="expandedBody">
+            {card.type === 'test' ? (
+              <>
+                <p className="landing-grid-card-preview-question" data-slot="previewQuestion">
+                  {card.test.previewQuestion}
+                </p>
 
-            <div className="landing-grid-card-tags-gap" aria-hidden="true" />
+                <div className="landing-grid-card-answer-grid" data-slot="answerChoices">
+                  <button
+                    type="button"
+                    className="landing-grid-card-answer-choice"
+                    data-slot="answerChoiceA"
+                    onClick={(event) => {
+                      onAnswerChoiceSelect?.('A', event);
+                    }}
+                  >
+                    {card.test.answerChoiceA}
+                  </button>
+                  <button
+                    type="button"
+                    className="landing-grid-card-answer-choice"
+                    data-slot="answerChoiceB"
+                    onClick={(event) => {
+                      onAnswerChoiceSelect?.('B', event);
+                    }}
+                  >
+                    {card.test.answerChoiceB}
+                  </button>
+                </div>
 
-            <ul className="landing-grid-card-tags" data-slot="tags" data-tag-count={card.tags.length} aria-label="Card tags">
-              {card.tags.map((tag) => (
-                <li key={`${card.id}-${tag}`} className="landing-grid-card-tag-item">
-                  <span className="landing-grid-card-tag-chip">{tag}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
+                <dl className="landing-grid-card-meta-grid" data-slot="meta">
+                  <div className="landing-grid-card-meta-item">
+                    <dt className="landing-grid-card-meta-label">{copy.metaEstimated}</dt>
+                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.estimatedMinutes)}</dd>
+                  </div>
+                  <div className="landing-grid-card-meta-item">
+                    <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
+                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.shares)}</dd>
+                  </div>
+                  <div className="landing-grid-card-meta-item">
+                    <dt className="landing-grid-card-meta-label">{copy.metaAttempts}</dt>
+                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.attempts)}</dd>
+                  </div>
+                </dl>
+              </>
+            ) : (
+              <>
+                <p className="landing-grid-card-summary" data-slot="summary">
+                  {card.blog.summary}
+                </p>
+
+                <dl className="landing-grid-card-meta-grid" data-slot="meta">
+                  <div className="landing-grid-card-meta-item">
+                    <dt className="landing-grid-card-meta-label">{copy.metaReadTime}</dt>
+                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.readMinutes)}</dd>
+                  </div>
+                  <div className="landing-grid-card-meta-item">
+                    <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
+                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.shares)}</dd>
+                  </div>
+                  <div className="landing-grid-card-meta-item">
+                    <dt className="landing-grid-card-meta-label">{copy.metaViews}</dt>
+                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.views)}</dd>
+                  </div>
+                </dl>
+
+                <Link
+                  className="landing-grid-card-primary-cta"
+                  href={buildLocalizedPath(RouteBuilder.blog(), locale)}
+                  data-slot="primaryCTA"
+                  onClick={handlePrimaryCtaClick}
+                >
+                  {card.blog.primaryCTA || copy.readMore}
+                </Link>
+              </>
+            )}
+          </div>
+        </>
+      ) : null}
 
       {isUnavailable ? (
         <div className="landing-grid-card-unavailable-overlay" data-slot="unavailableOverlay" aria-hidden="true">
@@ -302,6 +484,8 @@ export function LandingGridCard({
 export function getDefaultCardCopy(): LandingCardCopy {
   return {
     comingSoon: 'Coming soon',
+    close: 'Close',
+    closeExpandedAria: 'Close expanded card',
     metaEstimated: 'Est. time',
     metaShares: 'Shares',
     metaAttempts: 'Total attempts',

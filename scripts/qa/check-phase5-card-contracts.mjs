@@ -42,11 +42,11 @@ if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
 if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
 
-  if (!/data-slot="cardTitle"/u.test(cardFile) || !/data-slot="thumbnailOrIcon"/u.test(cardFile)) {
+  if (!/data-slot=(["'])cardTitle\1/u.test(cardFile) || !/thumbnailOrIcon/u.test(cardFile)) {
     fail('LandingGridCard must define normal slot markers.');
   }
 
-  if (!/data-slot="previewQuestion"/u.test(cardFile) || !/data-slot="summary"/u.test(cardFile)) {
+  if (!/previewQuestion/u.test(cardFile) || !/summary/u.test(cardFile)) {
     fail('LandingGridCard must define expanded slot markers for both card types.');
   }
 

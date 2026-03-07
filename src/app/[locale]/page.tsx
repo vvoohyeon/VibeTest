@@ -4,6 +4,7 @@ import {getTranslations} from 'next-intl/server';
 import {isLocale} from '@/config/site';
 import {createLandingCatalog} from '@/features/landing/data';
 import {LandingCatalogGridLoader} from '@/features/landing/grid';
+import {LandingRuntime} from '@/features/landing/landing-runtime';
 import {PageShell} from '@/features/landing/shell';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
@@ -23,6 +24,7 @@ export default async function LandingPage({
 
   return (
     <PageShell locale={locale} context="landing" currentRoute={RouteBuilder.landing()}>
+      <LandingRuntime locale={locale} />
       <section className="landing-hero" aria-label="Landing Hero">
         <h1>{t('heroTitle')}</h1>
         <p>{t('heroBody')}</p>

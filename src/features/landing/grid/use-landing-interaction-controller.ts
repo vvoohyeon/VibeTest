@@ -2,12 +2,30 @@ import type {
   FocusEvent as ReactFocusEvent,
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
   RefObject
 } from 'react';
-import {useEffect, useMemo, useReducer, useState} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
 
 import type {LandingCard} from '@/features/landing/data';
-import type {LandingCardVisualState} from '@/features/landing/grid/landing-grid-card';
+import type {
+  LandingCardMobilePhase,
+  LandingCardViewportTier,
+  LandingCardVisualState
+} from '@/features/landing/grid/landing-grid-card';
+import {
+  DESKTOP_COLLAPSE_DELAY_MS,
+  DESKTOP_EXPAND_DELAY_MS,
+  isAvailableHandoffCandidate,
+  nextHoverIntentToken,
+  type HoverIntentAction
+} from '@/features/landing/grid/hover-intent';
+import {
+  initialLandingMobileLifecycleState,
+  MOBILE_EXPANDED_DURATION_MS,
+  reduceLandingMobileLifecycleState,
+  type LandingMobileLifecycleState
+} from '@/features/landing/grid/mobile-lifecycle';
 import {
   initialLandingInteractionState,
   isCardKeyboardAriaDisabled,
@@ -18,6 +36,8 @@ import {
   type LandingInteractionState
 } from '@/features/landing/model/interaction-state';
 
+const MOBILE_OUTSIDE_SCROLL_THRESHOLD_PX = 10;
+
 export interface LandingCardInteractionBindings {
   state: LandingCardVisualState;
   tabIndex: number;
@@ -25,23 +45,52 @@ export interface LandingCardInteractionBindings {
   interactionBlocked: boolean;
   hoverLockEnabled: boolean;
   keyboardMode: boolean;
+  mobilePhase: LandingCardMobilePhase;
   onFocus: (event: ReactFocusEvent<HTMLElement>) => void;
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   onClick: (event: ReactMouseEvent<HTMLElement>) => void;
   onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => void;
   onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => void;
+  onAnswerChoiceSelect: (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => void;
+  onPrimaryCtaClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
+  onMobileClose: (event: ReactMouseEvent<HTMLButtonElement>) => void;
+}
+
+interface OutsideGesture {
+  active: boolean;
+  startX: number;
+  startY: number;
+}
+
+interface MobileBackdropBindings {
+  active: boolean;
+  state: LandingCardMobilePhase | 'HIDDEN';
+  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerUp: () => void;
+  onPointerCancel: () => void;
 }
 
 interface UseLandingInteractionControllerInput {
   cards: LandingCard[];
   viewportWidth: number;
+  viewportTier: LandingCardViewportTier;
   shellRef: RefObject<HTMLElement | null>;
+  onAnswerChoiceSelect?: (card: LandingCard, choice: 'A' | 'B') => boolean | void;
+  onPrimaryCtaSelect?: (card: LandingCard) => boolean | void;
 }
 
 interface UseLandingInteractionControllerResult {
   interactionMode: 'hover' | 'tap';
   interactionState: LandingInteractionState;
+  mobileLifecycleState: LandingMobileLifecycleState;
+  mobileBackdropBindings: MobileBackdropBindings;
   resolveCardInteractionBindings: (card: LandingCard) => LandingCardInteractionBindings;
+  collapseExpandedCard: () => void;
+}
+
+function getCardRootElement(element: HTMLElement): HTMLElement | null {
+  return element.closest<HTMLElement>('[data-testid="landing-grid-card"]');
 }
 
 function getExpandedFocusableElements(cardElement: HTMLElement): HTMLElement[] {
@@ -52,7 +101,7 @@ function getExpandedFocusableElements(cardElement: HTMLElement): HTMLElement[] {
 
   return Array.from(
     expandedBody.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')
-  ).filter((element) => element.getAttribute('aria-hidden') !== 'true');
+  ).filter((candidate) => candidate.getAttribute('aria-hidden') !== 'true');
 }
 
 function resolveAdjacentCardId(cardIds: readonly string[], currentCardId: string, step: 1 | -1): string | null {
@@ -74,14 +123,23 @@ function focusCardById(shellElement: HTMLElement | null, cardId: string | null):
     return false;
   }
 
-  const selector = `[data-testid="landing-grid-card"][data-card-id="${cardId}"]`;
-  const nextCard = shellElement.querySelector<HTMLElement>(selector);
-  if (!nextCard) {
+  const selector = `[data-testid="landing-grid-card"][data-card-id="${cardId}"] [data-testid="landing-grid-card-trigger"]`;
+  const nextTrigger = shellElement.querySelector<HTMLElement>(selector);
+  if (!nextTrigger) {
     return false;
   }
 
-  nextCard.focus();
+  nextTrigger.focus();
   return true;
+}
+
+function isMobileCardElement(element: HTMLElement): boolean {
+  const cardElement = getCardRootElement(element) ?? element;
+  if (typeof window !== 'undefined') {
+    return window.innerWidth < 768;
+  }
+
+  return cardElement.dataset.cardViewportTier === 'mobile';
 }
 
 export function resolveInteractionMode(viewportWidth: number, hoverCapability: boolean): 'hover' | 'tap' {
@@ -92,23 +150,93 @@ export function resolveInteractionMode(viewportWidth: number, hoverCapability: b
   return hoverCapability ? 'hover' : 'tap';
 }
 
+function captureMobileSnapshot(shellElement: HTMLElement | null, cardId: string) {
+  if (!shellElement) {
+    return {
+      cardHeightPx: 0,
+      anchorTopPx: 0,
+      titleTopPx: 0
+    };
+  }
+
+  const cardElement = shellElement.querySelector<HTMLElement>(`[data-testid="landing-grid-card"][data-card-id="${cardId}"]`);
+  const titleElement = cardElement?.querySelector<HTMLElement>('[data-slot="cardTitle"]');
+
+  const cardRect = cardElement?.getBoundingClientRect();
+  const titleRect = titleElement?.getBoundingClientRect();
+
+  return {
+    cardHeightPx: cardRect?.height ?? 0,
+    anchorTopPx: cardRect?.top ?? 0,
+    titleTopPx: titleRect?.top ?? cardRect?.top ?? 0
+  };
+}
+
+function shouldCancelOutsideCloseAsScroll(input: OutsideGesture, event: ReactPointerEvent<HTMLDivElement>): boolean {
+  return (
+    Math.abs(event.clientX - input.startX) > MOBILE_OUTSIDE_SCROLL_THRESHOLD_PX ||
+    Math.abs(event.clientY - input.startY) > MOBILE_OUTSIDE_SCROLL_THRESHOLD_PX
+  );
+}
+
 export function useLandingInteractionController({
   cards,
   viewportWidth,
-  shellRef
+  viewportTier,
+  shellRef,
+  onAnswerChoiceSelect,
+  onPrimaryCtaSelect
 }: UseLandingInteractionControllerInput): UseLandingInteractionControllerResult {
   const [hoverCapability, setHoverCapability] = useState<boolean>(false);
   const [interactionState, dispatchInteraction] = useReducer(
     reduceLandingInteractionState,
     initialLandingInteractionState
   );
+  const [mobileLifecycleState, dispatchMobileLifecycle] = useReducer(
+    reduceLandingMobileLifecycleState,
+    initialLandingMobileLifecycleState
+  );
+  const [transitionSourceCardId, setTransitionSourceCardId] = useState<string | null>(null);
 
   const interactionMode = useMemo(
     () => resolveInteractionMode(viewportWidth, hoverCapability),
     [hoverCapability, viewportWidth]
   );
-  const cardById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
   const cardIds = useMemo(() => cards.map((card) => card.id), [cards]);
+  const isMobileViewport =
+    typeof window !== 'undefined' ? window.innerWidth < 768 : viewportTier === 'mobile';
+
+  const hoverTimerRef = useRef<number | null>(null);
+  const hoverIntentTokenRef = useRef(0);
+  const pointerWithinCardIdRef = useRef<string | null>(null);
+  const outsideGestureRef = useRef<OutsideGesture>({
+    active: false,
+    startX: 0,
+    startY: 0
+  });
+  const mobileOpenTimerRef = useRef<number | null>(null);
+  const mobileCloseTimerRef = useRef<number | null>(null);
+
+  const clearHoverTimer = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }, []);
+
+  const clearMobileOpenTimer = useCallback(() => {
+    if (mobileOpenTimerRef.current !== null) {
+      window.clearTimeout(mobileOpenTimerRef.current);
+      mobileOpenTimerRef.current = null;
+    }
+  }, []);
+
+  const clearMobileCloseTimer = useCallback(() => {
+    if (mobileCloseTimerRef.current !== null) {
+      window.clearTimeout(mobileCloseTimerRef.current);
+      mobileCloseTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -220,97 +348,206 @@ export function useLandingInteractionController({
     };
   }, []);
 
-  const dispatchCardFocus = (cardId: string, nowMs: number) => {
-    const card = cardById.get(cardId);
-    if (!card) {
+  useEffect(() => {
+    if (mobileLifecycleState.phase === 'NORMAL') {
       return;
     }
 
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [mobileLifecycleState.phase]);
+
+  useEffect(() => {
+    if (!isMobileViewport && mobileLifecycleState.phase !== 'NORMAL') {
+      clearMobileOpenTimer();
+      clearMobileCloseTimer();
+      dispatchMobileLifecycle({type: 'RESET'});
+      dispatchInteraction({
+        type: 'CARD_COLLAPSE',
+        nowMs: window.performance.now(),
+        interactionMode,
+        cardId: null
+      });
+    }
+  }, [clearMobileCloseTimer, clearMobileOpenTimer, interactionMode, isMobileViewport, mobileLifecycleState.phase]);
+
+  useEffect(() => {
+    return () => {
+      clearHoverTimer();
+      clearMobileOpenTimer();
+      clearMobileCloseTimer();
+    };
+  }, [clearHoverTimer, clearMobileCloseTimer, clearMobileOpenTimer]);
+
+  const collapseExpandedCard = () => {
+    clearHoverTimer();
+    clearMobileOpenTimer();
+    clearMobileCloseTimer();
+    pointerWithinCardIdRef.current = null;
+    setTransitionSourceCardId(null);
+    dispatchMobileLifecycle({type: 'RESET'});
     dispatchInteraction({
-      type: 'CARD_FOCUS',
-      nowMs,
+      type: 'CARD_COLLAPSE',
+      nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
       interactionMode,
-      cardId,
-      available: card.availability === 'available'
+      cardId: null
     });
   };
 
-  const dispatchCardActivate = (cardId: string, nowMs: number) => {
-    const card = cardById.get(cardId);
-    if (!card) {
+  const beginTransition = (cardId: string) => {
+    clearHoverTimer();
+    clearMobileOpenTimer();
+    clearMobileCloseTimer();
+    pointerWithinCardIdRef.current = null;
+    setTransitionSourceCardId(cardId);
+    dispatchInteraction({
+      type: 'PAGE_TRANSITION_START',
+      nowMs: typeof window !== 'undefined' ? window.performance.now() : 0
+    });
+  };
+
+  const scheduleHoverIntent = (input: {
+    cardId: string;
+    delayMs: number;
+    action: HoverIntentAction;
+    run: () => void;
+  }) => {
+    clearHoverTimer();
+    const nextToken = nextHoverIntentToken(hoverIntentTokenRef.current, input.cardId, input.action);
+    hoverIntentTokenRef.current = nextToken.token;
+
+    hoverTimerRef.current = window.setTimeout(() => {
+      if (hoverIntentTokenRef.current !== nextToken.token) {
+        return;
+      }
+
+      input.run();
+    }, input.delayMs);
+  };
+
+  const beginMobileOpen = useCallback((cardId: string, syncInteraction = true) => {
+    const snapshot = captureMobileSnapshot(shellRef.current, cardId);
+    clearMobileOpenTimer();
+    clearMobileCloseTimer();
+
+    dispatchMobileLifecycle({
+      type: 'OPEN_START',
+      cardId,
+      snapshot
+    });
+    if (syncInteraction) {
+      dispatchInteraction({
+        type: 'CARD_EXPAND',
+        nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
+        interactionMode,
+        cardId,
+        available: true
+      });
+    }
+
+    mobileOpenTimerRef.current = window.setTimeout(() => {
+      dispatchMobileLifecycle({type: 'OPEN_SETTLED'});
+    }, MOBILE_EXPANDED_DURATION_MS);
+  }, [clearMobileCloseTimer, clearMobileOpenTimer, interactionMode, shellRef]);
+
+  function beginMobileClose() {
+    clearMobileCloseTimer();
+
+    if (mobileLifecycleState.phase === 'OPENING') {
+      dispatchMobileLifecycle({type: 'QUEUE_CLOSE'});
       return;
     }
 
-    dispatchInteraction({
-      type: 'CARD_ACTIVATE',
-      nowMs,
-      interactionMode,
-      cardId,
-      available: card.availability === 'available'
-    });
-  };
-
-  const dispatchCardHoverEnter = (cardId: string, nowMs: number) => {
-    const card = cardById.get(cardId);
-    if (!card) {
+    if (mobileLifecycleState.phase !== 'OPEN') {
       return;
     }
 
-    dispatchInteraction({
-      type: 'CARD_HOVER_ENTER',
-      nowMs,
-      interactionMode,
-      cardId,
-      available: card.availability === 'available'
-    });
-  };
+    clearMobileOpenTimer();
+    dispatchMobileLifecycle({type: 'CLOSE_START'});
+    mobileCloseTimerRef.current = window.setTimeout(() => {
+      dispatchMobileLifecycle({type: 'CLOSE_SETTLED'});
+      dispatchInteraction({
+        type: 'CARD_COLLAPSE',
+        nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
+        interactionMode,
+        cardId: null
+      });
+    }, MOBILE_EXPANDED_DURATION_MS);
+  }
 
-  const dispatchCardHoverLeave = (cardId: string, nowMs: number) => {
-    dispatchInteraction({
-      type: 'CARD_HOVER_LEAVE',
-      nowMs,
-      interactionMode,
-      cardId
-    });
-  };
+  useEffect(() => {
+    if (
+      !isMobileViewport ||
+      interactionState.expandedCardId === null ||
+      mobileLifecycleState.phase !== 'NORMAL'
+    ) {
+      return;
+    }
+
+    beginMobileOpen(interactionState.expandedCardId, false);
+  }, [beginMobileOpen, interactionState.expandedCardId, isMobileViewport, mobileLifecycleState.phase]);
 
   const resolveCardInteractionBindings = (card: LandingCard): LandingCardInteractionBindings => {
     const pointerBlocked = isCardPointerInteractionBlocked(interactionState, card.id);
-    const keyboardAriaDisabled = isCardKeyboardAriaDisabled(interactionState, card.id);
+    const keyboardAriaDisabled = isCardKeyboardAriaDisabled(interactionState, card.id) || card.availability !== 'available';
     const cardState = resolveCardStateForId(interactionState, card.id);
+    const transitionExpanded =
+      interactionState.pageState === 'TRANSITIONING' &&
+      transitionSourceCardId === card.id &&
+      card.availability === 'available';
     const visualState: LandingCardVisualState =
-      cardState === 'EXPANDED' && card.availability === 'available'
+      transitionExpanded || (cardState === 'EXPANDED' && card.availability === 'available')
         ? 'expanded'
         : cardState === 'FOCUSED'
           ? 'focused'
           : 'normal';
 
+    const mobilePhase: LandingCardMobilePhase =
+      mobileLifecycleState.cardId === card.id ? mobileLifecycleState.phase : 'NORMAL';
+
     return {
       state: visualState,
       hoverLockEnabled: interactionState.hoverLock.enabled,
       keyboardMode: interactionState.hoverLock.keyboardMode,
-      interactionBlocked: pointerBlocked,
-      ariaDisabled: keyboardAriaDisabled,
-      tabIndex: resolveCardTabIndex(interactionState, card.id),
+      interactionBlocked: interactionState.pageState === 'TRANSITIONING' ? true : pointerBlocked,
+      ariaDisabled:
+        interactionState.pageState === 'TRANSITIONING'
+          ? true
+          : keyboardAriaDisabled,
+      tabIndex: interactionState.pageState === 'TRANSITIONING' ? -1 : resolveCardTabIndex(interactionState, card.id),
+      mobilePhase,
       onFocus: (event) => {
-        dispatchCardFocus(card.id, event.timeStamp);
+        dispatchInteraction({
+          type: 'CARD_FOCUS',
+          nowMs: event.timeStamp,
+          interactionMode,
+          cardId: card.id,
+          available: card.availability === 'available'
+        });
       },
       onKeyDown: (event) => {
         if (event.key === 'Tab') {
           dispatchInteraction({type: 'KEYBOARD_MODE_ENTER'});
 
-          if (!card.availability || card.availability !== 'available') {
+          if (card.availability !== 'available') {
             return;
           }
 
-          const target = event.target instanceof HTMLElement ? event.target : null;
-          const cardElement = event.currentTarget;
+          const cardElement = getCardRootElement(event.currentTarget) ?? event.currentTarget;
           const isExpanded = interactionState.expandedCardId === card.id;
           const focusables = getExpandedFocusableElements(cardElement);
           const firstFocusable = focusables[0] ?? null;
           const lastFocusable = focusables[focusables.length - 1] ?? null;
+          const target = event.target instanceof HTMLElement ? event.target : null;
 
-          if (!event.shiftKey && isExpanded && target === cardElement && firstFocusable) {
+          if (!event.shiftKey && isExpanded && target === event.currentTarget && firstFocusable) {
             event.preventDefault();
             firstFocusable.focus();
             return;
@@ -333,55 +570,237 @@ export function useLandingInteractionController({
           return;
         }
 
-        if ((event.key === 'Enter' || event.key === ' ') && isCardKeyboardAriaDisabled(interactionState, card.id)) {
+        if ((event.key === 'Enter' || event.key === ' ') && keyboardAriaDisabled) {
           event.preventDefault();
           event.stopPropagation();
           return;
         }
 
         if (event.key === 'Escape') {
-          dispatchInteraction({
-            type: 'ESCAPE',
-            nowMs: event.timeStamp
-          });
+          event.preventDefault();
+          collapseExpandedCard();
           return;
         }
 
         if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
           event.preventDefault();
-          dispatchCardActivate(card.id, event.timeStamp);
+
+          if (card.availability !== 'available') {
+            return;
+          }
+
+          if (isMobileCardElement(event.currentTarget)) {
+            if (mobileLifecycleState.cardId !== card.id) {
+              beginMobileOpen(card.id);
+            }
+            return;
+          }
+
+          dispatchInteraction({
+            type: 'CARD_EXPAND',
+            nowMs: event.timeStamp,
+            interactionMode,
+            cardId: card.id,
+            available: true
+          });
         }
       },
       onClick: (event) => {
-        if (isCardKeyboardAriaDisabled(interactionState, card.id)) {
+        if (keyboardAriaDisabled) {
           event.preventDefault();
           event.stopPropagation();
           return;
         }
 
-        const target = event.target instanceof HTMLElement ? event.target : null;
-        if (target && target !== event.currentTarget && target.closest('button, a, input, select, textarea')) {
+        if (card.availability !== 'available') {
+          event.preventDefault();
           return;
         }
 
-        dispatchCardActivate(card.id, event.timeStamp);
+        if (isMobileCardElement(event.currentTarget)) {
+          if (mobileLifecycleState.cardId !== card.id) {
+            beginMobileOpen(card.id);
+          }
+          return;
+        }
+
+        dispatchInteraction({
+          type: 'CARD_EXPAND',
+          nowMs: event.timeStamp,
+          interactionMode,
+          cardId: card.id,
+          available: true
+        });
       },
       onMouseEnter: (event) => {
-        dispatchCardHoverEnter(card.id, event.timeStamp);
+        if (interactionMode !== 'hover' || isMobileViewport) {
+          return;
+        }
+
+        pointerWithinCardIdRef.current = card.id;
+        const handoff = isAvailableHandoffCandidate({
+          previousExpandedCardId: interactionState.expandedCardId,
+          nextCardId: card.id,
+          available: card.availability === 'available'
+        });
+
+        if (handoff) {
+          dispatchInteraction({
+            type: 'CARD_COLLAPSE',
+            nowMs: event.timeStamp,
+            interactionMode,
+            cardId: interactionState.expandedCardId
+          });
+          dispatchInteraction({
+            type: 'CARD_EXPAND',
+            nowMs: event.timeStamp,
+            interactionMode,
+            cardId: card.id,
+            available: true
+          });
+          return;
+        }
+
+        if (card.availability !== 'available') {
+          dispatchInteraction({
+            type: 'CARD_HOVER_ENTER',
+            nowMs: event.timeStamp,
+            interactionMode,
+            cardId: card.id,
+            available: false
+          });
+          return;
+        }
+
+        scheduleHoverIntent({
+          cardId: card.id,
+          delayMs: DESKTOP_EXPAND_DELAY_MS,
+          action: 'expand',
+          run: () => {
+            if (pointerWithinCardIdRef.current !== card.id) {
+              return;
+            }
+
+            dispatchInteraction({
+              type: 'CARD_EXPAND',
+              nowMs: typeof window !== 'undefined' ? window.performance.now() : event.timeStamp,
+              interactionMode,
+              cardId: card.id,
+              available: true
+            });
+          }
+        });
       },
       onMouseLeave: (event) => {
+        if (interactionMode !== 'hover' || isMobileViewport) {
+          return;
+        }
+
         const relatedTarget = event.relatedTarget;
         if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) {
           return;
         }
-        dispatchCardHoverLeave(card.id, event.timeStamp);
+
+        pointerWithinCardIdRef.current = null;
+
+        if (card.availability !== 'available') {
+          dispatchInteraction({
+            type: 'CARD_HOVER_LEAVE',
+            nowMs: event.timeStamp,
+            interactionMode,
+            cardId: card.id
+          });
+          return;
+        }
+
+        scheduleHoverIntent({
+          cardId: card.id,
+          delayMs: DESKTOP_COLLAPSE_DELAY_MS,
+          action: 'collapse',
+          run: () => {
+            if (pointerWithinCardIdRef.current !== null) {
+              return;
+            }
+
+            dispatchInteraction({
+              type: 'CARD_COLLAPSE',
+              nowMs: typeof window !== 'undefined' ? window.performance.now() : event.timeStamp,
+              interactionMode,
+              cardId: card.id
+            });
+          }
+        });
+      },
+      onAnswerChoiceSelect: (choice, event) => {
+        if (card.type !== 'test') {
+          return;
+        }
+
+        const shouldBeginTransition = onAnswerChoiceSelect?.(card, choice) !== false;
+        if (shouldBeginTransition) {
+          beginTransition(card.id);
+        }
+        event.preventDefault();
+      },
+      onPrimaryCtaClick: (event) => {
+        if (card.type !== 'blog') {
+          return;
+        }
+
+        const shouldBeginTransition = onPrimaryCtaSelect?.(card) !== false;
+        if (shouldBeginTransition) {
+          beginTransition(card.id);
+        }
+        event.preventDefault();
+      },
+      onMobileClose: (event) => {
+        event.preventDefault();
+        beginMobileClose();
       }
     };
+  };
+
+  const mobileBackdropBindings: MobileBackdropBindings = {
+    active: isMobileViewport && mobileLifecycleState.phase !== 'NORMAL',
+    state: isMobileViewport && mobileLifecycleState.phase !== 'NORMAL' ? mobileLifecycleState.phase : 'HIDDEN',
+    onPointerDown: (event) => {
+      if (!isMobileViewport || mobileLifecycleState.phase === 'NORMAL') {
+        return;
+      }
+
+      outsideGestureRef.current = {
+        active: true,
+        startX: event.clientX,
+        startY: event.clientY
+      };
+      beginMobileClose();
+    },
+    onPointerMove: (event) => {
+      if (!outsideGestureRef.current.active) {
+        return;
+      }
+
+      if (shouldCancelOutsideCloseAsScroll(outsideGestureRef.current, event)) {
+        outsideGestureRef.current.active = false;
+        if (mobileLifecycleState.phase === 'OPENING') {
+          dispatchMobileLifecycle({type: 'QUEUE_CLOSE_CANCEL'});
+        }
+      }
+    },
+    onPointerUp: () => {
+      outsideGestureRef.current.active = false;
+    },
+    onPointerCancel: () => {
+      outsideGestureRef.current.active = false;
+    }
   };
 
   return {
     interactionMode,
     interactionState,
-    resolveCardInteractionBindings
+    mobileLifecycleState,
+    mobileBackdropBindings,
+    resolveCardInteractionBindings,
+    collapseExpandedCard
   };
 }

@@ -2,11 +2,11 @@ import type {CardState, PageState} from '@/features/landing/model/state-types';
 
 export const ACTIVE_RAMP_UP_MS = 140;
 export const PAGE_STATE_PRIORITY: Record<PageState, number> = {
-  INACTIVE: 6,
-  REDUCED_MOTION: 5,
-  TRANSITIONING: 4,
-  SENSOR_DENIED: 3,
-  ACTIVE: 2
+  INACTIVE: 5,
+  REDUCED_MOTION: 4,
+  TRANSITIONING: 3,
+  SENSOR_DENIED: 2,
+  ACTIVE: 1
 };
 
 export const ALLOWED_PAGE_TRANSITIONS: Record<PageState, ReadonlySet<PageState>> = {
@@ -54,6 +54,19 @@ export type LandingInteractionEvent =
       interactionMode: 'hover' | 'tap';
       cardId: string;
       available: boolean;
+    }
+  | {
+      type: 'CARD_EXPAND';
+      nowMs: number;
+      interactionMode: 'hover' | 'tap';
+      cardId: string;
+      available: boolean;
+    }
+  | {
+      type: 'CARD_COLLAPSE';
+      nowMs: number;
+      interactionMode: 'hover' | 'tap';
+      cardId: string | null;
     }
   | {
       type: 'CARD_HOVER_ENTER';
@@ -108,7 +121,8 @@ export function isAllowedPageTransition(from: PageState, to: PageState): boolean
 function transitionPageState(
   state: LandingInteractionState,
   nextPageState: PageState,
-  nowMs: number
+  nowMs: number,
+  force = false
 ): LandingInteractionState {
   if (state.pageState === nextPageState) {
     return state;
@@ -116,6 +130,14 @@ function transitionPageState(
 
   if (!isAllowedPageTransition(state.pageState, nextPageState)) {
     return state;
+  }
+
+  if (!force && nextPageState !== 'ACTIVE') {
+    const currentPriority = PAGE_STATE_PRIORITY[state.pageState] ?? 0;
+    const nextPriority = PAGE_STATE_PRIORITY[nextPageState] ?? 0;
+    if (currentPriority > nextPriority) {
+      return state;
+    }
   }
 
   const baseState =
@@ -202,19 +224,19 @@ export function reduceLandingInteractionState(
     case 'PAGE_HIDDEN':
       return transitionPageState(settledState, 'INACTIVE', event.nowMs);
     case 'PAGE_VISIBLE':
-      return transitionPageState(settledState, 'ACTIVE', event.nowMs);
+      return transitionPageState(settledState, 'ACTIVE', event.nowMs, true);
     case 'PAGE_TRANSITION_START':
       return transitionPageState(settledState, 'TRANSITIONING', event.nowMs);
     case 'PAGE_TRANSITION_END':
-      return transitionPageState(settledState, 'ACTIVE', event.nowMs);
+      return transitionPageState(settledState, 'ACTIVE', event.nowMs, true);
     case 'REDUCED_MOTION_ENABLE':
       return transitionPageState(settledState, 'REDUCED_MOTION', event.nowMs);
     case 'REDUCED_MOTION_DISABLE':
-      return transitionPageState(settledState, 'ACTIVE', event.nowMs);
+      return transitionPageState(settledState, 'ACTIVE', event.nowMs, true);
     case 'SENSOR_DENIED':
       return transitionPageState(settledState, 'SENSOR_DENIED', event.nowMs);
     case 'SENSOR_ALLOWED':
-      return transitionPageState(settledState, 'ACTIVE', event.nowMs);
+      return transitionPageState(settledState, 'ACTIVE', event.nowMs, true);
     case 'MODE_SYNC':
       if (event.interactionMode === 'hover') {
         return settledState;
@@ -253,7 +275,8 @@ export function reduceLandingInteractionState(
         return settledState;
       }
 
-      const nextExpandedCardId = event.available ? event.cardId : null;
+      const nextExpandedCardId =
+        event.interactionMode === 'hover' && event.available ? event.cardId : settledState.expandedCardId;
       const focusedState: LandingInteractionState = {
         ...settledState,
         focusedCardId: event.cardId,
@@ -287,6 +310,42 @@ export function reduceLandingInteractionState(
       }
 
       return enableHoverLock(activatedState, nextExpandedCardId);
+    }
+    case 'CARD_EXPAND': {
+      if (isInteractionBlocked(settledState) || !event.available) {
+        return settledState;
+      }
+
+      const expandedState: LandingInteractionState = {
+        ...settledState,
+        focusedCardId: event.cardId,
+        expandedCardId: event.cardId
+      };
+
+      if (event.interactionMode !== 'hover') {
+        return clearHoverLock(expandedState);
+      }
+
+      return enableHoverLock(expandedState, event.cardId);
+    }
+    case 'CARD_COLLAPSE': {
+      if (isInteractionBlocked(settledState)) {
+        return settledState;
+      }
+
+      const nextCardId = event.cardId;
+      const shouldCollapseCurrent =
+        nextCardId === null || settledState.expandedCardId === nextCardId || settledState.focusedCardId === nextCardId;
+
+      if (!shouldCollapseCurrent) {
+        return settledState;
+      }
+
+      return clearHoverLock({
+        ...settledState,
+        focusedCardId: settledState.focusedCardId === nextCardId || nextCardId === null ? null : settledState.focusedCardId,
+        expandedCardId: settledState.expandedCardId === nextCardId || nextCardId === null ? null : settledState.expandedCardId
+      });
     }
     case 'CARD_HOVER_ENTER': {
       if (event.interactionMode !== 'hover' || isInteractionBlocked(settledState)) {
@@ -343,6 +402,7 @@ export function reduceLandingInteractionState(
 
       return clearHoverLock({
         ...settledState,
+        focusedCardId: null,
         expandedCardId: null
       });
     default:

@@ -153,7 +153,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     const hasInternalPrevious = !!previousInternalPath && previousInternalPath !== pathname;
 
     if (!hasInternalPrevious || window.history.length <= 1) {
-      router.push(homeHref);
+      router.push(homeHref, {scroll: false});
       return;
     }
 
@@ -163,7 +163,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     clearMobileBackFallbackTimer();
     mobileBackFallbackTimerRef.current = window.setTimeout(() => {
       if (window.location.pathname === beforePathname) {
-        router.push(homeHref);
+        router.push(homeHref, {scroll: false});
       }
     }, MOBILE_TEST_BACK_FALLBACK_TIMEOUT_MS);
   }, [clearMobileBackFallbackTimer, homeHref, pathname, router]);
@@ -184,7 +184,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       return;
     }
 
-    router.push(homeHref);
+    router.push(homeHref, {scroll: false});
   }, [homeHref, router]);
 
   useEffect(() => {
@@ -361,7 +361,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         {t('back')}
       </button>
     ) : (
-      <Link href={{pathname: homeHref}} className="gnb-ci-link">
+      <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false}>
         VibeTest
       </Link>
     );
@@ -390,6 +390,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <button
           type="button"
           className="gnb-settings-trigger"
+          aria-label={t('settings')}
           aria-expanded={settingsOpen}
           aria-controls="gnb-settings-panel"
           onFocus={() => {
@@ -437,7 +438,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <div className="gnb-inner gnb-mobile">
           <div className="gnb-column gnb-column-leading">
             {context === 'landing' ? (
-              <Link href={{pathname: homeHref}} className="gnb-ci-link">
+              <Link href={{pathname: homeHref}} className="gnb-ci-link" scroll={false}>
                 VibeTest
               </Link>
             ) : (
@@ -459,6 +460,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 ref={mobileMenuTriggerRef}
                 type="button"
                 className="gnb-menu-trigger"
+                aria-label={mobileMenuState === 'closed' ? t('menuAria') : t('closeMenuAria')}
                 aria-expanded={mobileMenuState !== 'closed'}
                 aria-controls="gnb-mobile-menu-panel"
                 onClick={() => {
@@ -501,7 +503,9 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
             data-testid="gnb-mobile-menu-panel"
           >
             <nav className="gnb-mobile-links" aria-label="Mobile Primary">
-              <Link href={{pathname: homeHref}}>{t('home')}</Link>
+              <Link href={{pathname: homeHref}} scroll={false}>
+                {t('home')}
+              </Link>
               <Link href={{pathname: historyHref}}>{t('history')}</Link>
               <Link href={{pathname: blogHref}}>{t('blog')}</Link>
             </nav>

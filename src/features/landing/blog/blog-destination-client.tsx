@@ -1,0 +1,129 @@
+'use client';
+
+import {usePathname} from 'next/navigation';
+import {useEffect, useMemo, useRef, useState} from 'react';
+
+import type {AppLocale} from '@/config/site';
+import {createLandingCatalog} from '@/features/landing/data';
+import type {LandingBlogCard} from '@/features/landing/data/types';
+import {useTelemetryBootstrap} from '@/features/landing/telemetry/runtime';
+import {
+  completePendingLandingTransition,
+  terminatePendingLandingTransition
+} from '@/features/landing/transition/runtime';
+import {readPendingLandingTransition} from '@/features/landing/transition/store';
+
+interface BlogDestinationClientProps {
+  locale: AppLocale;
+  selectedLabel: string;
+  allArticlesLabel: string;
+}
+
+export function BlogDestinationClient({
+  locale,
+  selectedLabel,
+  allArticlesLabel
+}: BlogDestinationClientProps) {
+  const pathname = usePathname();
+  useTelemetryBootstrap();
+
+  const articles = useMemo(
+    () =>
+      createLandingCatalog(locale).filter(
+        (card): card is LandingBlogCard => card.type === 'blog' && card.availability === 'available'
+      ),
+    [locale]
+  );
+  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+  const bootstrapSelectedArticleIdRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (bootstrapSelectedArticleIdRef.current !== undefined) {
+      queueMicrotask(() => {
+        setSelectedArticleId(bootstrapSelectedArticleIdRef.current ?? null);
+      });
+      return;
+    }
+
+    const pendingTransition = readPendingLandingTransition();
+    if (pendingTransition && pendingTransition.targetType !== 'blog') {
+      terminatePendingLandingTransition({
+        locale,
+        route: pathname,
+        eventType: 'transition_fail',
+        resultReason: 'DESTINATION_LOAD_ERROR'
+      });
+    }
+
+    const nextPendingTransition = readPendingLandingTransition();
+    const fallbackArticle = articles[0] ?? null;
+
+    if (!fallbackArticle) {
+      if (nextPendingTransition) {
+        terminatePendingLandingTransition({
+          locale,
+          route: pathname,
+          eventType: 'transition_fail',
+          resultReason: 'BLOG_FALLBACK_EMPTY'
+        });
+      }
+      bootstrapSelectedArticleIdRef.current = null;
+      queueMicrotask(() => {
+        setSelectedArticleId(null);
+      });
+      return;
+    }
+
+    const matchedArticle =
+      nextPendingTransition && nextPendingTransition.targetType === 'blog'
+        ? articles.find((candidate) => candidate.sourceParam === nextPendingTransition.blogArticleId) ?? fallbackArticle
+        : fallbackArticle;
+
+    if (nextPendingTransition && nextPendingTransition.targetType === 'blog') {
+      completePendingLandingTransition({
+        locale,
+        route: pathname,
+        targetType: 'blog'
+      });
+    }
+
+    bootstrapSelectedArticleIdRef.current = matchedArticle.id;
+    queueMicrotask(() => {
+      setSelectedArticleId(matchedArticle.id);
+    });
+  }, [articles, locale, pathname]);
+
+  const selectedArticle = articles.find((candidate) => candidate.id === selectedArticleId) ?? articles[0] ?? null;
+
+  return (
+    <section className="landing-shell-card blog-shell-card" data-testid="blog-shell-card">
+      <h1>{selectedLabel}</h1>
+      {selectedArticle ? (
+        <>
+          <article className="blog-selected-article" data-testid="blog-selected-article">
+            <h2>{selectedArticle.title}</h2>
+            <p>{selectedArticle.blog.summary}</p>
+          </article>
+
+          <section className="blog-article-list">
+            <h2>{allArticlesLabel}</h2>
+            <ul>
+              {articles.map((article) => (
+                <li
+                  key={article.id}
+                  className="blog-article-list-item"
+                  data-selected={article.id === selectedArticle.id ? 'true' : 'false'}
+                >
+                  <strong>{article.title}</strong>
+                  <span>{article.subtitle}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : (
+        <p data-testid="blog-empty-state">No article available.</p>
+      )}
+    </section>
+  );
+}

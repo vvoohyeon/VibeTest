@@ -2,6 +2,7 @@ import {notFound} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 
 import {isLocale} from '@/config/site';
+import {BlogDestinationClient} from '@/features/landing/blog/blog-destination-client';
 import {PageShell} from '@/features/landing/shell';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
@@ -20,12 +21,7 @@ export default async function BlogPage({
 
   return (
     <PageShell locale={locale} context="blog" currentRoute={RouteBuilder.blog()}>
-      <section className="landing-shell-card">
-        <h1>Blog Shell</h1>
-        <p>{`Locale: ${locale}`}</p>
-        <p>{t('selected')}</p>
-        <p>{t('allArticles')}</p>
-      </section>
+      <BlogDestinationClient locale={locale} selectedLabel={t('selected')} allArticlesLabel={t('allArticles')} />
     </PageShell>
   );
 }

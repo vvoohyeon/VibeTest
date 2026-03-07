@@ -1,0 +1,49 @@
+export const DESKTOP_EXPAND_DELAY_MS = 160;
+export const DESKTOP_COLLAPSE_DELAY_MS = 140;
+
+export type HoverIntentAction = 'expand' | 'collapse' | 'handoff';
+
+export interface HoverIntentToken {
+  token: number;
+  cardId: string;
+  action: HoverIntentAction;
+}
+
+export function nextHoverIntentToken(previousToken: number, cardId: string, action: HoverIntentAction): HoverIntentToken {
+  return {
+    token: previousToken + 1,
+    cardId,
+    action
+  };
+}
+
+export function isAvailableHandoffCandidate(input: {
+  previousExpandedCardId: string | null;
+  nextCardId: string;
+  available: boolean;
+}): boolean {
+  if (!input.available) {
+    return false;
+  }
+
+  if (!input.previousExpandedCardId) {
+    return false;
+  }
+
+  return input.previousExpandedCardId !== input.nextCardId;
+}
+
+export function resolveDesktopTransformOriginX(input: {
+  cardOffset: number;
+  rowCardCount: number;
+}): '0%' | '50%' | '100%' {
+  if (input.rowCardCount <= 1 || input.cardOffset === 0) {
+    return '0%';
+  }
+
+  if (input.cardOffset === input.rowCardCount - 1) {
+    return '100%';
+  }
+
+  return '50%';
+}
