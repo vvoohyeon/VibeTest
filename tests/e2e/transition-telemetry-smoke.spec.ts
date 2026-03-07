@@ -203,6 +203,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .evaluate((element) => element.getBoundingClientRect().top);
     expect(Math.abs((afterOpen?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(1);
     expect(Math.abs(afterOpenTitleTop - beforeTitleTop)).toBeLessThanOrEqual(1);
+    const activeCardElementAtPoint = await card.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + 32);
+      return target?.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-id') ?? null;
+    });
+    expect(activeCardElementAtPoint).toBe('test-rhythm-a');
 
     await backdrop.dispatchEvent('pointerdown', {
       pointerType: 'touch',
@@ -214,11 +220,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       clientX: 18,
       clientY: 18
     });
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+    await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
+    await expect(trigger).toHaveAttribute('data-trigger-state', 'collapsed');
     await expect
       .poll(() => shell.getAttribute('data-mobile-restore-ready-card-id'))
       .toBe('test-rhythm-a');
-    await expect(card).toHaveAttribute('data-card-state', 'normal');
-    await expect(trigger).toHaveAttribute('data-trigger-state', 'collapsed');
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
   });
 
@@ -261,6 +268,26 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
     await expect(secondCard).toHaveAttribute('data-card-state', 'normal');
+  });
+
+  test('@smoke mobile expanded header remains sticky during internal scroll', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator('[data-card-id="blog-ops-handbook"]');
+    await card.getByTestId('landing-grid-card-trigger').click();
+
+    const expandedBody = card.locator('[data-slot="expandedBody"]');
+    const header = card.locator('[data-slot="mobileHeader"]');
+    const headerTopBefore = await header.evaluate((element) => element.getBoundingClientRect().top);
+
+    await expandedBody.evaluate((element) => {
+      element.scrollTop = 120;
+      element.dispatchEvent(new Event('scroll'));
+    });
+
+    const headerTopAfter = await header.evaluate((element) => element.getBoundingClientRect().top);
+    expect(Math.abs(headerTopAfter - headerTopBefore)).toBeLessThanOrEqual(1);
   });
 
   test('@smoke assertion:B16-timeout stale pending transitions fail closed on non-destination routes', async ({page}) => {

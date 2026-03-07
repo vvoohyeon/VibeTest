@@ -9,7 +9,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const panel = page.getByTestId('gnb-settings-panel');
 
     await trigger.hover();
-    await expect(panel).toBeVisible();
+    await expect(panel).toBeVisible({timeout: 200});
 
     const triggerBox = await trigger.boundingBox();
     const panelBox = await panel.boundingBox();

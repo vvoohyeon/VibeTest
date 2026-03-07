@@ -276,7 +276,11 @@ export function reduceLandingInteractionState(
       }
 
       const nextExpandedCardId =
-        event.interactionMode === 'hover' && event.available ? event.cardId : settledState.expandedCardId;
+        event.interactionMode === 'hover'
+          ? event.available
+            ? event.cardId
+            : null
+          : settledState.expandedCardId;
       const focusedState: LandingInteractionState = {
         ...settledState,
         focusedCardId: event.cardId,
@@ -284,6 +288,10 @@ export function reduceLandingInteractionState(
       };
 
       if (event.interactionMode !== 'hover') {
+        return clearHoverLock(focusedState);
+      }
+
+      if (!event.available) {
         return clearHoverLock(focusedState);
       }
 

@@ -66,6 +66,33 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'normal');
   });
 
+  test('@smoke assertion:B5-keyboard-sequential unavailable keyboard target collapses the previous expanded card after internal CTA traversal completes', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    await page.locator('body').click({position: {x: 1, y: 1}});
+    await tabUntilCardFocused(page, 'test-energy-check');
+
+    const sourceCard = page.locator('[data-card-id="test-energy-check"]');
+    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+    const unavailableTrigger = unavailableCard.getByTestId('landing-grid-card-trigger');
+
+    await expect(sourceCard).toHaveAttribute('data-card-state', 'expanded');
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-card-id="test-energy-check"] [data-slot="answerChoiceA"]:focus')).toHaveCount(1);
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-card-id="test-energy-check"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
+
+    await page.keyboard.press('Tab');
+    await expect(unavailableTrigger).toBeFocused();
+    await expect(unavailableCard).toHaveAttribute('data-card-state', 'focused');
+    await expect(sourceCard).toHaveAttribute('data-card-state', 'normal');
+  });
+
   test('@smoke assertion:B5-overlay-focus shell-aligned focus remains readable above unavailable overlay', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
@@ -73,5 +100,49 @@ test.describe('Phase 7 state + capability smoke', () => {
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
     await unavailableCard.getByTestId('landing-grid-card-trigger').focus();
     await expect(unavailableCard).toHaveScreenshot('overlay-focus-shell.png');
+  });
+
+  test('@smoke reduced-motion shrinks desktop motion and rapid interactions stay error-free', async ({page}) => {
+    const pageErrors: string[] = [];
+    const consoleErrors: string[] = [];
+    page.on('pageerror', (error) => {
+      pageErrors.push(error.message);
+    });
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        consoleErrors.push(message.text());
+      }
+    });
+
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const shell = page.getByTestId('landing-grid-shell');
+    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+
+    await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
+
+    const motionToken = await firstCard.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--landing-card-motion-ms').trim()
+    );
+    const shellScale = await firstCard.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--landing-card-shell-scale').trim()
+    );
+    const normalizedMotionMs = motionToken.endsWith('ms') ? parseFloat(motionToken) : parseFloat(motionToken) * 1000;
+    expect(normalizedMotionMs).toBe(180);
+    expect(shellScale).toBe('1');
+
+    await firstCard.hover();
+    await secondCard.hover();
+    await unavailableCard.hover();
+    await page.mouse.move(1, 1);
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
   });
 });

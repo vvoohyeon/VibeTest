@@ -379,9 +379,26 @@ test.describe('Phase 4 grid smoke', () => {
 
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+    const expandedRadius = await firstCard
+      .locator('[data-slot="expandedBody"]')
+      .evaluate((element) => getComputedStyle(element).getPropertyValue('border-radius').trim());
+    const collapsedRadius = await firstCard.evaluate((element) => getComputedStyle(element).getPropertyValue('border-radius').trim());
+    expect(expandedRadius).toBe(collapsedRadius);
+
+    await unavailableCard.hover();
+    await expect(unavailableCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
+
+    await firstCard.hover();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
 
     await page.mouse.move(8, 8);
+    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'closing');
+    await expect(firstCard.locator('[data-slot="thumbnailOrIcon"]')).toHaveCount(0);
+    await expect(firstCard.locator('[data-slot="expandedLayer"]')).toHaveCount(1);
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(firstCard.locator('[data-slot="thumbnailOrIcon"]')).toHaveCount(1);
+    await expect(firstCard.locator('[data-slot="expandedLayer"]')).toHaveCount(0);
 
     await unavailableCard.hover();
     await expect(unavailableCard).toHaveAttribute('data-card-state', 'normal');

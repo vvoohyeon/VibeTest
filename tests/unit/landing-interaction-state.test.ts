@@ -83,7 +83,7 @@ describe('landing interaction state machine', () => {
     expect(isCardPointerInteractionBlocked(hoverLocked, 'test-rhythm-b')).toBe(true);
   });
 
-  it('enables HOVER_LOCK for unavailable focus in hover-capable mode without expanding unavailable card', () => {
+  it('collapses hover-lock state when keyboard focus moves onto an unavailable card', () => {
     const state = replay([
       {
         type: 'CARD_FOCUS',
@@ -94,8 +94,9 @@ describe('landing interaction state machine', () => {
       }
     ]);
 
-    expect(state.hoverLock.enabled).toBe(true);
-    expect(state.hoverLock.cardId).toBe('test-coming-soon-1');
+    expect(state.hoverLock.enabled).toBe(false);
+    expect(state.hoverLock.cardId).toBeNull();
+    expect(state.focusedCardId).toBe('test-coming-soon-1');
     expect(state.expandedCardId).toBeNull();
   });
 

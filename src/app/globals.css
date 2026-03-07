@@ -121,7 +121,6 @@ a {
   display: grid;
   gap: 16px;
   position: relative;
-  z-index: 1;
 }
 
 .landing-grid-mobile-backdrop {
@@ -147,13 +146,14 @@ a {
 .landing-grid-card {
   --landing-card-base-gap: 8px;
   --landing-card-comp-gap: 0px;
+  --landing-card-radius: 16px;
   --landing-card-origin-x: 50%;
   --landing-card-origin-y: 0%;
-  --landing-card-shell-scale: 1.1;
+  --landing-card-shell-scale: 1.04;
   --landing-card-motion-ms: 280ms;
   min-width: 0;
   min-height: 176px;
-  border-radius: 16px;
+  border-radius: var(--landing-card-radius);
   background: color-mix(in srgb, var(--panel-solid) 90%, transparent);
   box-shadow: 0 14px 30px rgb(11 15 22 / 10%);
   position: relative;
@@ -302,7 +302,7 @@ a {
 .landing-grid-card-expanded {
   pointer-events: auto;
   min-height: 100%;
-  border-radius: inherit;
+  border-radius: var(--landing-card-radius);
   background: color-mix(in srgb, var(--panel-solid) 96%, transparent);
   box-shadow:
     0 18px 34px rgb(11 15 22 / 16%),
@@ -318,11 +318,11 @@ a {
 
 .landing-grid-card[data-desktop-motion-role='opening'] .landing-grid-card-expanded,
 .landing-grid-card[data-desktop-motion-role='handoff-target'] .landing-grid-card-expanded {
-  animation: landing-card-shell-expand var(--landing-card-motion-ms) ease-in-out both;
+  animation: landing-card-shell-expand var(--landing-card-motion-ms) linear both;
 }
 
 .landing-grid-card[data-desktop-motion-role='closing'] .landing-grid-card-expanded {
-  animation: landing-card-shell-collapse var(--landing-card-motion-ms) ease-in-out both;
+  animation: landing-card-shell-collapse var(--landing-card-motion-ms) linear both;
   pointer-events: none;
 }
 
@@ -334,7 +334,7 @@ a {
 .landing-grid-card[data-desktop-motion-role='opening'] [data-slot='summary'],
 .landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='previewQuestion'],
 .landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='summary'] {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) ease-in-out both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 40ms;
 }
 
@@ -342,13 +342,13 @@ a {
 .landing-grid-card[data-desktop-motion-role='opening'] [data-slot='meta'],
 .landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='answerChoices'],
 .landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='meta'] {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) ease-in-out both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 100ms;
 }
 
 .landing-grid-card[data-desktop-motion-role='opening'] [data-slot='primaryCTA'],
 .landing-grid-card[data-desktop-motion-role='handoff-target'] [data-slot='primaryCTA'] {
-  animation: landing-card-detail-rise var(--landing-card-motion-ms) ease-in-out both;
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 160ms;
 }
 
@@ -357,10 +357,7 @@ a {
 }
 
 .landing-grid-card-mobile-close {
-  position: absolute;
-  top: 14px;
-  right: 12px;
-  z-index: 4;
+  position: relative;
   border: 1px solid var(--chip-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--chip-bg) 84%, var(--panel-solid));
@@ -379,29 +376,61 @@ a {
 
 .landing-grid-card-mobile-expanded {
   display: grid;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
   max-height: calc(100dvh - 116px);
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 16px;
+  padding: 0 16px 16px;
 }
 
-.landing-grid-card[data-card-viewport-tier='mobile'][data-card-state='expanded'] {
+.landing-grid-card-mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0 14px;
+  background: color-mix(in srgb, var(--panel-solid) 96%, transparent);
+}
+
+.landing-grid-card-mobile-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.landing-grid-card-mobile-body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase]:not([data-mobile-phase='NORMAL']) {
   border-radius: 0;
   width: 100vw;
   margin-inline: calc(50% - 50vw);
   min-height: 0;
+  z-index: 20;
+  background: var(--panel-solid);
 }
 
-.landing-grid-card[data-card-viewport-tier='mobile'][data-card-state='expanded'] .landing-grid-card-trigger {
-  min-height: auto;
-  padding-right: 68px;
-}
-
-.landing-grid-card[data-card-viewport-tier='mobile'][data-card-state='expanded'] .landing-grid-card-content {
-  height: auto;
+.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase]:not([data-mobile-phase='NORMAL']) .landing-grid-card-trigger {
   min-height: 0;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase]:not([data-mobile-phase='NORMAL']) .landing-grid-card-content {
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase]:not([data-mobile-phase='NORMAL']) .landing-grid-card-mobile-close {
+  flex: 0 0 auto;
 }
 
 .landing-grid-card-preview-question {
@@ -552,11 +581,93 @@ a {
 
 @keyframes landing-card-detail-rise {
   from {
-    transform: translateY(10px);
+    transform: translateY(4px);
   }
 
   to {
     transform: translateY(0);
+  }
+}
+
+@keyframes landing-card-shell-reduced-open {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-card-shell-reduced-close {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card {
+  --landing-card-shell-scale: 1;
+  --landing-card-motion-ms: 180ms;
+}
+
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card[data-desktop-motion-role='opening']
+  .landing-grid-card-expanded,
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card[data-desktop-motion-role='handoff-target']
+  .landing-grid-card-expanded {
+  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card[data-desktop-motion-role='closing']
+  .landing-grid-card-expanded {
+  animation: landing-card-shell-reduced-close var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card[data-desktop-motion-role='steady']
+  .landing-grid-card-expanded,
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='previewQuestion'],
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='summary'],
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='answerChoices'],
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='meta'],
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card [data-slot='primaryCTA'] {
+  animation: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-grid-card {
+    --landing-card-shell-scale: 1;
+    --landing-card-motion-ms: 180ms;
+  }
+
+  .landing-grid-card[data-desktop-motion-role='opening'] .landing-grid-card-expanded,
+  .landing-grid-card[data-desktop-motion-role='handoff-target'] .landing-grid-card-expanded {
+    animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+    transform: none;
+  }
+
+  .landing-grid-card[data-desktop-motion-role='closing'] .landing-grid-card-expanded {
+    animation: landing-card-shell-reduced-close var(--landing-card-motion-ms) linear both;
+    transform: none;
+  }
+
+  .landing-grid-card[data-desktop-motion-role='steady'] .landing-grid-card-expanded,
+  .landing-grid-card [data-slot='previewQuestion'],
+  .landing-grid-card [data-slot='summary'],
+  .landing-grid-card [data-slot='answerChoices'],
+  .landing-grid-card [data-slot='meta'],
+  .landing-grid-card [data-slot='primaryCTA'] {
+    animation: none;
+    transform: none;
+  }
+
+  .landing-grid-mobile-backdrop {
+    transition-duration: 180ms;
   }
 }
 

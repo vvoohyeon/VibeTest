@@ -3,8 +3,8 @@ import Image from 'next/image';
 import type {
   CSSProperties,
   FocusEventHandler,
-  MouseEvent,
   KeyboardEventHandler,
+  MouseEvent,
   MouseEventHandler,
   PointerEventHandler,
   WheelEventHandler
@@ -86,6 +86,7 @@ interface LandingGridCardProps {
   onClick?: MouseEventHandler<HTMLElement>;
   onMouseEnter?: MouseEventHandler<HTMLElement>;
   onMouseLeave?: MouseEventHandler<HTMLElement>;
+  onExpandedBodyKeyDown?: KeyboardEventHandler<HTMLElement>;
   onPointerMove?: PointerEventHandler<HTMLElement>;
   onMouseDown?: MouseEventHandler<HTMLElement>;
   onWheel?: WheelEventHandler<HTMLElement>;
@@ -230,6 +231,7 @@ export function LandingGridCard({
   onClick,
   onMouseEnter,
   onMouseLeave,
+  onExpandedBodyKeyDown,
   onPointerMove,
   onMouseDown,
   onWheel,
@@ -239,10 +241,10 @@ export function LandingGridCard({
 }: LandingGridCardProps) {
   const isUnavailable = card.availability === 'unavailable';
   const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
-  const isExpanded = resolvedState === 'expanded';
   const isMobileViewport = viewportTier === 'mobile';
-  const isDesktopExpanded = isExpanded && !isMobileViewport;
-  const isMobileExpanded = isExpanded && isMobileViewport;
+  const isMobileExpanded = isMobileViewport && mobilePhase !== 'NORMAL' && !isUnavailable;
+  const isExpanded = resolvedState === 'expanded' || isMobileExpanded;
+  const isDesktopExpanded = resolvedState === 'expanded' && !isMobileViewport;
   const resolvedSpacing = resolveSpacingContract(spacing);
 
   const handlePrimaryCtaClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
@@ -308,9 +310,11 @@ export function LandingGridCard({
         onClick={onClick}
       >
         <div className="landing-grid-card-content">
-          <h2 className="landing-grid-card-title" data-slot="cardTitle">
-            {card.title}
-          </h2>
+          {isMobileExpanded ? null : (
+            <h2 className="landing-grid-card-title" data-slot="cardTitle">
+              {card.title}
+            </h2>
+          )}
 
           {isExpanded ? null : (
             <NormalContentSlots card={card} includeSlotAttributes />
@@ -326,7 +330,7 @@ export function LandingGridCard({
 
       {isDesktopExpanded ? (
         <div className="landing-grid-card-expanded-layer" data-slot="expandedLayer">
-          <div className="landing-grid-card-expanded" data-slot="expandedBody">
+          <div className="landing-grid-card-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
             <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
               {card.title}
             </h2>
@@ -410,18 +414,23 @@ export function LandingGridCard({
       ) : null}
 
       {isMobileExpanded ? (
-        <>
-          <button
-            type="button"
-            className="landing-grid-card-mobile-close"
-            aria-label={copy.closeExpandedAria}
-            data-slot="mobileClose"
-            onClick={onMobileClose}
-            disabled={mobilePhase === 'CLOSING'}
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-          <div className="landing-grid-card-mobile-expanded" data-slot="expandedBody">
+        <div className="landing-grid-card-mobile-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
+          <div className="landing-grid-card-mobile-header" data-slot="mobileHeader">
+            <h2 className="landing-grid-card-title landing-grid-card-mobile-title" data-slot="cardTitle">
+              {card.title}
+            </h2>
+            <button
+              type="button"
+              className="landing-grid-card-mobile-close"
+              aria-label={copy.closeExpandedAria}
+              data-slot="mobileClose"
+              onClick={onMobileClose}
+              disabled={mobilePhase === 'CLOSING'}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+          <div className="landing-grid-card-mobile-body">
             {card.type === 'test' ? (
               <>
                 <p className="landing-grid-card-preview-question" data-slot="previewQuestion">
@@ -498,7 +507,7 @@ export function LandingGridCard({
               </>
             )}
           </div>
-        </>
+        </div>
       ) : null}
 
       {isUnavailable ? (

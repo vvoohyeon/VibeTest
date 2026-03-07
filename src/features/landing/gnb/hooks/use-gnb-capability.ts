@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useLayoutEffect, useState} from 'react';
 
 interface GnbCapabilityState {
   viewportWidth: number;
@@ -9,11 +9,17 @@ interface GnbCapabilityState {
 }
 
 export function useGnbCapability(): GnbCapabilityState {
-  const [viewportWidth, setViewportWidth] = useState(0);
-  const [hoverCapable, setHoverCapable] = useState(false);
-  const [elevated, setElevated] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
+  const [hoverCapable, setHoverCapable] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
 
-  useEffect(() => {
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  });
+  const [elevated, setElevated] = useState(() => (typeof window === 'undefined' ? false : window.scrollY > 4));
+
+  useLayoutEffect(() => {
     const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
 
     const syncCapability = () => {

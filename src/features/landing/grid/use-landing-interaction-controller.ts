@@ -5,7 +5,7 @@ import type {
   PointerEvent as ReactPointerEvent,
   RefObject
 } from 'react';
-import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 
 import type {LandingCard} from '@/features/landing/data';
 import type {
@@ -59,6 +59,7 @@ export interface LandingCardInteractionBindings {
   onClick: (event: ReactMouseEvent<HTMLElement>) => void;
   onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => void;
   onMouseLeave: (event: ReactMouseEvent<HTMLElement>) => void;
+  onExpandedBodyKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   onAnswerChoiceSelect: (choice: 'A' | 'B', event: ReactMouseEvent<HTMLButtonElement>) => void;
   onPrimaryCtaClick: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
   onMobileClose: (event: ReactMouseEvent<HTMLButtonElement>) => void;
@@ -158,10 +159,6 @@ function focusCardById(shellElement: HTMLElement | null, cardId: string | null):
 
 function isMobileCardElement(element: HTMLElement): boolean {
   const cardElement = getCardRootElement(element) ?? element;
-  if (typeof window !== 'undefined') {
-    return window.innerWidth < 768;
-  }
-
   return cardElement.dataset.cardViewportTier === 'mobile';
 }
 
@@ -250,8 +247,7 @@ export function useLandingInteractionController({
     [hoverCapability, viewportWidth]
   );
   const cardIds = useMemo(() => cards.map((card) => card.id), [cards]);
-  const isMobileViewport =
-    typeof window !== 'undefined' ? window.innerWidth < 768 : viewportTier === 'mobile';
+  const isMobileViewport = viewportTier === 'mobile';
 
   const hoverTimerRef = useRef<number | null>(null);
   const hoverIntentTokenRef = useRef(0);
@@ -308,7 +304,9 @@ export function useLandingInteractionController({
     }
   }, []);
 
-  useEffect(() => {
+  // Desktop closing/opening markers must land before paint or the trigger briefly flashes back in.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useLayoutEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return;
     }
@@ -327,7 +325,7 @@ export function useLandingInteractionController({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return;
     }
@@ -468,30 +466,17 @@ export function useLandingInteractionController({
     };
   }, [clearDesktopMotionTimer, clearHoverTimer, clearMobileCloseTimer, clearMobileOpenTimer, clearMobileRestoreReadyTimer]);
 
-  useEffect(() => {
-    let frame = 0;
-    const scheduleDesktopMotionState = (
-      updater: DesktopMotionState | ((current: DesktopMotionState) => DesktopMotionState)
-    ) => {
-      frame = window.requestAnimationFrame(() => {
-        setDesktopMotionState(updater);
-      });
-    };
-
+  useLayoutEffect(() => {
     if (isMobileViewport) {
       previousExpandedCardIdRef.current = null;
       clearDesktopMotionTimer();
-      scheduleDesktopMotionState({
+      setDesktopMotionState({
         openingCardId: null,
         closingCardId: null,
         handoffSourceCardId: null,
         handoffTargetCardId: null
       });
-      return () => {
-        if (frame !== 0) {
-          window.cancelAnimationFrame(frame);
-        }
-      };
+      return;
     }
 
     const previousExpandedCardId = previousExpandedCardIdRef.current;
@@ -504,7 +489,7 @@ export function useLandingInteractionController({
     clearDesktopMotionTimer();
 
     if (previousExpandedCardId && nextExpandedCardId && previousExpandedCardId !== nextExpandedCardId) {
-      scheduleDesktopMotionState({
+      setDesktopMotionState({
         openingCardId: nextExpandedCardId,
         closingCardId: null,
         handoffSourceCardId: previousExpandedCardId,
@@ -521,7 +506,7 @@ export function useLandingInteractionController({
         }));
       }, CORE_MOTION_DURATION_MS);
     } else if (nextExpandedCardId) {
-      scheduleDesktopMotionState({
+      setDesktopMotionState({
         openingCardId: nextExpandedCardId,
         closingCardId: null,
         handoffSourceCardId: null,
@@ -534,7 +519,7 @@ export function useLandingInteractionController({
         }));
       }, CORE_MOTION_DURATION_MS);
     } else if (previousExpandedCardId && desktopTransitionReasonRef.current === 'collapse') {
-      scheduleDesktopMotionState({
+      setDesktopMotionState({
         openingCardId: null,
         closingCardId: previousExpandedCardId,
         handoffSourceCardId: null,
@@ -547,7 +532,7 @@ export function useLandingInteractionController({
         }));
       }, CORE_MOTION_DURATION_MS);
     } else {
-      scheduleDesktopMotionState({
+      setDesktopMotionState({
         openingCardId: null,
         closingCardId: null,
         handoffSourceCardId: null,
@@ -556,12 +541,8 @@ export function useLandingInteractionController({
     }
 
     previousExpandedCardIdRef.current = nextExpandedCardId;
-    return () => {
-      if (frame !== 0) {
-        window.cancelAnimationFrame(frame);
-      }
-    };
   }, [clearDesktopMotionTimer, interactionState.expandedCardId, isMobileViewport]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const collapseExpandedCard = useCallback(() => {
     clearHoverTimer();
@@ -731,6 +712,12 @@ export function useLandingInteractionController({
     }
 
     clearMobileOpenTimer();
+    dispatchInteraction({
+      type: 'CARD_COLLAPSE',
+      nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
+      interactionMode,
+      cardId: mobileLifecycleState.cardId
+    });
     dispatchMobileLifecycle({type: 'CLOSE_START'});
   }
 
@@ -762,15 +749,17 @@ export function useLandingInteractionController({
     const snapshot = mobileLifecycleState.snapshot;
     let cancelRestore: (() => void) | undefined;
 
-    mobileCloseTimerRef.current = window.setTimeout(() => {
-      mobileCloseTimerRef.current = null;
+    if (cardId && interactionState.expandedCardId === cardId) {
       dispatchInteraction({
         type: 'CARD_COLLAPSE',
         nowMs: typeof window !== 'undefined' ? window.performance.now() : 0,
         interactionMode,
-        cardId: cardId ?? null
+        cardId
       });
+    }
 
+    mobileCloseTimerRef.current = window.setTimeout(() => {
+      mobileCloseTimerRef.current = null;
       if (cardId && snapshot) {
         cancelRestore = settleMobileCloseAfterRestore(cardId, snapshot);
         return;
@@ -797,6 +786,7 @@ export function useLandingInteractionController({
   }, [
     clearMobileCloseTimer,
     interactionMode,
+    interactionState.expandedCardId,
     mobileLifecycleState.cardId,
     mobileLifecycleState.phase,
     mobileLifecycleState.snapshot,
@@ -814,11 +804,6 @@ export function useLandingInteractionController({
       card.availability === 'available';
     const mobileOwnsCard = mobileLifecycleState.cardId === card.id;
     const mobilePhase: LandingCardMobilePhase = mobileOwnsCard ? mobileLifecycleState.phase : 'NORMAL';
-    const mobileExpandedVisible =
-      isMobileViewport &&
-      mobileOwnsCard &&
-      mobileLifecycleState.phase !== 'NORMAL' &&
-      card.availability === 'available';
     const desktopClosingVisible =
       !isMobileViewport && desktopMotionState.closingCardId === card.id && card.availability === 'available';
     const desktopMotionRole: LandingCardDesktopMotionRole =
@@ -838,7 +823,6 @@ export function useLandingInteractionController({
       isMobileViewport && mobileLifecycleState.phase !== 'NORMAL' && mobileLifecycleState.cardId !== card.id;
     const visualState: LandingCardVisualState =
       transitionExpanded ||
-      mobileExpandedVisible ||
       desktopClosingVisible ||
       (cardState === 'EXPANDED' && card.availability === 'available')
         ? 'expanded'
@@ -855,6 +839,50 @@ export function useLandingInteractionController({
             restoreReady: mobileLifecycleState.restoreReady
           }
         : null;
+    const handleExpandedBodyKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+      if (event.key !== 'Tab' || card.availability !== 'available') {
+        return;
+      }
+
+      dispatchInteraction({type: 'KEYBOARD_MODE_ENTER'});
+
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) {
+        return;
+      }
+
+      const cardElement = getCardRootElement(event.currentTarget) ?? event.currentTarget;
+      const focusables = getExpandedFocusableElements(cardElement);
+      const focusIndex = focusables.findIndex((candidate) => candidate === target);
+      if (focusIndex < 0) {
+        return;
+      }
+
+      if (event.shiftKey) {
+        if (focusIndex > 0) {
+          event.preventDefault();
+          focusables[focusIndex - 1]?.focus();
+          return;
+        }
+
+        if (focusCardById(shellRef.current, card.id)) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (focusIndex < focusables.length - 1) {
+        event.preventDefault();
+        focusables[focusIndex + 1]?.focus();
+        return;
+      }
+
+      const nextCardId = resolveAdjacentCardId(cardIds, card.id, 1);
+      desktopTransitionReasonRef.current = 'handoff';
+      if (focusCardById(shellRef.current, nextCardId)) {
+        event.preventDefault();
+      }
+    };
 
     return {
       state: visualState,
@@ -879,7 +907,9 @@ export function useLandingInteractionController({
         desktopTransitionReasonRef.current =
           interactionState.expandedCardId && interactionState.expandedCardId !== card.id && card.availability === 'available'
             ? 'handoff'
-            : 'expand';
+            : interactionState.expandedCardId && interactionState.expandedCardId !== card.id
+              ? 'collapse'
+              : 'expand';
         dispatchInteraction({
           type: 'CARD_FOCUS',
           nowMs: event.timeStamp,
@@ -997,7 +1027,7 @@ export function useLandingInteractionController({
           return;
         }
 
-        pointerWithinCardIdRef.current = card.id;
+        pointerWithinCardIdRef.current = card.availability === 'available' ? card.id : null;
         const handoff = isAvailableHandoffCandidate({
           previousExpandedCardId: interactionState.expandedCardId,
           nextCardId: card.id,
@@ -1023,6 +1053,16 @@ export function useLandingInteractionController({
         }
 
         if (card.availability !== 'available') {
+          clearHoverTimer();
+          if (interactionState.expandedCardId) {
+            desktopTransitionReasonRef.current = 'collapse';
+            dispatchInteraction({
+              type: 'CARD_COLLAPSE',
+              nowMs: event.timeStamp,
+              interactionMode,
+              cardId: interactionState.expandedCardId
+            });
+          }
           return;
         }
 
@@ -1081,6 +1121,7 @@ export function useLandingInteractionController({
           }
         });
       },
+      onExpandedBodyKeyDown: handleExpandedBodyKeyDown,
       onAnswerChoiceSelect: (choice, event) => {
         if (card.type !== 'test') {
           return;

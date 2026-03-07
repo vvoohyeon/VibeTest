@@ -92,14 +92,6 @@ function isSameSpacingModel(a: CardSpacingMap, b: CardSpacingMap): boolean {
   return true;
 }
 
-function readViewportWidth(): number {
-  if (typeof window === 'undefined') {
-    return INITIAL_VIEWPORT_WIDTH;
-  }
-
-  return window.innerWidth;
-}
-
 export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
   const previousPlanKeyRef = useRef<string | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
@@ -108,7 +100,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
   const t = useTranslations('landing');
   const locale = isLocale(localeFromContext) ? localeFromContext : defaultLocale;
 
-  const [viewportWidth, setViewportWidth] = useState<number>(readViewportWidth);
+  const [viewportWidth, setViewportWidth] = useState<number>(INITIAL_VIEWPORT_WIDTH);
   const [spacingModel, setSpacingModel] = useState<CardSpacingMap>({});
   const [baselineState, setBaselineState] = useState(initialLandingBaselineState);
   const availableWidth = useMemo(() => resolveLandingAvailableWidth(viewportWidth), [viewportWidth]);
@@ -163,11 +155,11 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
     readMore: t('readMore')
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let frame = 0;
 
     const syncViewportWidth = () => {
-      const nextViewportWidth = readViewportWidth();
+      const nextViewportWidth = window.innerWidth;
       setViewportWidth((previous) => (previous === nextViewportWidth ? previous : nextViewportWidth));
     };
 
@@ -490,6 +482,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
                     onClick={interactionBindings.onClick}
                     onMouseEnter={interactionBindings.onMouseEnter}
                     onMouseLeave={interactionBindings.onMouseLeave}
+                    onExpandedBodyKeyDown={interactionBindings.onExpandedBodyKeyDown}
                     onAnswerChoiceSelect={interactionBindings.onAnswerChoiceSelect}
                     onPrimaryCtaClick={interactionBindings.onPrimaryCtaClick}
                     onMobileClose={interactionBindings.onMobileClose}

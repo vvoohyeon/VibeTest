@@ -71,6 +71,20 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
     viewportWidth,
     hoverCapable
   });
+  const canOpenDesktopSettingsByHover = () => {
+    if (hoverOpenEnabled) {
+      return true;
+    }
+
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+
+    return shouldOpenDesktopSettingsByHover({
+      viewportWidth: window.innerWidth,
+      hoverCapable: window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    });
+  };
 
   const clearSettingsHoverCloseTimer = useCallback(() => {
     if (settingsHoverCloseTimerRef.current !== null) {
@@ -274,7 +288,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   }, [clearMobileBackFallbackTimer, clearMobileMenuCloseTimer, clearSettingsHoverCloseTimer]);
 
   const desktopSettingsEnter = () => {
-    if (!hoverOpenEnabled) {
+    if (!canOpenDesktopSettingsByHover()) {
       return;
     }
     clearSettingsHoverCloseTimer();
@@ -282,7 +296,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   };
 
   const desktopSettingsLeave = () => {
-    if (!hoverOpenEnabled) {
+    if (!canOpenDesktopSettingsByHover()) {
       return;
     }
     clearSettingsHoverCloseTimer();
