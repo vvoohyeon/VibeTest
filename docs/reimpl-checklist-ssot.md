@@ -68,7 +68,7 @@
 - [x] Enforce disabled semantics with semantic controls, including semantic-only primary card expansion/entry triggers, and aria-disabled activation blocking (`§9.2`, `§14.3-5`).
 - [x] Enforce overlay readability and title visibility under unavailable overlays (`§9.3`).
 - [x] Keep GNB responsive behavior as single source from context contract (`§10.2`, `§6.4`).
-- [ ] Enforce SSR/hydration determinism and zero-warning gate (`§11.1`).
+- [x] Enforce SSR/hydration determinism and zero-warning gate (`§11.1`).
 - [ ] Enforce animation/reduced-motion/cursor guardrails (`§11.2`, `§11.3`, `§11.4`).
 
 ## 7. Telemetry / Data / Error Handling

@@ -177,6 +177,33 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(panel).toBeHidden({timeout: 150});
   });
 
+  test('@smoke assertion:B3-gnb-keyboard-matrix desktop closed settings panel stays out of the tab order', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+    await page.locator('body').click({position: {x: 1, y: 1}});
+
+    const home = page.locator('.gnb-desktop .gnb-ci-link');
+    const history = page.locator('.gnb-desktop .gnb-desktop-links a').nth(0);
+    const blog = page.locator('.gnb-desktop .gnb-desktop-links a').nth(1);
+    const settingsTrigger = page.getByTestId('gnb-settings-trigger');
+    const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
+    const panel = page.getByTestId('gnb-settings-panel');
+
+    await page.keyboard.press('Tab');
+    await expect(home).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(history).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(blog).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(settingsTrigger).toBeFocused();
+    await expect(panel).toBeHidden();
+    await page.keyboard.press('Tab');
+    await expect(firstCardTrigger).toBeFocused();
+  });
+
   test('@smoke assertion:B7-mobile-overlay mobile overlay close-start and unlock timing', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
@@ -250,6 +277,27 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden({timeout: 1000});
     await expect(trigger).toBeFocused();
+  });
+
+  test('@smoke assertion:B7-gnb-keyboard-matrix mobile closed menu panel stays out of the tab order', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+    await page.locator('body').click({position: {x: 1, y: 1}});
+
+    const home = page.locator('.gnb-mobile .gnb-ci-link');
+    const trigger = page.getByTestId('gnb-mobile-menu-trigger');
+    const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
+    const panel = page.getByTestId('gnb-mobile-menu-panel');
+
+    await page.keyboard.press('Tab');
+    await expect(home).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(trigger).toBeFocused();
+    await expect(panel).toBeHidden();
+    await page.keyboard.press('Tab');
+    await expect(firstCardTrigger).toBeFocused();
   });
 
   test('@smoke mobile outside-close cancels when gesture becomes scroll', async ({page}) => {

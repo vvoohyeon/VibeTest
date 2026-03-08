@@ -100,6 +100,20 @@ if (fileExists('tests/e2e/routing-smoke.spec.ts')) {
   }
 }
 
+if (fileExists('package.json')) {
+  const packageJson = read('package.json');
+  if (!/"test:e2e:smoke":\s*"PLAYWRIGHT_SERVER_MODE=preview playwright test --grep @smoke"/u.test(packageJson)) {
+    fail('Smoke e2e script must run through preview mode so hydration proof is collected inside qa:gate.');
+  }
+}
+
+if (fileExists('playwright.config.ts')) {
+  const playwrightConfig = read('playwright.config.ts');
+  if (!/PLAYWRIGHT_SERVER_MODE/u.test(playwrightConfig) || !/npm run start -- --port 4173/u.test(playwrightConfig)) {
+    fail('Playwright config must support preview-mode server startup for hydration proof hardening.');
+  }
+}
+
 if (fileExists('tests/e2e/state-smoke.spec.ts')) {
   const stateSpec = read('tests/e2e/state-smoke.spec.ts');
   if (!/reduced-motion shrinks desktop motion/u.test(stateSpec)) {

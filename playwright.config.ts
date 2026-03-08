@@ -1,6 +1,12 @@
+import {existsSync} from 'node:fs';
+
 import {defineConfig} from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173';
+const serverMode = process.env.PLAYWRIGHT_SERVER_MODE ?? 'dev';
+const previewCommand = existsSync('.next/BUILD_ID')
+  ? 'npm run start -- --port 4173'
+  : 'npm run build && npm run start -- --port 4173';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -18,7 +24,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: 'npm run dev -- --port 4173',
+        command: serverMode === 'preview' ? previewCommand : 'npm run dev -- --port 4173',
         url: baseURL,
         timeout: 120_000,
         reuseExistingServer: !process.env.CI

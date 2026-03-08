@@ -466,6 +466,7 @@ export function LandingGridCard({
         data-trigger-state={isExpanded ? 'expanded' : 'collapsed'}
         tabIndex={tabIndex}
         aria-disabled={ariaDisabled ? 'true' : undefined}
+        aria-label={isMobileExpanded ? card.title : undefined}
         onFocus={onFocus}
         onKeyDown={onKeyDown}
         onClick={onClick}

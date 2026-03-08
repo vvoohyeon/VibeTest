@@ -21,8 +21,10 @@ function read(relativePath) {
 }
 
 const requiredFiles = [
+  'package.json',
   'src/features/landing/grid/landing-grid-card.tsx',
   'src/features/landing/gnb/site-gnb.tsx',
+  'tests/e2e/a11y-smoke.spec.ts',
   'tests/e2e/state-smoke.spec.ts',
   'tests/e2e/gnb-smoke.spec.ts'
 ];
@@ -68,10 +70,24 @@ if (fileExists('src/app/globals.css')) {
   }
 }
 
+if (fileExists('package.json')) {
+  const packageJson = read('package.json');
+  if (!packageJson.includes('"@axe-core/playwright"')) {
+    fail('Accessibility contract must include @axe-core/playwright for canonical automated audits.');
+  }
+}
+
 if (fileExists('tests/e2e/state-smoke.spec.ts')) {
   const e2eSpec = read('tests/e2e/state-smoke.spec.ts');
   if (!/landing-grid-card-trigger/u.test(e2eSpec)) {
     fail('State smoke spec must assert focus movement against the semantic trigger.');
+  }
+}
+
+if (fileExists('tests/e2e/a11y-smoke.spec.ts')) {
+  const a11ySpec = read('tests/e2e/a11y-smoke.spec.ts');
+  if (!/assertion:B5-axe-canonical/u.test(a11ySpec) || !/assertion:B7-axe-canonical/u.test(a11ySpec)) {
+    fail('Accessibility smoke spec must keep canonical axe coverage for landing and GNB states.');
   }
 }
 

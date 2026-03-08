@@ -45,6 +45,11 @@
     "assertionId": "assertion:B5-mobile-keyboard-handoff"
   },
   {
+    "blocker": 5,
+    "file": "tests/e2e/a11y-smoke.spec.ts",
+    "assertionId": "assertion:B5-axe-canonical"
+  },
+  {
     "blocker": 6,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B6-transition-ingress"
@@ -58,6 +63,11 @@
     "blocker": 7,
     "file": "tests/e2e/gnb-smoke.spec.ts",
     "assertionId": "assertion:B7-gnb-keyboard-matrix"
+  },
+  {
+    "blocker": 7,
+    "file": "tests/e2e/a11y-smoke.spec.ts",
+    "assertionId": "assertion:B7-axe-canonical"
   },
   {
     "blocker": 8,

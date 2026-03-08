@@ -507,7 +507,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
             onPointerUp={mobileMenuBackdropPointerEnd}
             onPointerCancel={mobileMenuBackdropPointerEnd}
           />
-          <aside
+          <div
             id="gnb-mobile-menu-panel"
             className="gnb-mobile-panel"
             role="dialog"
@@ -533,7 +533,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
                 onThemeChange={applyManualTheme}
               />
             </div>
-          </aside>
+          </div>
         </div>
       ) : null}
     </>
