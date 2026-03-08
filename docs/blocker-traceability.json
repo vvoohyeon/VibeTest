@@ -15,6 +15,11 @@
     "assertionId": "assertion:B3-desktop-settings"
   },
   {
+    "blocker": 3,
+    "file": "tests/e2e/gnb-smoke.spec.ts",
+    "assertionId": "assertion:B3-gnb-keyboard-matrix"
+  },
+  {
     "blocker": 4,
     "file": "tests/e2e/grid-smoke.spec.ts",
     "assertionId": "assertion:B4-inline-size"
@@ -43,6 +48,11 @@
     "blocker": 7,
     "file": "tests/e2e/gnb-smoke.spec.ts",
     "assertionId": "assertion:B7-mobile-overlay"
+  },
+  {
+    "blocker": 7,
+    "file": "tests/e2e/gnb-smoke.spec.ts",
+    "assertionId": "assertion:B7-gnb-keyboard-matrix"
   },
   {
     "blocker": 8,
@@ -83,6 +93,11 @@
     "blocker": 14,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-baseline"
+  },
+  {
+    "blocker": 14,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B14-mobile-close-perception"
   },
   {
     "blocker": 14,

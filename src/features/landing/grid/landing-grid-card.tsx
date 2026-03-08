@@ -242,9 +242,11 @@ export function LandingGridCard({
   const isUnavailable = card.availability === 'unavailable';
   const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
   const isMobileViewport = viewportTier === 'mobile';
-  const isMobileExpanded = isMobileViewport && mobilePhase !== 'NORMAL' && !isUnavailable;
+  const isMobileExpanded = isMobileViewport && mobilePhase !== 'NORMAL' && mobilePhase !== 'CLOSING' && !isUnavailable;
+  const isMobileClosing = isMobileViewport && mobilePhase === 'CLOSING' && !isUnavailable;
   const isExpanded = resolvedState === 'expanded' || isMobileExpanded;
   const isDesktopExpanded = resolvedState === 'expanded' && !isMobileViewport;
+  const showMobileExpandedBody = isMobileExpanded || isMobileClosing;
   const resolvedSpacing = resolveSpacingContract(spacing);
 
   const handlePrimaryCtaClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
@@ -281,7 +283,9 @@ export function LandingGridCard({
       data-mobile-restore-ready={
         isMobileViewport && mobilePhase !== 'NORMAL' ? (mobileRestoreReady ? 'true' : 'false') : undefined
       }
-      data-expanded-layer={isDesktopExpanded ? 'desktop-overlay' : isMobileExpanded ? 'mobile-in-flow' : 'none'}
+      data-expanded-layer={
+        isDesktopExpanded ? 'desktop-overlay' : isMobileExpanded ? 'mobile-in-flow' : isMobileClosing ? 'mobile-closing-shell' : 'none'
+      }
       aria-disabled={ariaDisabled ? 'true' : undefined}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -293,6 +297,8 @@ export function LandingGridCard({
           '--landing-card-base-gap': `${resolvedSpacing.baseGapPx}px`,
           '--landing-card-comp-gap': `${resolvedSpacing.compGapPx}px`,
           '--landing-card-origin-x': desktopTransformOriginX,
+          '--landing-mobile-anchor-top': mobileSnapshot ? `${mobileSnapshot.anchorTopPx}px` : undefined,
+          '--landing-mobile-card-height': mobileSnapshot ? `${mobileSnapshot.cardHeightPx}px` : undefined,
           pointerEvents: interactionBlocked ? 'none' : 'auto'
         } as CSSProperties
       }
@@ -413,7 +419,7 @@ export function LandingGridCard({
         </div>
       ) : null}
 
-      {isMobileExpanded ? (
+      {showMobileExpandedBody ? (
         <div className="landing-grid-card-mobile-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
           <div className="landing-grid-card-mobile-header" data-slot="mobileHeader">
             <h2 className="landing-grid-card-title landing-grid-card-mobile-title" data-slot="cardTitle">

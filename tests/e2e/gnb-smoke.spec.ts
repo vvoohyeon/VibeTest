@@ -137,6 +137,46 @@ test.describe('Phase 3 gnb shell smoke', () => {
     );
   });
 
+  test('@smoke assertion:B3-gnb-keyboard-matrix desktop keyboard traversal keeps GNB in tab order and closes settings on focus-out', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+    await page.locator('body').click({position: {x: 1, y: 1}});
+
+    const home = page.locator('.gnb-desktop .gnb-ci-link');
+    const history = page.locator('.gnb-desktop .gnb-desktop-links a').nth(0);
+    const blog = page.locator('.gnb-desktop .gnb-desktop-links a').nth(1);
+    const settingsTrigger = page.getByTestId('gnb-settings-trigger');
+    const panel = page.getByTestId('gnb-settings-panel');
+    const krButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'});
+    const lightButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Light'});
+    const darkButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Dark'});
+    const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
+
+    await page.keyboard.press('Tab');
+    await expect(home).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(history).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(blog).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(settingsTrigger).toBeFocused();
+
+    await page.keyboard.press('Space');
+    await expect(panel).toBeVisible();
+
+    await page.keyboard.press('Tab');
+    await expect(krButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(lightButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(darkButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(firstCardTrigger).toBeFocused();
+    await expect(panel).toBeHidden({timeout: 150});
+  });
+
   test('@smoke assertion:B7-mobile-overlay mobile overlay close-start and unlock timing', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');
@@ -173,6 +213,43 @@ test.describe('Phase 3 gnb shell smoke', () => {
         })
       )
       .toBe('gnb-mobile-menu-trigger');
+  });
+
+  test('@smoke assertion:B7-gnb-keyboard-matrix mobile landing menu enters the tab order, opens by keyboard, and restores focus on escape close', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+    await page.locator('body').click({position: {x: 1, y: 1}});
+
+    const home = page.locator('.gnb-mobile .gnb-ci-link');
+    const trigger = page.getByTestId('gnb-mobile-menu-trigger');
+    const panel = page.getByTestId('gnb-mobile-menu-panel');
+    const panelHome = panel.getByRole('link', {name: 'Home'});
+    const panelHistory = panel.getByRole('link', {name: 'History'});
+    const panelBlog = panel.getByRole('link', {name: 'Blog'});
+    const krButton = page.getByTestId('mobile-gnb-locale-controls').getByRole('button', {name: 'KR'});
+
+    await page.keyboard.press('Tab');
+    await expect(home).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(trigger).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(panel).toBeVisible();
+
+    await page.keyboard.press('Tab');
+    await expect(panelHome).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(panelHistory).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(panelBlog).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(krButton).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden({timeout: 1000});
+    await expect(trigger).toBeFocused();
   });
 
   test('@smoke mobile outside-close cancels when gesture becomes scroll', async ({page}) => {
@@ -246,6 +323,36 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(panel).toBeHidden({timeout: 1000});
   });
 
+  test('@smoke assertion:B7-gnb-keyboard-matrix mobile blog/history contexts keep back then menu traversal and keyboard close restore', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+
+    for (const route of ['/en/blog', '/en/history']) {
+      await page.goto(route);
+      await page.locator('body').click({position: {x: 1, y: 1}});
+
+      const back = page.getByTestId('gnb-mobile-back');
+      const trigger = page.getByTestId('gnb-mobile-menu-trigger');
+      const panel = page.getByTestId('gnb-mobile-menu-panel');
+      const panelHome = panel.getByRole('link', {name: 'Home'});
+
+      await page.keyboard.press('Tab');
+      await expect(back).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(trigger).toBeFocused();
+
+      await page.keyboard.press('Enter');
+      await expect(panel).toBeVisible();
+      await page.keyboard.press('Tab');
+      await expect(panelHome).toBeFocused();
+
+      await page.keyboard.press('Escape');
+      await expect(panel).toBeHidden({timeout: 1000});
+      await expect(trigger).toBeFocused();
+    }
+  });
+
   test('@smoke mobile test back uses history before fallback', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en/blog');
@@ -261,5 +368,22 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.getByTestId('gnb-mobile-test-back').click();
     await expect(page).toHaveURL(/\/en$/u);
+  });
+
+  test('@smoke assertion:B7-gnb-keyboard-matrix mobile test context exposes only keyboard-activatable back control', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en/blog');
+    await page.goto('/en/test/rhythm-a/question');
+    await page.locator('body').click({position: {x: 1, y: 1}});
+
+    await expect(page.getByTestId('gnb-mobile-menu-trigger')).toHaveCount(0);
+
+    const back = page.getByTestId('gnb-mobile-test-back');
+    await page.keyboard.press('Tab');
+    await expect(back).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/en\/blog$/u);
   });
 });

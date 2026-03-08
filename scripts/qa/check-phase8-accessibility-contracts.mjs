@@ -23,7 +23,8 @@ function read(relativePath) {
 const requiredFiles = [
   'src/features/landing/grid/landing-grid-card.tsx',
   'src/features/landing/gnb/site-gnb.tsx',
-  'tests/e2e/state-smoke.spec.ts'
+  'tests/e2e/state-smoke.spec.ts',
+  'tests/e2e/gnb-smoke.spec.ts'
 ];
 
 for (const relativePath of requiredFiles) {
@@ -71,6 +72,13 @@ if (fileExists('tests/e2e/state-smoke.spec.ts')) {
   const e2eSpec = read('tests/e2e/state-smoke.spec.ts');
   if (!/landing-grid-card-trigger/u.test(e2eSpec)) {
     fail('State smoke spec must assert focus movement against the semantic trigger.');
+  }
+}
+
+if (fileExists('tests/e2e/gnb-smoke.spec.ts')) {
+  const gnbSpec = read('tests/e2e/gnb-smoke.spec.ts');
+  if (!/assertion:B3-gnb-keyboard-matrix/u.test(gnbSpec) || !/assertion:B7-gnb-keyboard-matrix/u.test(gnbSpec)) {
+    fail('GNB smoke spec must cover the keyboard matrix for desktop settings and mobile menu contexts.');
   }
 }
 

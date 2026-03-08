@@ -820,7 +820,9 @@ export function useLandingInteractionController({
                 ? 'steady'
                 : 'idle';
     const mobileInteractionLocked =
-      isMobileViewport && mobileLifecycleState.phase !== 'NORMAL' && mobileLifecycleState.cardId !== card.id;
+      isMobileViewport &&
+      mobileLifecycleState.phase !== 'NORMAL' &&
+      (mobileLifecycleState.cardId !== card.id || mobileLifecycleState.phase === 'CLOSING');
     const visualState: LandingCardVisualState =
       transitionExpanded ||
       desktopClosingVisible ||

@@ -72,8 +72,16 @@ if (fileExists('src/features/landing/blog/blog-destination-client.tsx')) {
 
 if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
   const e2eSpec = read('tests/e2e/transition-telemetry-smoke.spec.ts');
-  if (!/attempt_start/u.test(e2eSpec) || !/final_submit/u.test(e2eSpec) || !/landing return restores scroll once/u.test(e2eSpec)) {
+  if (
+    !/attempt_start/u.test(e2eSpec) ||
+    !/final_submit/u.test(e2eSpec) ||
+    !/landing return restores scroll once/u.test(e2eSpec)
+  ) {
     fail('Transition smoke must cover attempt_start, final_submit, and one-shot scroll restoration.');
+  }
+
+  if (!/assertion:B14-mobile-close-perception/u.test(e2eSpec)) {
+    fail('Transition smoke must cover mobile close perception alongside the existing baseline lifecycle assertions.');
   }
 }
 

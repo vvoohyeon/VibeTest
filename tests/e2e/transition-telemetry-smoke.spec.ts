@@ -229,6 +229,50 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
   });
 
+  test('@smoke assertion:B14-mobile-close-perception mobile close immediately restores the root footprint while keeping the active closing shell above the backdrop', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator('[data-card-id="test-rhythm-a"]');
+    const before = await card.boundingBox();
+
+    expect(before).not.toBeNull();
+    await card.getByTestId('landing-grid-card-trigger').click();
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+
+    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
+    await backdrop.dispatchEvent('pointerdown', {
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 18
+    });
+    await backdrop.dispatchEvent('pointerup', {
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 18
+    });
+
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+    await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
+
+    const afterClose = await card.boundingBox();
+    expect(Math.abs((afterClose?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
+    expect(Math.abs((afterClose?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(2);
+
+    const visibleOwnerAtPoint = await card.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const target = document.elementFromPoint(window.innerWidth / 2, Math.min(rect.top + 24, window.innerHeight - 24));
+      return target?.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-id') ?? null;
+    });
+    expect(visibleOwnerAtPoint).toBe('test-rhythm-a');
+
+    await expect(backdrop).toHaveAttribute('data-state', 'CLOSING');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+  });
+
   test('@smoke assertion:B14-mobile-queue-close mobile queue-close is processed once and closing ignores further open-close inputs', async ({
     page
   }) => {
