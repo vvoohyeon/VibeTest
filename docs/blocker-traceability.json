@@ -40,6 +40,11 @@
     "assertionId": "assertion:B5-overlay-focus"
   },
   {
+    "blocker": 5,
+    "file": "tests/e2e/state-smoke.spec.ts",
+    "assertionId": "assertion:B5-mobile-keyboard-handoff"
+  },
+  {
     "blocker": 6,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B6-transition-ingress"
@@ -97,12 +102,32 @@
   {
     "blocker": 14,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B14-mobile-open-continuity"
+  },
+  {
+    "blocker": 14,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-close-perception"
   },
   {
     "blocker": 14,
     "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B14-mobile-close-choreography"
+  },
+  {
+    "blocker": 14,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B14-mobile-title-continuity"
+  },
+  {
+    "blocker": 14,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
     "assertionId": "assertion:B14-mobile-queue-close"
+  },
+  {
+    "blocker": 14,
+    "file": "tests/e2e/transition-telemetry-smoke.spec.ts",
+    "assertionId": "assertion:B14-mobile-reduced-motion"
   },
   {
     "blocker": 15,

@@ -116,6 +116,43 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(unavailableCard).toHaveScreenshot('overlay-focus-shell.png');
   });
 
+  test('@smoke assertion:B5-mobile-keyboard-handoff mobile keyboard CTA traversal collapses the previous expanded card before focusing the next trigger', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    await page.locator('body').click({position: {x: 1, y: 1}});
+    await tabUntilCardFocused(page, 'test-rhythm-a');
+
+    const firstCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const secondTrigger = secondCard.getByTestId('landing-grid-card-trigger');
+
+    await page.keyboard.press('Space');
+    await expect(firstCard).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+
+    await page.keyboard.press('Tab');
+    await expect(firstCard.locator('[data-slot="mobileClose"]:focus')).toHaveCount(1);
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-card-id="test-rhythm-a"] [data-slot="answerChoiceA"]:focus')).toHaveCount(1);
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-card-id="test-rhythm-a"] [data-slot="answerChoiceB"]:focus')).toHaveCount(1);
+
+    await page.keyboard.press('Tab');
+    await expect(secondTrigger).toBeFocused();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(firstCard).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    await expect(secondCard).toHaveAttribute('data-card-state', 'focused');
+
+    await page.keyboard.press('Space');
+    await expect(secondCard).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
+  });
+
   test('@smoke reduced-motion shrinks desktop motion and rapid interactions stay error-free', async ({page}) => {
     const pageErrors: string[] = [];
     const consoleErrors: string[] = [];

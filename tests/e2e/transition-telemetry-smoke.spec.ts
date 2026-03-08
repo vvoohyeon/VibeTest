@@ -229,7 +229,49 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
   });
 
-  test('@smoke assertion:B14-mobile-close-perception mobile close immediately restores the root footprint while keeping the active closing shell above the backdrop', async ({
+  test('@smoke assertion:B14-mobile-open-continuity mobile open keeps the root footprint stable while the transient shell morphs into the expanded surface', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const card = page.locator('[data-card-id="test-rhythm-a"]');
+    const before = await card.boundingBox();
+    const beforeTitleTop = await card
+      .locator('[data-slot="cardTitle"]')
+      .evaluate((element) => element.getBoundingClientRect().top);
+
+    expect(before).not.toBeNull();
+    await card.getByTestId('landing-grid-card-trigger').click();
+
+    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'OPENING');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-opening-shell');
+    await expect(card.locator('[data-slot="mobileTransientShell"]')).toHaveAttribute('data-state', 'OPENING');
+
+    const duringOpen = await card.boundingBox();
+    expect(Math.abs((duringOpen?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
+    expect(Math.abs((duringOpen?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(2);
+
+    const zOrder = await page.evaluate(() => {
+      const transient = document.querySelector<HTMLElement>('[data-slot="mobileTransientShell"]');
+      const backdrop = document.querySelector<HTMLElement>('[data-testid="landing-grid-mobile-backdrop"]');
+      return {
+        transient: transient ? Number.parseInt(getComputedStyle(transient).zIndex || '0', 10) : 0,
+        backdrop: backdrop ? Number.parseInt(getComputedStyle(backdrop).zIndex || '0', 10) : 0
+      };
+    });
+    expect(zOrder.transient).toBeGreaterThan(zOrder.backdrop);
+
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-in-flow');
+
+    const afterOpenTitleTop = await card
+      .locator('[data-slot="cardTitle"]')
+      .evaluate((element) => element.getBoundingClientRect().top);
+    expect(Math.abs(afterOpenTitleTop - beforeTitleTop)).toBeLessThanOrEqual(1);
+  });
+
+  test('@smoke assertion:B14-mobile-close-perception assertion:B14-mobile-close-choreography assertion:B14-mobile-title-continuity mobile close immediately restores the root footprint while keeping the active closing shell above the backdrop', async ({
     page
   }) => {
     await page.setViewportSize({width: 390, height: 844});
@@ -257,20 +299,111 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(card).toHaveAttribute('data-card-state', 'normal');
     await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
     await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
+    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'CLOSING');
 
     const afterClose = await card.boundingBox();
     expect(Math.abs((afterClose?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
     expect(Math.abs((afterClose?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(2);
 
-    const visibleOwnerAtPoint = await card.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const target = document.elementFromPoint(window.innerWidth / 2, Math.min(rect.top + 24, window.innerHeight - 24));
-      return target?.closest('[data-testid="landing-grid-card"]')?.getAttribute('data-card-id') ?? null;
+    await page.waitForTimeout(140);
+
+    const rootTitleOpacity = await card
+      .locator('.landing-grid-card-content > [data-slot="cardTitle"]')
+      .evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity));
+    const transientTitleOpacity = await card
+      .locator('[data-slot="mobileTransientShell"] [data-slot="cardTitleTransient"]')
+      .evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity));
+
+    expect(rootTitleOpacity).toBe(0);
+    expect(transientTitleOpacity).toBeGreaterThanOrEqual(0.95);
+
+    const closingPreviewAnimation = await card
+      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expect(closingPreviewAnimation).toContain('landing-card-detail-quiet-exit');
+
+    const zOrder = await page.evaluate(() => {
+      const transient = document.querySelector<HTMLElement>('[data-slot="mobileTransientShell"]');
+      const backdrop = document.querySelector<HTMLElement>('[data-testid="landing-grid-mobile-backdrop"]');
+      return {
+        transient: transient ? Number.parseInt(getComputedStyle(transient).zIndex || '0', 10) : 0,
+        backdrop: backdrop ? Number.parseInt(getComputedStyle(backdrop).zIndex || '0', 10) : 0
+      };
     });
-    expect(visibleOwnerAtPoint).toBe('test-rhythm-a');
+    expect(zOrder.transient).toBeGreaterThan(zOrder.backdrop);
 
     await expect(backdrop).toHaveAttribute('data-state', 'CLOSING');
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+    await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
+    await expect(card).toHaveAttribute('data-mobile-transient-mode', 'NONE');
+    await expect(card.locator('.landing-grid-card-content > [data-slot="cardTitle"]')).toHaveCSS('opacity', '1');
+  });
+
+  test('@smoke assertion:B14-mobile-reduced-motion mobile reduced-motion keeps continuity markers while simplifying slot motion', async ({
+    page
+  }) => {
+    const pageErrors: string[] = [];
+    const consoleErrors: string[] = [];
+    page.on('pageerror', (error) => {
+      pageErrors.push(error.message);
+    });
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        consoleErrors.push(message.text());
+      }
+    });
+
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/en');
+
+    const shell = page.getByTestId('landing-grid-shell');
+    const card = page.locator('[data-card-id="test-rhythm-a"]');
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+
+    await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
+    const motionToken = await card.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--landing-card-motion-ms').trim()
+    );
+    const normalizedMotionMs = motionToken.endsWith('ms') ? parseFloat(motionToken) : parseFloat(motionToken) * 1000;
+    expect(normalizedMotionMs).toBe(180);
+
+    await trigger.click();
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-opening-shell');
+
+    const openingPreviewAnimation = await card
+      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expect(openingPreviewAnimation).toContain('landing-card-shell-reduced-open');
+
+    await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+
+    const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
+    await backdrop.dispatchEvent('pointerdown', {
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 18
+    });
+    await backdrop.dispatchEvent('pointerup', {
+      pointerType: 'touch',
+      clientX: 18,
+      clientY: 18
+    });
+
+    await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
+
+    const closingPreviewAnimation = await card
+      .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expect(closingPreviewAnimation).toContain('landing-card-shell-reduced-open');
+
+    const reducedMotionTransientTitleOpacity = await card
+      .locator('[data-slot="mobileTransientShell"] [data-slot="cardTitleTransient"]')
+      .evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity));
+    expect(reducedMotionTransientTitleOpacity).toBeGreaterThanOrEqual(0.95);
+
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
   });
 
   test('@smoke assertion:B14-mobile-queue-close mobile queue-close is processed once and closing ignores further open-close inputs', async ({

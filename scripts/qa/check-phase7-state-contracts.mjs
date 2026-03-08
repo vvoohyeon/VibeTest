@@ -149,6 +149,10 @@ if (fileExists('tests/e2e/state-smoke.spec.ts')) {
   if (!/capability gate/u.test(e2eSpec) || !/keyboard sequential override/u.test(e2eSpec)) {
     fail('Phase 7 state smoke must cover capability gate and keyboard sequential override.');
   }
+
+  if (!/assertion:B5-mobile-keyboard-handoff/u.test(e2eSpec)) {
+    fail('Phase 7 state smoke must cover the mobile keyboard handoff regression path.');
+  }
 }
 
 if (errors.length > 0) {

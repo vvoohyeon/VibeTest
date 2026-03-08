@@ -26,6 +26,7 @@ export type LandingCardVisualState = 'normal' | 'expanded' | 'focused';
 export type LandingCardInteractionMode = 'hover' | 'tap';
 export type LandingCardViewportTier = 'mobile' | 'tablet' | 'desktop';
 export type LandingCardMobilePhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSING';
+export type LandingCardMobileTransientMode = 'NONE' | 'OPENING' | 'CLOSING';
 export type LandingCardDesktopMotionRole =
   | 'idle'
   | 'opening'
@@ -37,6 +38,8 @@ export type LandingCardDesktopMotionRole =
 export interface LandingMobileSnapshotView {
   cardHeightPx: number;
   anchorTopPx: number;
+  cardLeftPx: number;
+  cardWidthPx: number;
   titleTopPx: number;
   snapshotWriteCount: number;
   restoreReady: boolean;
@@ -69,6 +72,7 @@ interface LandingGridCardProps {
   interactionMode?: LandingCardInteractionMode;
   viewportTier?: LandingCardViewportTier;
   mobilePhase?: LandingCardMobilePhase;
+  mobileTransientMode?: LandingCardMobileTransientMode;
   mobileRestoreReady?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   mobileSnapshot?: LandingMobileSnapshotView | null;
@@ -207,6 +211,141 @@ function NormalContentSlots({card, includeSlotAttributes}: NormalContentSlotsPro
   );
 }
 
+interface ExpandedCardBodyContentProps {
+  card: LandingCard;
+  locale: AppLocale;
+  copy: LandingCardCopy;
+  interactive: boolean;
+  onAnswerChoiceSelect?: (choice: 'A' | 'B', event: MouseEvent<HTMLButtonElement>) => void;
+  onPrimaryCtaClick?: MouseEventHandler<HTMLAnchorElement>;
+}
+
+function ExpandedCardBodyContent({
+  card,
+  locale,
+  copy,
+  interactive,
+  onAnswerChoiceSelect,
+  onPrimaryCtaClick
+}: ExpandedCardBodyContentProps) {
+  const bodyProps = interactive ? {} : {'data-slot': 'mobileTransientExpandedBody'};
+
+  if (card.type === 'test') {
+    return (
+      <div className="landing-grid-card-mobile-body" {...bodyProps}>
+        <p
+          className="landing-grid-card-preview-question"
+          data-slot={interactive ? 'previewQuestion' : undefined}
+          data-motion-slot="preview"
+        >
+          {card.test.previewQuestion}
+        </p>
+
+        <div
+          className="landing-grid-card-answer-grid"
+          data-slot={interactive ? 'answerChoices' : undefined}
+          data-motion-slot="answerChoices"
+        >
+          <button
+            type="button"
+            className="landing-grid-card-answer-choice"
+            data-slot={interactive ? 'answerChoiceA' : undefined}
+            onClick={(event) => {
+              if (interactive) {
+                onAnswerChoiceSelect?.('A', event);
+              }
+            }}
+            tabIndex={interactive ? undefined : -1}
+            aria-hidden={interactive ? undefined : 'true'}
+          >
+            {card.test.answerChoiceA}
+          </button>
+          <button
+            type="button"
+            className="landing-grid-card-answer-choice"
+            data-slot={interactive ? 'answerChoiceB' : undefined}
+            onClick={(event) => {
+              if (interactive) {
+                onAnswerChoiceSelect?.('B', event);
+              }
+            }}
+            tabIndex={interactive ? undefined : -1}
+            aria-hidden={interactive ? undefined : 'true'}
+          >
+            {card.test.answerChoiceB}
+          </button>
+        </div>
+
+        <dl
+          className="landing-grid-card-meta-grid"
+          data-slot={interactive ? 'meta' : undefined}
+          data-motion-slot="meta"
+        >
+          <div className="landing-grid-card-meta-item">
+            <dt className="landing-grid-card-meta-label">{copy.metaEstimated}</dt>
+            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.estimatedMinutes)}</dd>
+          </div>
+          <div className="landing-grid-card-meta-item">
+            <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
+            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.shares)}</dd>
+          </div>
+          <div className="landing-grid-card-meta-item">
+            <dt className="landing-grid-card-meta-label">{copy.metaAttempts}</dt>
+            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.attempts)}</dd>
+          </div>
+        </dl>
+      </div>
+    );
+  }
+
+  return (
+    <div className="landing-grid-card-mobile-body" {...bodyProps}>
+      <p
+        className="landing-grid-card-summary"
+        data-slot={interactive ? 'summary' : undefined}
+        data-motion-slot="summary"
+      >
+        {card.blog.summary}
+      </p>
+
+      <dl
+        className="landing-grid-card-meta-grid"
+        data-slot={interactive ? 'meta' : undefined}
+        data-motion-slot="meta"
+      >
+        <div className="landing-grid-card-meta-item">
+          <dt className="landing-grid-card-meta-label">{copy.metaReadTime}</dt>
+          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.readMinutes)}</dd>
+        </div>
+        <div className="landing-grid-card-meta-item">
+          <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
+          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.shares)}</dd>
+        </div>
+        <div className="landing-grid-card-meta-item">
+          <dt className="landing-grid-card-meta-label">{copy.metaViews}</dt>
+          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.views)}</dd>
+        </div>
+      </dl>
+
+      {interactive ? (
+        <Link
+          className="landing-grid-card-primary-cta"
+          href={buildLocalizedPath(RouteBuilder.blog(), locale)}
+          data-slot="primaryCTA"
+          data-motion-slot="primaryCTA"
+          onClick={onPrimaryCtaClick}
+        >
+          {card.blog.primaryCTA || copy.readMore}
+        </Link>
+      ) : (
+        <span className="landing-grid-card-primary-cta" aria-hidden="true" data-motion-slot="primaryCTA">
+          {card.blog.primaryCTA || copy.readMore}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function LandingGridCard({
   card,
   locale,
@@ -214,6 +353,7 @@ export function LandingGridCard({
   interactionMode = 'tap',
   viewportTier = 'desktop',
   mobilePhase = 'NORMAL',
+  mobileTransientMode = 'NONE',
   mobileRestoreReady = false,
   desktopMotionRole = 'idle',
   mobileSnapshot = null,
@@ -242,11 +382,13 @@ export function LandingGridCard({
   const isUnavailable = card.availability === 'unavailable';
   const resolvedState: LandingCardVisualState = isUnavailable && state === 'expanded' ? 'normal' : state;
   const isMobileViewport = viewportTier === 'mobile';
-  const isMobileExpanded = isMobileViewport && mobilePhase !== 'NORMAL' && mobilePhase !== 'CLOSING' && !isUnavailable;
-  const isMobileClosing = isMobileViewport && mobilePhase === 'CLOSING' && !isUnavailable;
-  const isExpanded = resolvedState === 'expanded' || isMobileExpanded;
+  const isMobileOpening = isMobileViewport && mobileTransientMode === 'OPENING' && !isUnavailable;
+  const isMobileClosing = isMobileViewport && mobileTransientMode === 'CLOSING' && !isUnavailable;
+  const isMobileExpanded = isMobileViewport && mobilePhase === 'OPEN' && !isUnavailable;
+  const isExpanded = (resolvedState === 'expanded' && !isMobileViewport) || isMobileExpanded;
   const isDesktopExpanded = resolvedState === 'expanded' && !isMobileViewport;
-  const showMobileExpandedBody = isMobileExpanded || isMobileClosing;
+  const showMobileExpandedBody = isMobileExpanded;
+  const showMobileTransientShell = isMobileOpening || isMobileClosing;
   const resolvedSpacing = resolveSpacingContract(spacing);
 
   const handlePrimaryCtaClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
@@ -275,16 +417,27 @@ export function LandingGridCard({
       data-row-natural-max={resolvedSpacing.rowMaxNaturalHeightPx}
       data-card-viewport-tier={viewportTier}
       data-mobile-phase={isMobileViewport ? mobilePhase : undefined}
+      data-mobile-transient-mode={isMobileViewport ? mobileTransientMode : undefined}
       data-desktop-motion-role={!isMobileViewport ? desktopMotionRole : undefined}
       data-mobile-snapshot-height={mobileSnapshot ? mobileSnapshot.cardHeightPx : undefined}
       data-mobile-snapshot-anchor-top={mobileSnapshot ? mobileSnapshot.anchorTopPx : undefined}
+      data-mobile-snapshot-left={mobileSnapshot ? mobileSnapshot.cardLeftPx : undefined}
+      data-mobile-snapshot-width={mobileSnapshot ? mobileSnapshot.cardWidthPx : undefined}
       data-mobile-snapshot-title-top={mobileSnapshot ? mobileSnapshot.titleTopPx : undefined}
       data-mobile-snapshot-writes={mobileSnapshot ? mobileSnapshot.snapshotWriteCount : undefined}
       data-mobile-restore-ready={
         isMobileViewport && mobilePhase !== 'NORMAL' ? (mobileRestoreReady ? 'true' : 'false') : undefined
       }
       data-expanded-layer={
-        isDesktopExpanded ? 'desktop-overlay' : isMobileExpanded ? 'mobile-in-flow' : isMobileClosing ? 'mobile-closing-shell' : 'none'
+        isDesktopExpanded
+          ? 'desktop-overlay'
+          : isMobileOpening
+            ? 'mobile-opening-shell'
+            : isMobileExpanded
+              ? 'mobile-in-flow'
+              : isMobileClosing
+                ? 'mobile-closing-shell'
+                : 'none'
       }
       aria-disabled={ariaDisabled ? 'true' : undefined}
       onMouseEnter={onMouseEnter}
@@ -298,6 +451,8 @@ export function LandingGridCard({
           '--landing-card-comp-gap': `${resolvedSpacing.compGapPx}px`,
           '--landing-card-origin-x': desktopTransformOriginX,
           '--landing-mobile-anchor-top': mobileSnapshot ? `${mobileSnapshot.anchorTopPx}px` : undefined,
+          '--landing-mobile-card-left': mobileSnapshot ? `${mobileSnapshot.cardLeftPx}px` : undefined,
+          '--landing-mobile-card-width': mobileSnapshot ? `${mobileSnapshot.cardWidthPx}px` : undefined,
           '--landing-mobile-card-height': mobileSnapshot ? `${mobileSnapshot.cardHeightPx}px` : undefined,
           pointerEvents: interactionBlocked ? 'none' : 'auto'
         } as CSSProperties
@@ -340,81 +495,14 @@ export function LandingGridCard({
             <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
               {card.title}
             </h2>
-            {card.type === 'test' ? (
-              <>
-                <p className="landing-grid-card-preview-question" data-slot="previewQuestion">
-                  {card.test.previewQuestion}
-                </p>
-
-                <div className="landing-grid-card-answer-grid" data-slot="answerChoices">
-                  <button
-                    type="button"
-                    className="landing-grid-card-answer-choice"
-                    data-slot="answerChoiceA"
-                    onClick={(event) => {
-                      onAnswerChoiceSelect?.('A', event);
-                    }}
-                  >
-                    {card.test.answerChoiceA}
-                  </button>
-                  <button
-                    type="button"
-                    className="landing-grid-card-answer-choice"
-                    data-slot="answerChoiceB"
-                    onClick={(event) => {
-                      onAnswerChoiceSelect?.('B', event);
-                    }}
-                  >
-                    {card.test.answerChoiceB}
-                  </button>
-                </div>
-
-                <dl className="landing-grid-card-meta-grid" data-slot="meta">
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaEstimated}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.estimatedMinutes)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.shares)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaAttempts}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.attempts)}</dd>
-                  </div>
-                </dl>
-              </>
-            ) : (
-              <>
-                <p className="landing-grid-card-summary" data-slot="summary">
-                  {card.blog.summary}
-                </p>
-
-                <dl className="landing-grid-card-meta-grid" data-slot="meta">
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaReadTime}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.readMinutes)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.shares)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaViews}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.views)}</dd>
-                  </div>
-                </dl>
-
-                <Link
-                  className="landing-grid-card-primary-cta"
-                  href={buildLocalizedPath(RouteBuilder.blog(), locale)}
-                  data-slot="primaryCTA"
-                  onClick={handlePrimaryCtaClick}
-                >
-                  {card.blog.primaryCTA || copy.readMore}
-                </Link>
-              </>
-            )}
+            <ExpandedCardBodyContent
+              card={card}
+              locale={locale}
+              copy={copy}
+              interactive
+              onAnswerChoiceSelect={onAnswerChoiceSelect}
+              onPrimaryCtaClick={handlePrimaryCtaClick}
+            />
           </div>
         </div>
       ) : null}
@@ -431,87 +519,50 @@ export function LandingGridCard({
               aria-label={copy.closeExpandedAria}
               data-slot="mobileClose"
               onClick={onMobileClose}
-              disabled={mobilePhase === 'CLOSING'}
+              disabled={mobileTransientMode === 'CLOSING'}
             >
               <span aria-hidden="true">×</span>
             </button>
           </div>
-          <div className="landing-grid-card-mobile-body">
-            {card.type === 'test' ? (
-              <>
-                <p className="landing-grid-card-preview-question" data-slot="previewQuestion">
-                  {card.test.previewQuestion}
-                </p>
+          <ExpandedCardBodyContent
+            card={card}
+            locale={locale}
+            copy={copy}
+            interactive
+            onAnswerChoiceSelect={onAnswerChoiceSelect}
+            onPrimaryCtaClick={handlePrimaryCtaClick}
+          />
+        </div>
+      ) : null}
 
-                <div className="landing-grid-card-answer-grid" data-slot="answerChoices">
-                  <button
-                    type="button"
-                    className="landing-grid-card-answer-choice"
-                    data-slot="answerChoiceA"
-                    onClick={(event) => {
-                      onAnswerChoiceSelect?.('A', event);
-                    }}
-                  >
-                    {card.test.answerChoiceA}
-                  </button>
-                  <button
-                    type="button"
-                    className="landing-grid-card-answer-choice"
-                    data-slot="answerChoiceB"
-                    onClick={(event) => {
-                      onAnswerChoiceSelect?.('B', event);
-                    }}
-                  >
-                    {card.test.answerChoiceB}
-                  </button>
-                </div>
-
-                <dl className="landing-grid-card-meta-grid" data-slot="meta">
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaEstimated}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.estimatedMinutes)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.shares)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaAttempts}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.attempts)}</dd>
-                  </div>
-                </dl>
-              </>
-            ) : (
-              <>
-                <p className="landing-grid-card-summary" data-slot="summary">
-                  {card.blog.summary}
-                </p>
-
-                <dl className="landing-grid-card-meta-grid" data-slot="meta">
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaReadTime}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.readMinutes)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.shares)}</dd>
-                  </div>
-                  <div className="landing-grid-card-meta-item">
-                    <dt className="landing-grid-card-meta-label">{copy.metaViews}</dt>
-                    <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.views)}</dd>
-                  </div>
-                </dl>
-
-                <Link
-                  className="landing-grid-card-primary-cta"
-                  href={buildLocalizedPath(RouteBuilder.blog(), locale)}
-                  data-slot="primaryCTA"
-                  onClick={handlePrimaryCtaClick}
-                >
-                  {card.blog.primaryCTA || copy.readMore}
-                </Link>
-              </>
-            )}
+      {showMobileTransientShell ? (
+        <div
+          className="landing-grid-card-mobile-transient-shell"
+          data-slot="mobileTransientShell"
+          data-state={mobileTransientMode}
+          aria-hidden="true"
+        >
+          <div className="landing-grid-card-mobile-transient-panel" data-slot="mobileTransientPanel" />
+          <div className="landing-grid-card-mobile-transient-surface">
+            <div className="landing-grid-card-mobile-header landing-grid-card-mobile-transient-header">
+              <h2 className="landing-grid-card-title landing-grid-card-mobile-title" data-slot="cardTitleTransient">
+                {card.title}
+              </h2>
+              <span
+                className="landing-grid-card-mobile-close landing-grid-card-mobile-close-ghost"
+                data-slot="mobileCloseGhost"
+              >
+                <span aria-hidden="true">×</span>
+              </span>
+            </div>
+            <ExpandedCardBodyContent
+              card={card}
+              locale={locale}
+              copy={copy}
+              interactive={false}
+              onAnswerChoiceSelect={onAnswerChoiceSelect}
+              onPrimaryCtaClick={handlePrimaryCtaClick}
+            />
           </div>
         </div>
       ) : null}

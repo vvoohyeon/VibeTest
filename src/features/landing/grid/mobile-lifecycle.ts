@@ -5,6 +5,8 @@ export type LandingMobileExpandedPhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSIN
 export interface LandingMobileSnapshot {
   cardHeightPx: number;
   anchorTopPx: number;
+  cardLeftPx: number;
+  cardWidthPx: number;
   titleTopPx: number;
 }
 

@@ -26,6 +26,7 @@ const requiredFiles = [
   'src/features/landing/landing-runtime.tsx',
   'src/features/landing/test/test-question-client.tsx',
   'src/features/landing/blog/blog-destination-client.tsx',
+  'src/app/globals.css',
   'tests/e2e/transition-telemetry-smoke.spec.ts'
 ];
 
@@ -82,6 +83,27 @@ if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
 
   if (!/assertion:B14-mobile-close-perception/u.test(e2eSpec)) {
     fail('Transition smoke must cover mobile close perception alongside the existing baseline lifecycle assertions.');
+  }
+
+  if (
+    !/assertion:B14-mobile-open-continuity/u.test(e2eSpec) ||
+    !/assertion:B14-mobile-close-choreography/u.test(e2eSpec) ||
+    !/assertion:B14-mobile-reduced-motion/u.test(e2eSpec) ||
+    !/assertion:B14-mobile-title-continuity/u.test(e2eSpec)
+  ) {
+    fail('Transition smoke must cover mobile open continuity, close choreography, title continuity, and reduced-motion proof.');
+  }
+}
+
+if (fileExists('src/app/globals.css')) {
+  const css = read('src/app/globals.css');
+
+  if (!/landing-card-mobile-open-shell/u.test(css) || !/landing-card-detail-quiet-exit/u.test(css)) {
+    fail('Global styles must keep explicit mobile open/close choreography keyframes.');
+  }
+
+  if (!/data-mobile-transient-mode='OPENING'/u.test(css) || !/data-mobile-transient-mode='CLOSING'/u.test(css)) {
+    fail('Global styles must keep explicit mobile transient-mode selectors.');
   }
 }
 

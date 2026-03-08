@@ -18,6 +18,8 @@ describe('landing mobile lifecycle reducer', () => {
       snapshot: {
         cardHeightPx: 200,
         anchorTopPx: 32,
+        cardLeftPx: 16,
+        cardWidthPx: 358,
         titleTopPx: 32
       }
     });
@@ -46,6 +48,8 @@ describe('landing mobile lifecycle reducer', () => {
     const snapshot = {
       cardHeightPx: 200,
       anchorTopPx: 32,
+      cardLeftPx: 16,
+      cardWidthPx: 358,
       titleTopPx: 32
     };
     const opening = reduceLandingMobileLifecycleState(initialLandingMobileLifecycleState, {
@@ -59,6 +63,8 @@ describe('landing mobile lifecycle reducer', () => {
       snapshot: {
         cardHeightPx: 420,
         anchorTopPx: 72,
+        cardLeftPx: 0,
+        cardWidthPx: 390,
         titleTopPx: 88
       }
     });
@@ -76,6 +82,8 @@ describe('landing mobile lifecycle reducer', () => {
         snapshot: {
           cardHeightPx: 200,
           anchorTopPx: 32,
+          cardLeftPx: 16,
+          cardWidthPx: 358,
           titleTopPx: 32
         },
         snapshotWriteCount: 1,
