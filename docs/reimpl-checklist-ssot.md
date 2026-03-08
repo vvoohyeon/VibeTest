@@ -69,7 +69,7 @@
 - [x] Enforce overlay readability and title visibility under unavailable overlays (`§9.3`).
 - [x] Keep GNB responsive behavior as single source from context contract (`§10.2`, `§6.4`).
 - [x] Enforce SSR/hydration determinism and zero-warning gate (`§11.1`).
-- [ ] Enforce animation/reduced-motion/cursor guardrails (`§11.2`, `§11.3`, `§11.4`).
+- [x] Enforce animation/reduced-motion/cursor guardrails (`§11.2`, `§11.3`, `§11.4`).
 
 ## 7. Telemetry / Data / Error Handling
 - [x] Keep telemetry to V1 minimal event set and collection boundaries (`§12.1`, `§12.3`).

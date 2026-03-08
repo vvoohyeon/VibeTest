@@ -187,6 +187,19 @@ test.describe('Phase 7 state + capability smoke', () => {
     expect(shellScale).toBe('1');
 
     await firstCard.hover();
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+
+    const expandedShell = firstCard.locator('[data-slot="expandedBody"]');
+    const expandedShellAnimation = await expandedShell.evaluate((element) => getComputedStyle(element).animationName);
+    const expandedShellTransform = await expandedShell.evaluate((element) => getComputedStyle(element).transform);
+    const answerChoiceAnimation = await firstCard
+      .locator('[data-slot="answerChoices"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+
+    expect(expandedShellAnimation).toContain('landing-card-shell-reduced-open');
+    expect(expandedShellTransform).toBe('none');
+    expect(answerChoiceAnimation).toBe('none');
+
     await secondCard.hover();
     await unavailableCard.hover();
     await page.mouse.move(1, 1);
@@ -195,5 +208,38 @@ test.describe('Phase 7 state + capability smoke', () => {
 
     expect(pageErrors).toEqual([]);
     expect(consoleErrors).toEqual([]);
+  });
+
+  test('@smoke landing card and CTA cursor policy stays scoped to available landing interactions', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const availableTestCard = page.locator('[data-card-id="test-rhythm-a"]');
+    const availableBlogCard = page.locator('[data-card-id="blog-ops-handbook"]');
+    const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+
+    const availableTriggerCursor = await availableTestCard
+      .getByTestId('landing-grid-card-trigger')
+      .evaluate((element) => getComputedStyle(element).cursor);
+    const unavailableTriggerCursor = await unavailableCard
+      .getByTestId('landing-grid-card-trigger')
+      .evaluate((element) => getComputedStyle(element).cursor);
+
+    expect(availableTriggerCursor).toBe('pointer');
+    expect(unavailableTriggerCursor).toBe('default');
+
+    await availableTestCard.hover();
+    await expect(availableTestCard).toHaveAttribute('data-card-state', 'expanded');
+    const answerChoiceCursor = await availableTestCard
+      .locator('[data-slot="answerChoiceA"]')
+      .evaluate((element) => getComputedStyle(element).cursor);
+    expect(answerChoiceCursor).toBe('pointer');
+
+    await availableBlogCard.hover();
+    await expect(availableBlogCard).toHaveAttribute('data-card-state', 'expanded');
+    const primaryCtaCursor = await availableBlogCard
+      .locator('[data-slot="primaryCTA"]')
+      .evaluate((element) => getComputedStyle(element).cursor);
+    expect(primaryCtaCursor).toBe('pointer');
   });
 });

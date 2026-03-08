@@ -91,6 +91,21 @@ if (fileExists('src/app/globals.css')) {
   if (!/landing-card-shell-reduced-open/u.test(css) || !/landing-card-shell-reduced-close/u.test(css)) {
     fail('Global styles must define reduced-motion open/close motion tokens.');
   }
+
+   if (
+    !/data-state='OPENING'\]\s*\{\s*animation-name:\s*landing-card-shell-reduced-open/ums.test(css) ||
+    !/data-state='CLOSING'\]\s*\{\s*animation-name:\s*landing-card-shell-reduced-close/ums.test(css)
+  ) {
+    fail('Global styles must simplify mobile transient-shell motion under reduced-motion.');
+  }
+
+  if (
+    !/\.landing-grid-card-answer-choice\s*\{[\s\S]*cursor:\s*pointer;/u.test(css) ||
+    !/a\.landing-grid-card-primary-cta\s*\{[\s\S]*cursor:\s*pointer;/u.test(css) ||
+    !/span\.landing-grid-card-primary-cta\s*\{[\s\S]*cursor:\s*default;/u.test(css)
+  ) {
+    fail('Global styles must keep landing card CTA cursor policy explicit for available vs non-interactive surfaces.');
+  }
 }
 
 if (fileExists('tests/e2e/routing-smoke.spec.ts')) {
@@ -118,6 +133,10 @@ if (fileExists('tests/e2e/state-smoke.spec.ts')) {
   const stateSpec = read('tests/e2e/state-smoke.spec.ts');
   if (!/reduced-motion shrinks desktop motion/u.test(stateSpec)) {
     fail('State smoke must cover reduced-motion and rapid interaction runtime safety.');
+  }
+
+  if (!/landing card and CTA cursor policy/u.test(stateSpec)) {
+    fail('State smoke must cover landing card and CTA cursor policy.');
   }
 }
 

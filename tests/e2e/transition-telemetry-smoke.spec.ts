@@ -371,6 +371,11 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await trigger.click();
     await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-opening-shell');
 
+    const openingShellAnimation = await card
+      .locator('[data-slot="mobileTransientShell"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expect(openingShellAnimation).toContain('landing-card-shell-reduced-open');
+
     const openingPreviewAnimation = await card
       .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')
       .evaluate((element) => getComputedStyle(element).animationName);
@@ -391,6 +396,11 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     });
 
     await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
+
+    const closingShellAnimation = await card
+      .locator('[data-slot="mobileTransientShell"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expect(closingShellAnimation).toContain('landing-card-shell-reduced-close');
 
     const closingPreviewAnimation = await card
       .locator('[data-slot="mobileTransientShell"] [data-motion-slot="preview"]')

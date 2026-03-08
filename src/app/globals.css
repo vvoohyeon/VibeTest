@@ -577,12 +577,17 @@ a {
   border-radius: 12px;
   background: color-mix(in srgb, var(--chip-bg) 70%, transparent);
   color: inherit;
+  cursor: pointer;
   padding: 10px 12px;
   text-align: left;
   line-height: 1.4;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
+}
+
+.landing-grid-card-answer-choice:disabled {
+  cursor: default;
 }
 
 .landing-grid-card-meta-grid {
@@ -644,6 +649,14 @@ a {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+a.landing-grid-card-primary-cta {
+  cursor: pointer;
+}
+
+span.landing-grid-card-primary-cta {
+  cursor: default;
 }
 
 .landing-grid-card-unavailable-overlay {
@@ -840,7 +853,18 @@ a {
 
 .landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card-mobile-transient-shell[data-state='OPENING'],
 .landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] {
+  left: 0;
+  width: 100vw;
+  border-radius: 0;
   animation-duration: var(--landing-card-motion-ms);
+}
+
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card-mobile-transient-shell[data-state='OPENING'] {
+  animation-name: landing-card-shell-reduced-open;
+}
+
+.landing-grid-shell[data-page-state='REDUCED_MOTION'] .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] {
+  animation-name: landing-card-shell-reduced-close;
 }
 
 .landing-grid-shell[data-page-state='REDUCED_MOTION']
@@ -922,7 +946,18 @@ a {
 
   .landing-grid-card-mobile-transient-shell[data-state='OPENING'],
   .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] {
+    left: 0;
+    width: 100vw;
+    border-radius: 0;
     animation-duration: var(--landing-card-motion-ms);
+  }
+
+  .landing-grid-card-mobile-transient-shell[data-state='OPENING'] {
+    animation-name: landing-card-shell-reduced-open;
+  }
+
+  .landing-grid-card-mobile-transient-shell[data-state='CLOSING'] {
+    animation-name: landing-card-shell-reduced-close;
   }
 
   .landing-grid-card-mobile-transient-shell[data-state='OPENING'] [data-motion-slot='preview'],
