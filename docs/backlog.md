@@ -14,6 +14,9 @@
 - settings light/dark 선택 상태 초기 표시 정합화
 - desktop/mobile 주요 focus 표현 보강과 blocker assertion 확장
 - traceability / smoke / blocker assertion 보강
+- preview-mode hydration zero-warning proof hardening과 first-paint bootstrap 정리
+- canonical axe-core audit 도입과 대표 상태 자동 접근성 감사
+- reduced-motion / cursor guardrail proof 강화
 
 ## 3. Deferred / Follow-up Items
 
@@ -45,8 +48,8 @@
 - 주의사항: 기능 수정과 baseline 확대를 같은 변경셋에 섞으면 diff 해석이 어려워진다.
 
 ### 3.4 SSR/hydration determinism 전체 재개방
-- 현재 상태: `부분 완료 후 후속 필요`
-- 왜 지금 보류했는가: hydration/log gate는 존재하지만, render/layout tree를 다시 건드리지 않는 한 전체 재개방은 중복 작업 가능성이 높다.
+- 현재 상태: `기본 closure 완료, render-tree refactor 시 재검토`
+- 왜 지금 보류했는가: preview-mode hydration/log gate와 first-paint bootstrap은 구현되어 있다. 남은 것은 render/layout tree를 다시 여는 시점의 재감사다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§11.1`, checklist의 `SSR/hydration determinism`
 - 권장 구현 시점: render/layout/tree를 다시 수정하는 phase
 - 함께 다루면 좋은 인접 항목: initial render policy, zero-warning gate, routing shell
@@ -54,8 +57,8 @@
 - 주의사항: 현재 green gate를 깨뜨리지 않도록, SSR 재개방은 별도 변경축으로 다루는 편이 안전하다.
 
 ### 3.5 전역 axe-core 접근성 자동화
-- 현재 상태: `audit/coverage 강화 필요`
-- 왜 지금 보류했는가: 기능 결함보다 증빙 공백 성격이 크고, DOM/state 구조가 더 흔들리지 않을 때 한 번에 넣는 편이 낫다.
+- 현재 상태: `canonical audit 완료, broader coverage 강화 필요`
+- 왜 지금 보류했는가: canonical representative states에 대한 axe-core audit은 구현되었다. 남은 것은 broader crawl/locale 확장이다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§9.3`
 - 권장 구현 시점: a11y audit phase
 - 함께 다루면 좋은 인접 항목: keyboard scenarios, overlay readability, GNB controls, destination pages

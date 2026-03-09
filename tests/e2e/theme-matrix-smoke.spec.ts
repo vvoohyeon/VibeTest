@@ -75,4 +75,19 @@ test.describe('Phase 11 theme matrix smoke', () => {
     await lightTest.close();
     await darkTest.close();
   });
+
+  test('@smoke assertion:B8-theme-matrix theme matrix captures KR representative landing states in light and dark modes', async ({
+    browser
+  }) => {
+    const lightLanding = await openThemedPage(browser, 'light');
+    await lightLanding.goto('http://127.0.0.1:4173/kr');
+    await expect(lightLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-kr-light.png');
+
+    const darkLanding = await openThemedPage(browser, 'dark');
+    await darkLanding.goto('http://127.0.0.1:4173/kr');
+    await expect(darkLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-kr-dark.png');
+
+    await lightLanding.close();
+    await darkLanding.close();
+  });
 });

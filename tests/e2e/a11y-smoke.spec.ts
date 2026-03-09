@@ -79,4 +79,18 @@ test.describe('Canonical accessibility smoke', () => {
       await expectPageToBeAxeClean(page);
     }
   });
+
+  test('@smoke assertion:B5-axe-canonical KR representative landing states remain axe-clean', async ({page}) => {
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/kr');
+    await expectPageToBeAxeClean(page);
+
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto('/kr');
+    await page.locator('body').click({position: {x: 1, y: 1}});
+    await tabUntilCardFocused(page, 'test-rhythm-a');
+    await page.keyboard.press('Space');
+    await expect(page.locator('[data-card-id="test-rhythm-a"]')).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expectPageToBeAxeClean(page);
+  });
 });

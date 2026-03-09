@@ -339,7 +339,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(card.locator('.landing-grid-card-content > [data-slot="cardTitle"]')).toHaveCSS('opacity', '1');
   });
 
-  test('@smoke assertion:B14-mobile-reduced-motion mobile reduced-motion keeps continuity markers while simplifying slot motion', async ({
+  test('@smoke assertion:B14-mobile-reduced-motion mobile reduced-motion / V1 low-spec fallback keeps continuity markers while simplifying slot motion', async ({
     page
   }) => {
     const pageErrors: string[] = [];

@@ -153,7 +153,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 
-  test('@smoke reduced-motion shrinks desktop motion and rapid interactions stay error-free', async ({page}) => {
+  test('@smoke reduced-motion / low-spec fallback shrinks desktop motion and rapid interactions stay error-free', async ({page}) => {
     const pageErrors: string[] = [];
     const consoleErrors: string[] = [];
     page.on('pageerror', (error) => {

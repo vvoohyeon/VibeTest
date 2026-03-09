@@ -105,6 +105,10 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
 
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('dark');
+
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
     await expect(page.locator('[data-testid="desktop-gnb-theme-controls"] .gnb-chip').nth(0)).toHaveAttribute(
@@ -124,6 +128,10 @@ test.describe('Phase 3 gnb shell smoke', () => {
       window.localStorage.setItem('vibetest-theme', 'dark');
     });
     await page.reload();
+
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('dark');
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();

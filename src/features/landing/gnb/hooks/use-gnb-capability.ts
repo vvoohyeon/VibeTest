@@ -9,15 +9,9 @@ interface GnbCapabilityState {
 }
 
 export function useGnbCapability(): GnbCapabilityState {
-  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
-  const [hoverCapable, setHoverCapable] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return false;
-    }
-
-    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  });
-  const [elevated, setElevated] = useState(() => (typeof window === 'undefined' ? false : window.scrollY > 4));
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const [hoverCapable, setHoverCapable] = useState(false);
+  const [elevated, setElevated] = useState(false);
 
   useLayoutEffect(() => {
     const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');

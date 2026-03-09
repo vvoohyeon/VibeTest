@@ -1,7 +1,40 @@
+import {existsSync, readFileSync} from 'node:fs';
+import path from 'node:path';
+
 import {expect, test} from '@playwright/test';
+
+const PREVIEW_LOG_PATH = path.join(process.cwd(), '.next/qa/preview-smoke.log');
+const PREVIEW_404_ALLOWLIST = /Error: Internal: NoFallbackError(?:\n\s+at .+)+/gu;
+const isPreviewServerMode = process.env.PLAYWRIGHT_SERVER_MODE === 'preview';
 
 function hasHydrationWarning(text: string): boolean {
   return /hydration|did not match|server html|client html|hydrating/u.test(text);
+}
+
+function readPreviewLog(): string {
+  if (!existsSync(PREVIEW_LOG_PATH)) {
+    return '';
+  }
+
+  return readFileSync(PREVIEW_LOG_PATH, 'utf8');
+}
+
+function readPreviewLogDelta(before: string): string {
+  const after = readPreviewLog();
+  return after.startsWith(before) ? after.slice(before.length) : after;
+}
+
+function collectUnexpectedPreviewErrors(log: string): string[] {
+  return log
+    .replace(PREVIEW_404_ALLOWLIST, '')
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter(
+      (line) =>
+        /^(Error:|TypeError:|ReferenceError:|Unhandled|⨯|error - )/u.test(line) &&
+        !/^Error: Internal: NoFallbackError$/u.test(line)
+    );
 }
 
 test.describe('Phase 1 routing smoke', () => {
@@ -20,6 +53,7 @@ test.describe('Phase 1 routing smoke', () => {
   });
 
   test('@smoke non-allowlisted and duplicate locale paths resolve to global 404', async ({page}) => {
+    const previewLogBefore = readPreviewLog();
     const unmatchedResponse = await page.goto('/foo');
     expect(unmatchedResponse?.status()).toBe(404);
     await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
@@ -27,6 +61,11 @@ test.describe('Phase 1 routing smoke', () => {
     const duplicateLocaleResponse = await page.goto('/en/en/blog');
     expect(duplicateLocaleResponse?.status()).toBe(404);
     await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
+
+    if (isPreviewServerMode) {
+      await page.waitForTimeout(100);
+      expect(collectUnexpectedPreviewErrors(readPreviewLogDelta(previewLogBefore))).toEqual([]);
+    }
   });
 
   test('@smoke segment-local domain errors resolve to segment not-found', async ({page}) => {
@@ -37,6 +76,7 @@ test.describe('Phase 1 routing smoke', () => {
 
   test('@smoke assertion:B1-hydration hydration warnings remain zero on core localized routes', async ({page}) => {
     const hydrationWarnings: string[] = [];
+    const previewLogBefore = readPreviewLog();
     page.on('console', (message) => {
       const text = message.text();
       if (hasHydrationWarning(text)) {
@@ -47,7 +87,19 @@ test.describe('Phase 1 routing smoke', () => {
     await page.goto('/en');
     await page.goto('/en/blog');
     await page.goto('/en/history');
+    await page.waitForTimeout(100);
 
     expect(hydrationWarnings).toEqual([]);
+
+    if (isPreviewServerMode) {
+      expect(existsSync(PREVIEW_LOG_PATH)).toBe(true);
+      expect(
+        readPreviewLogDelta(previewLogBefore)
+          .split(/\r?\n/u)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .filter(hasHydrationWarning)
+      ).toEqual([]);
+    }
   });
 });

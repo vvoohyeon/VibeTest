@@ -21,6 +21,8 @@ function read(relativePath) {
 }
 
 const requiredFiles = [
+  'src/app/layout.tsx',
+  'public/theme-bootstrap.js',
   'src/features/landing/grid/landing-catalog-grid-loader.tsx',
   'src/features/landing/grid/landing-catalog-grid.tsx',
   'src/features/landing/grid/use-landing-interaction-controller.ts',
@@ -79,6 +81,30 @@ if (fileExists('src/features/landing/gnb/hooks/use-gnb-capability.ts')) {
   if (!/useLayoutEffect/u.test(gnbCapabilityFile)) {
     fail('GNB capability hook must initialize viewport/hover capability before first paint.');
   }
+
+  if (
+    /useState\(\(\)\s*=>\s*\(typeof window/u.test(gnbCapabilityFile) ||
+    /useState\(\(\)\s*=>\s*\{[\s\S]*window\.matchMedia/u.test(gnbCapabilityFile) ||
+    /useState\(\(\)\s*=>\s*\(typeof window === 'undefined' \? false : window\.scrollY/u.test(gnbCapabilityFile)
+  ) {
+    fail('GNB capability hook must not read window, matchMedia, or scrollY in render-path state initializers.');
+  }
+}
+
+if (fileExists('src/app/layout.tsx')) {
+  const rootLayoutFile = read('src/app/layout.tsx');
+
+  if (!/data-theme="light"/u.test(rootLayoutFile) || !/theme-bootstrap\.js/u.test(rootLayoutFile)) {
+    fail('Root layout must provide a deterministic theme bootstrap before hydration.');
+  }
+}
+
+if (fileExists('public/theme-bootstrap.js')) {
+  const themeBootstrapFile = read('public/theme-bootstrap.js');
+
+  if (!/localStorage/u.test(themeBootstrapFile) || !/prefers-color-scheme/u.test(themeBootstrapFile)) {
+    fail('Theme bootstrap must resolve stored and system theme before hydration.');
+  }
 }
 
 if (fileExists('src/app/globals.css')) {
@@ -113,6 +139,10 @@ if (fileExists('tests/e2e/routing-smoke.spec.ts')) {
   if (!/assertion:B1-hydration/u.test(routingSpec)) {
     fail('Routing smoke must keep hydration warning coverage.');
   }
+
+  if (!/PREVIEW_LOG_PATH/u.test(routingSpec) || !/collectUnexpectedPreviewErrors/u.test(routingSpec)) {
+    fail('Routing smoke must read preview logs for hydration and expected-noise policy verification.');
+  }
 }
 
 if (fileExists('package.json')) {
@@ -124,15 +154,20 @@ if (fileExists('package.json')) {
 
 if (fileExists('playwright.config.ts')) {
   const playwrightConfig = read('playwright.config.ts');
-  if (!/PLAYWRIGHT_SERVER_MODE/u.test(playwrightConfig) || !/npm run start -- --port 4173/u.test(playwrightConfig)) {
+  if (
+    !/PLAYWRIGHT_SERVER_MODE/u.test(playwrightConfig) ||
+    !/npm run start -- --port 4173/u.test(playwrightConfig) ||
+    !/preview-smoke\.log/u.test(playwrightConfig) ||
+    !/reuseExistingServer:\s*serverMode === 'preview' \? false/u.test(playwrightConfig)
+  ) {
     fail('Playwright config must support preview-mode server startup for hydration proof hardening.');
   }
 }
 
 if (fileExists('tests/e2e/state-smoke.spec.ts')) {
   const stateSpec = read('tests/e2e/state-smoke.spec.ts');
-  if (!/reduced-motion shrinks desktop motion/u.test(stateSpec)) {
-    fail('State smoke must cover reduced-motion and rapid interaction runtime safety.');
+  if (!/reduced-motion \/ low-spec fallback shrinks desktop motion/u.test(stateSpec)) {
+    fail('State smoke must cover reduced-motion / V1 low-spec fallback runtime safety.');
   }
 
   if (!/landing card and CTA cursor policy/u.test(stateSpec)) {

@@ -4,9 +4,11 @@ import {defineConfig} from '@playwright/test';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173';
 const serverMode = process.env.PLAYWRIGHT_SERVER_MODE ?? 'dev';
-const previewCommand = existsSync('.next/BUILD_ID')
+const previewLogPath = '.next/qa/preview-smoke.log';
+const previewStartCommand = existsSync('.next/BUILD_ID')
   ? 'npm run start -- --port 4173'
   : 'npm run build && npm run start -- --port 4173';
+const previewCommand = `sh -c 'mkdir -p .next/qa && rm -f ${previewLogPath} && (${previewStartCommand}) > ${previewLogPath} 2>&1'`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -27,6 +29,6 @@ export default defineConfig({
         command: serverMode === 'preview' ? previewCommand : 'npm run dev -- --port 4173',
         url: baseURL,
         timeout: 120_000,
-        reuseExistingServer: !process.env.CI
+        reuseExistingServer: serverMode === 'preview' ? false : !process.env.CI
       }
 });

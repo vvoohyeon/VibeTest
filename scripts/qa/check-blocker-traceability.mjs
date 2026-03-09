@@ -6,6 +6,24 @@ const traceabilityFile = 'docs/blocker-traceability.json';
 const TRACEABILITY_ASSERTION_ID = 'assertion:B19-traceability-registry';
 const errors = [];
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function hasExecutableAssertionReference({content, file, assertionId}) {
+  const escapedAssertionId = escapeRegex(assertionId);
+
+  if (file.startsWith('tests/')) {
+    return new RegExp(`\\b(?:test|it)\\s*\\(\\s*[\\s\\S]{0,200}?${escapedAssertionId}`, 'u').test(content);
+  }
+
+  if (file.startsWith('scripts/qa/')) {
+    return new RegExp(`['"\`]${escapedAssertionId}['"\`]`, 'u').test(content);
+  }
+
+  return content.includes(assertionId);
+}
+
 function fail(message) {
   errors.push(message);
 }
@@ -50,6 +68,13 @@ if (!fileExists(traceabilityFile)) {
     const content = readFileSync(path.join(rootDir, entry.file), 'utf8');
     if (!content.includes(entry.assertionId)) {
       fail(`Traceability assertionId not found for blocker ${entry.blocker}: ${entry.assertionId}`);
+      continue;
+    }
+
+    if (!hasExecutableAssertionReference({content, file: entry.file, assertionId: entry.assertionId})) {
+      fail(
+        `Traceability assertionId is not anchored to an executable test/qa surface for blocker ${entry.blocker}: ${entry.assertionId}`
+      );
     }
   }
 

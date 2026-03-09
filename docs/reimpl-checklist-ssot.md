@@ -1,12 +1,12 @@
 # Reimplementation Checklist (SSOT-Aligned)
 
 ## 0. Scope / Sync / Non-goals
-- [ ] Reimplementation scope is limited to V1 contracts only (`§1.1`).
-- [ ] Explicitly exclude non-goals (dynamic background, sheets live integration, full taxonomy, advanced article bodies) (`§1.2`).
-- [ ] Keep locked decisions (Visual package B, background intensity 0, tilt disabled) (`§1.3`).
-- [ ] Resolve policy conflicts strictly by priority order (Global Invariants -> Routing/Layout -> Section 6~13 -> Exceptions) (`§3.1`).
-- [ ] Apply single-change synchronization when touching linked policies (`§3.2`).
-- [ ] Stop and resolve ambiguity before implementation when a single interpretation is not guaranteed (`§3.3`).
+- [x] Reimplementation scope is limited to V1 contracts only (`§1.1`).
+- [x] Explicitly exclude non-goals (dynamic background, sheets live integration, full taxonomy, advanced article bodies) (`§1.2`).
+- [x] Keep locked decisions (Visual package B, background intensity 0, tilt disabled) (`§1.3`).
+- [x] Resolve policy conflicts strictly by priority order (Global Invariants -> Routing/Layout -> Section 6~13 -> Exceptions) (`§3.1`).
+- [x] Apply single-change synchronization when touching linked policies (`§3.2`).
+- [x] Stop and resolve ambiguity before implementation when a single interpretation is not guaranteed (`§3.3`).
 
 ## 1. Routing / i18n / 404 Baseline
 - [x] Keep root vs locale layout responsibility split (`§5.1`).
