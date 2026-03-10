@@ -93,7 +93,7 @@
 ### 4.1 Invariant Set
 **Rule**: 아래 규칙은 모든 구현에서 동시에 성립해야 한다.
 1. 유효 라우트는 항상 `/{locale}` prefix 1회만 가진다.
-2. `src/app/layout.tsx`는 정적 루트 레이아웃이며 `html/body`를 포함한다.
+2. `src/app/layout.tsx`는 top-level 루트 레이아웃이며 `html/body`를 포함한다. request-scoped document `lang` 해석만 예외적으로 허용한다.
 3. `src/app/[locale]/layout.tsx`는 locale 검증/i18n 주입 전용 중첩 레이아웃이다.
 4. 모든 실제 페이지는 `src/app/[locale]/**` 하위에만 존재한다.
 5. Expanded에서 콘텐츠 crop/clip으로 식별 불가 상태를 만들면 안 된다.
@@ -105,12 +105,12 @@
 
 ### 5.1 Layout Responsibility Split
 **Rule**: 루트/locale 레이아웃 책임은 분리 고정한다.
-- `src/app/layout.tsx`: 전역 HTML/Body, 전역 스타일, 전역 Provider 골격.
+- `src/app/layout.tsx`: 전역 HTML/Body, 전역 스타일, 전역 Provider 골격. locale 검증/i18n 메시지 주입 없이 request-scoped document `lang` 반영만 허용한다.
 - `src/app/[locale]/layout.tsx`: locale 파라미터 검증, 메시지 로드, locale 컨텍스트 주입.
 
 **Verification**:
-1. Manual: 루트 레이아웃이 정적 세그먼트인지 확인한다.
-2. Automated: 파일 트리 규칙 검사 스크립트로 top-level dynamic root layout 부재를 검증한다.
+1. Manual: 루트 레이아웃이 top-level `html/body` 책임을 유지하고, locale 검증/i18n 메시지 로드를 수행하지 않는지 확인한다.
+2. Automated: 파일 트리 규칙 검사 스크립트로 root/locale layout 분리와 root layout의 hard-coded default `lang` 회귀를 검증한다.
 
 ### 5.2 Locale Prefix Policy
 **Rule**: 최종 URL은 `/{locale}/...` 형식이며 locale 세그먼트는 정확히 1회만 허용한다.
@@ -134,6 +134,7 @@
 - 허용 목록(locale-less redirect allowlist): `/blog`, `/history`, `/test/[variant]/question`
 - 허용 목록에 없는 locale-less 경로는 locale 주입 리다이렉트하지 않고 global unmatched 404로 처리한다.
 - duplicate locale prefix는 비정상 경로로 분기해 전역 unmatched 404 전략으로 처리한다.
+- localized request가 실제 페이지로 통과할 때는 proxy가 request-scoped locale header를 주입해 root document semantics(`html lang`)의 서버 반영 근거를 제공해야 한다.
 - `proxy.ts`에는 비즈니스 상태 로직을 넣지 않는다.
 - `middleware.ts` 도입이 필요해지면 Section 15 Exception Registry에 사유/리스크/가드레일/검증을 등록한 뒤에만 허용한다.
 
@@ -683,6 +684,7 @@
 - 중립 초기 상태를 사용해야 한다(예: consent `UNKNOWN`, interaction mode는 SSR neutral 값).
 - `useSearchParams()`를 사용하는 Client Component는 반드시 가장 가까운 위치에 Suspense 경계를 둬야 한다.
 - 위 조건을 충족하지 않아 정적 렌더링 구간이 CSR bailout 되는 구성을 허용하지 않는다.
+- root layout의 request-scoped document `lang` 해석은 proxy가 주입한 locale header만을 입력으로 사용할 때에 한해 허용한다.
 - hydration warning 1건이라도 발생하면 릴리스를 차단한다.
 - hydration warning `0건`은 자동화 로그로 증명해야 하며 수동 확인만으로 PASS 처리하면 안 된다.
 
@@ -927,3 +929,17 @@
 **Exception**: consent UI 도입 전 기본 확정값은 `OPTED_OUT`으로 운용한다.
 **Why Needed**: 동의 없는 비필수 클라이언트 텔레메트리 전송 리스크를 차단하기 위함.
 **Guardrails/Verification**: `OPTED_OUT/UNKNOWN` 전송 `0건`, strictly-necessary 서버 집계만 허용, `OPTED_IN`에서만 유예 큐 전송(Section 12.1, 12.4 검증 기준 준용).
+
+### EX-003: request-scoped root `html lang`
+**Exception**: locale별 SSR document semantics를 위해 top-level root layout이 proxy-provided locale header를 읽어 `html lang`를 request-scoped로 렌더링하는 것을 허용한다.
+
+**Risk**: localized app routes가 dynamic rendering으로 전환될 수 있다.
+
+**Guardrails**:
+- locale source는 `proxy.ts`가 주입한 request locale header 1개로 제한한다.
+- root layout은 locale 검증, 메시지 로드, route branching을 수행하면 안 된다.
+- locale별 SSR response의 `<html lang>`와 hydration warning `0건`을 동시에 만족해야 한다.
+
+**Verification**:
+1. Automated: localized route SSR response에서 `<html lang>`가 active locale과 일치하는지 검증한다.
+2. Automated: build/preview + hydration zero-warning smoke를 유지한다.

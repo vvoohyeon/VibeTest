@@ -2,6 +2,7 @@ import type {NextRequest} from 'next/server';
 import {NextResponse} from 'next/server';
 
 import {localeCookieName} from '@/config/site';
+import {getRequestLocaleHeaderValueFromPathname, REQUEST_LOCALE_HEADER_NAME} from '@/i18n/request-locale-header';
 import {resolveProxyDecision} from '@/i18n/proxy-policy';
 
 export default function proxy(request: NextRequest) {
@@ -12,6 +13,18 @@ export default function proxy(request: NextRequest) {
   });
 
   if (decision.action === 'next') {
+    const localeHeaderValue = getRequestLocaleHeaderValueFromPathname(request.nextUrl.pathname);
+
+    if (localeHeaderValue) {
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set(REQUEST_LOCALE_HEADER_NAME, localeHeaderValue);
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders
+        }
+      });
+    }
+
     return NextResponse.next();
   }
 

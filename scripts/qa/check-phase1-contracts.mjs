@@ -93,6 +93,11 @@ for (const sourceFile of sourceFiles) {
   }
 }
 
+const rootLayoutContent = readFileSync(path.join(rootDir, 'src/app/layout.tsx'), 'utf8');
+if (/lang=\{defaultLocale\}/u.test(rootLayoutContent)) {
+  fail('Root layout must not hard-code html lang to defaultLocale; request-scoped locale resolution is required.');
+}
+
 const deterministicTargets = [
   'src/app',
   'src/i18n',

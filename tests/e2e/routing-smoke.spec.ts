@@ -74,6 +74,36 @@ test.describe('Phase 1 routing smoke', () => {
     await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
   });
 
+  test('@smoke localized SSR responses emit locale-specific html lang and client locale navigation preserves it', async ({
+    page,
+    request
+  }) => {
+    const localizedResponses = [
+      {pathname: '/en', locale: 'en'},
+      {pathname: '/kr', locale: 'kr'},
+      {pathname: '/kr/blog', locale: 'kr'}
+    ] as const;
+
+    for (const {pathname, locale} of localizedResponses) {
+      const response = await request.get(pathname);
+      expect(response.ok()).toBe(true);
+
+      const html = await response.text();
+      expect(html).toMatch(new RegExp(`<html[^>]*lang="${locale}"`, 'u'));
+    }
+
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+    await page.getByTestId('gnb-settings-trigger').hover();
+    await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+    await page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'}).click();
+
+    await expect(page).toHaveURL(/\/kr$/u);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'kr');
+  });
+
   test('@smoke assertion:B1-hydration hydration warnings remain zero on core localized routes', async ({page}) => {
     const hydrationWarnings: string[] = [];
     const previewLogBefore = readPreviewLog();

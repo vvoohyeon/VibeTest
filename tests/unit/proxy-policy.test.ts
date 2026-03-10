@@ -35,7 +35,7 @@ describe('proxy policy', () => {
       })
     ).toEqual({
       action: 'rewrite',
-      pathname: '/__global_unmatched__'
+      pathname: '/_not-found'
     });
 
     expect(
@@ -44,11 +44,17 @@ describe('proxy policy', () => {
       })
     ).toEqual({
       action: 'rewrite',
-      pathname: '/__global_unmatched__'
+      pathname: '/_not-found'
     });
   });
 
   it('passes through already localized and bypass paths', () => {
+    expect(
+      resolveProxyDecision({
+        pathname: '/kr'
+      })
+    ).toEqual({action: 'next'});
+
     expect(
       resolveProxyDecision({
         pathname: '/en/blog'
@@ -58,6 +64,12 @@ describe('proxy policy', () => {
     expect(
       resolveProxyDecision({
         pathname: '/_next/static/chunk.js'
+      })
+    ).toEqual({action: 'next'});
+
+    expect(
+      resolveProxyDecision({
+        pathname: '/_not-found'
       })
     ).toEqual({action: 'next'});
   });

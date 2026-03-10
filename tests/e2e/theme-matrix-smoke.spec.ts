@@ -32,14 +32,19 @@ test.describe('Phase 11 theme matrix smoke', () => {
 
     const lightExpandedLanding = await openThemedPage(browser, 'light');
     await lightExpandedLanding.goto('http://127.0.0.1:4173/en');
-    await lightExpandedLanding.locator('[data-card-id="test-rhythm-a"]').getByTestId('landing-grid-card-trigger').click();
+    const lightExpandedCard = lightExpandedLanding.locator('[data-card-id="test-rhythm-a"]');
+    await lightExpandedCard.getByTestId('landing-grid-card-trigger').click();
+    await expect(lightExpandedCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(lightExpandedCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(lightExpandedLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-light-expanded.png');
 
     const darkLanding = await openThemedPage(browser, 'dark');
     await darkLanding.goto('http://127.0.0.1:4173/en');
     await expect(darkLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-dark.png');
-    const landingCard = darkLanding.locator('[data-card-id="test-rhythm-a"]');
-    await landingCard.getByTestId('landing-grid-card-trigger').click();
+    const darkExpandedCard = darkLanding.locator('[data-card-id="test-rhythm-a"]');
+    await darkExpandedCard.getByTestId('landing-grid-card-trigger').click();
+    await expect(darkExpandedCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(darkExpandedCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(darkLanding.locator('.page-shell')).toHaveScreenshot('theme-landing-dark-expanded.png');
 
     const lightBlog = await openThemedPage(browser, 'light');

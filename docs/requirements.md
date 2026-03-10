@@ -15,6 +15,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - UI chrome (CTA labels, navigation, system messages, and error/loading text) uses standard i18n resources.
 - Test content localization is provided by adding per-language columns in the Sheets dataset; there is no country-specific variation in questions or scoring logic.
 - The active language is selected by the user and applied consistently across UI and test content.
+- The initial localized document response must expose the active language in `<html lang>` at SSR time; client-side reconciliation may only act as a fallback after navigation.
 
 ## 2) Roles and Permissions
 

@@ -30,6 +30,7 @@
 3. 카드 tilt 전면 비활성.
 4. 페이지는 `src/app/[locale]/**` 하위만 허용.
 5. root/locale layout 책임 분리 고정.
+   request-scoped root `html lang` 해석만 예외 허용.
 6. i18n 진입점은 `src/proxy.ts` 단일 유지.
 7. 경로 생성은 typed route helper/RouteBuilder만 허용.
 8. 404는 segment/global 이원 분리.
@@ -96,13 +97,14 @@
 ## 3. 요구사항 기반 핵심 아키텍처 결정
 ### 3.1 전역 불변식
 1. 유효 라우트는 locale prefix 1회만 허용.
-2. `src/app/layout.tsx`는 정적 루트(`html/body` 포함).
+2. `src/app/layout.tsx`는 top-level 루트(`html/body` 포함)이며 request-scoped document `lang` 반영만 허용한다.
 3. `src/app/[locale]/layout.tsx`는 locale 검증/i18n 주입 전용.
 4. 실제 페이지는 `src/app/[locale]/**` 하위만 존재.
 5. Expanded에서 콘텐츠 식별성 훼손 crop 금지.
 
 ### 3.2 라우팅/레이아웃/404
 - `src/proxy.ts`는 locale 해석/리다이렉트/allowlist 분기만 담당한다.
+- localized request pass-through 시에는 root document semantics용 request locale header를 함께 주입한다.
 - `/` 처리: cookie -> Accept-Language -> defaultLocale.
 - locale-less allowlist: `/blog`, `/history`, `/test/[variant]/question`.
 - allowlist 외 locale-less 경로는 locale 주입 금지 + global unmatched 404.
@@ -475,7 +477,7 @@
 | baseline freeze/restore | freeze 중 재측정, row A 조기 해제 | 상태 전이 강제 + 해제 타이밍 단언 | #4,#13 |
 | handoff source/target 분리 | target까지 0ms 적용 | source 전용 0ms 규칙 강제 | #13 |
 | mobile lifecycle atomicity | OPENING↔CLOSING 역전 | 단방향 lifecycle + queue-close/closing-ignore | #6,#14 |
-| hydration determinism | SSR/CSR 분기, warning 발생 | 초기 렌더 금지 API 차단 + 로그 게이트 | #1 |
+| hydration determinism | SSR/CSR 분기, warning 발생 | 초기 렌더 금지 API 차단 + 로그 게이트 + SSR `html lang` smoke | #1 |
 | telemetry terminal correlation | terminal 누락/중복 | `start=1`/terminal 1회 강제 | #15 |
 | rollback cleanup closure | state/lock/flag/body lock 누수 | cleanup set 전체 원자 정리 | #16 |
 | return restoration | 중복 복원, stale scroll | 저장/복원/consume 시점 고정 | #17 |
@@ -484,6 +486,7 @@
 | `result_reason` drift | 코드 체계 불일치 | 고정 enum + cancel/fail 분리 | #15,#18 |
 | EX-001 | Next 업그레이드 후 404 변동 | 버전 고정 + 404 회귀 | #2 |
 | EX-002 | 비동의 전송 누출 | 기본 OPTED_OUT + 전송 게이트 | #9 |
+| EX-003 | request-scoped root `html lang`로 localized routes dynamic 전환 | proxy header provenance + SSR `html lang` smoke + hydration 0 | #1,#2 |
 
 ## 10. 완료 정의(DoD)
 1. Section 1 범위 항목이 구현/검증으로 충족되고 비범위 항목이 유입되지 않았다.

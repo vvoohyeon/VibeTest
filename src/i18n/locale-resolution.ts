@@ -1,7 +1,7 @@
 import {defaultLocale, isLocale, locales, type AppLocale} from '@/config/site';
 
 const allowlistPattern = [/^\/blog\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/question\/?$/u] as const;
-export const globalUnmatchedPath = '/__global_unmatched__';
+export const globalUnmatchedPath = '/_not-found';
 
 function normalizeLocaleToken(token: string): AppLocale | null {
   const lowered = token.toLowerCase();
@@ -87,6 +87,7 @@ export function withLocalePrefix(pathname: string, locale: AppLocale): string {
 export function isBypassPath(pathname: string): boolean {
   if (
     pathname.startsWith('/_next') ||
+    pathname === globalUnmatchedPath ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/_vercel') ||
     pathname === '/favicon.ico' ||
