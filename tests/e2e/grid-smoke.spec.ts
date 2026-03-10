@@ -23,7 +23,7 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(row1).toHaveAttribute('data-card-count', '4');
 
     await expect(row2).toHaveAttribute('data-columns', '4');
-    await expect(row2).toHaveAttribute('data-card-count', '2');
+    await expect(row2).toHaveAttribute('data-card-count', '1');
     await expect(row2).toHaveAttribute('data-underfilled', 'true');
 
     const row0Cards = row0.getByTestId('landing-grid-card');
@@ -32,7 +32,7 @@ test.describe('Phase 4 grid smoke', () => {
 
     await expect(row0Cards).toHaveCount(3);
     await expect(row1Cards).toHaveCount(4);
-    await expect(row2Cards).toHaveCount(2);
+    await expect(row2Cards).toHaveCount(1);
 
     await expect(row0Cards.nth(2)).toHaveAttribute('data-card-seq', '2');
     await expect(row1Cards.first()).toHaveAttribute('data-card-seq', '3');
@@ -261,7 +261,9 @@ test.describe('Phase 4 grid smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
-    const emptyTagsCard = page.locator('[data-card-id="test-debug-sample"]');
+    await expect(page.locator('[data-card-id="test-debug-sample"]')).toHaveCount(0);
+
+    const emptyTagsCard = page.locator('[data-card-id="blog-build-metrics"]');
     await expect(emptyTagsCard).toHaveAttribute('data-card-state', 'normal');
 
     const orderedSlots = await emptyTagsCard.evaluate((element) => {

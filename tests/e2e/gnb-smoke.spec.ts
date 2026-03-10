@@ -215,6 +215,70 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(firstCardTrigger).toBeFocused();
   });
 
+  test('@smoke assertion:B3-gnb-keyboard-matrix desktop blog/history contexts keep default GNB order and focus-out close', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+
+    for (const route of ['/en/blog', '/en/history']) {
+      await page.goto(route);
+      await page.locator('body').click({position: {x: 1, y: 1}});
+
+      const home = page.locator('.gnb-desktop .gnb-ci-link');
+      const history = page.locator('.gnb-desktop .gnb-desktop-links a').nth(0);
+      const blog = page.locator('.gnb-desktop .gnb-desktop-links a').nth(1);
+      const settingsTrigger = page.getByTestId('gnb-settings-trigger');
+      const panel = page.getByTestId('gnb-settings-panel');
+
+      await page.keyboard.press('Tab');
+      await expect(home).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(history).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(blog).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(settingsTrigger).toBeFocused();
+      await expect(panel).toBeHidden();
+      await page.keyboard.press('Shift+Tab');
+      await expect(blog).toBeFocused();
+    }
+
+    await page.goto('/en/blog');
+    await page.evaluate(() => {
+      const sink = document.createElement('button');
+      sink.type = 'button';
+      sink.textContent = 'Destination focus sink';
+      sink.setAttribute('data-testid', 'destination-focus-sink');
+      document.querySelector('.page-shell-main')?.appendChild(sink);
+    });
+    await page.locator('body').click({position: {x: 1, y: 1}});
+
+    const settingsTrigger = page.getByTestId('gnb-settings-trigger');
+    const panel = page.getByTestId('gnb-settings-panel');
+    const krButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'});
+    const lightButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Light'});
+    const darkButton = page.getByTestId('desktop-gnb-theme-controls').getByRole('button', {name: 'Dark'});
+    const sink = page.getByTestId('destination-focus-sink');
+
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(settingsTrigger).toBeFocused();
+
+    await page.keyboard.press('Space');
+    await expect(panel).toBeVisible();
+    await page.keyboard.press('Tab');
+    await expect(krButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(lightButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(darkButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(sink).toBeFocused();
+    await expect(panel).toBeHidden({timeout: 150});
+  });
+
   test('@smoke assertion:B7-mobile-overlay mobile overlay close-start and unlock timing', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');

@@ -34,7 +34,7 @@ function renderCardDocument({
 
 describe('landing card slot contract', () => {
   it('keeps Normal slot order as title -> thumbnail -> subtitle -> tags and preserves empty-tags container', () => {
-    const catalog = createLandingCatalog('en');
+    const catalog = createLandingCatalog('en', {audience: 'qa'});
     const card = catalog.find((candidate) => candidate.id === 'test-debug-sample');
 
     if (!card) {

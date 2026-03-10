@@ -34,6 +34,14 @@ describe('landing fixture and adapter contract', () => {
     expect(catalogKr.some((card) => card.type === 'blog' && card.availability === 'unavailable')).toBe(false);
   });
 
+  it('hides debug/sample fixtures from the end-user catalog while keeping them available for QA', () => {
+    const endUserCatalog = createLandingCatalog('en');
+    const qaCatalog = createLandingCatalog('en', {audience: 'qa'});
+
+    expect(endUserCatalog.some((card) => card.id === 'test-debug-sample')).toBe(false);
+    expect(qaCatalog.some((card) => card.id === 'test-debug-sample')).toBe(true);
+  });
+
   it('inserts defaults for missing required slots instead of throwing', () => {
     const malformed: Array<Partial<RawLandingCard>> = [
       {

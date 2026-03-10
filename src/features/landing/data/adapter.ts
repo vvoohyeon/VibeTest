@@ -18,11 +18,18 @@ const DEFAULT_BLOG_PRIMARY_CTA: LocalizedText = {
   kr: 'Read more',
   default: 'Read more'
 };
+const DEFAULT_CATALOG_AUDIENCE = 'end-user';
 
 type LooseRawLandingCard = Partial<RawLandingCard> & {
   test?: Partial<RawTestPayload>;
   blog?: Partial<RawBlogPayload>;
 };
+
+export type LandingCatalogAudience = 'end-user' | 'qa';
+
+export interface LandingCatalogOptions {
+  audience?: LandingCatalogAudience;
+}
 
 function asLocalizedText(value: LocalizedText | undefined): LocalizedText {
   return value && typeof value === 'object' ? value : {};
@@ -78,8 +85,21 @@ function normalizeAvailability(value: unknown): LandingAvailability {
   return value === 'unavailable' ? 'unavailable' : 'available';
 }
 
-export function normalizeLandingCards(rawCards: ReadonlyArray<Partial<RawLandingCard>>, locale: AppLocale): LandingCard[] {
+function shouldIncludeCard(card: Pick<LandingCard, 'debug' | 'sample'>, audience: LandingCatalogAudience): boolean {
+  if (audience === 'qa') {
+    return true;
+  }
+
+  return !card.debug && !card.sample;
+}
+
+export function normalizeLandingCards(
+  rawCards: ReadonlyArray<Partial<RawLandingCard>>,
+  locale: AppLocale,
+  options: LandingCatalogOptions = {}
+): LandingCard[] {
   const normalizedCards: LandingCard[] = [];
+  const audience = options.audience ?? DEFAULT_CATALOG_AUDIENCE;
 
   for (const [index, inputCard] of rawCards.entries()) {
     const rawCard = (inputCard ?? {}) as LooseRawLandingCard;
@@ -134,7 +154,9 @@ export function normalizeLandingCards(rawCards: ReadonlyArray<Partial<RawLanding
         }
       };
 
-      normalizedCards.push(normalizedBlogCard);
+      if (shouldIncludeCard(normalizedBlogCard, audience)) {
+        normalizedCards.push(normalizedBlogCard);
+      }
       continue;
     }
 
@@ -175,12 +197,14 @@ export function normalizeLandingCards(rawCards: ReadonlyArray<Partial<RawLanding
       }
     };
 
-    normalizedCards.push(normalizedTestCard);
+    if (shouldIncludeCard(normalizedTestCard, audience)) {
+      normalizedCards.push(normalizedTestCard);
+    }
   }
 
   return normalizedCards;
 }
 
-export function createLandingCatalog(locale: AppLocale): LandingCard[] {
-  return normalizeLandingCards(getLandingRawFixtures(), locale);
+export function createLandingCatalog(locale: AppLocale, options: LandingCatalogOptions = {}): LandingCard[] {
+  return normalizeLandingCards(getLandingRawFixtures(), locale, options);
 }

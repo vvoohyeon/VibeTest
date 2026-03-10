@@ -41,8 +41,8 @@
 - 주의사항: 현재 green gate를 깨뜨리지 않도록, SSR 재개방은 별도 변경축으로 다루는 편이 안전하다.
 
 ### 3.3 전역 axe-core 접근성 자동화
-- 현재 상태: `canonical audit 완료, broader coverage 강화 필요`
-- 왜 지금 보류했는가: canonical representative states에 대한 axe-core audit은 구현되었다. 남은 것은 broader crawl/locale 확장이다.
+- 현재 상태: `canonical audit + destination GNB representative coverage 완료, broader coverage 강화 필요`
+- 왜 지금 보류했는가: canonical representative states와 destination GNB representative open state에 대한 axe-core audit은 구현되었다. 남은 것은 broader crawl/locale 확장이다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§9.3`
 - 권장 구현 시점: a11y audit phase
 - 함께 다루면 좋은 인접 항목: keyboard scenarios, overlay readability, GNB controls, destination pages
@@ -59,8 +59,8 @@
 - 주의사항: 기능 회귀 수정과 visual polish를 한 변경셋에 섞지 않는다.
 
 ### 3.5 GNB 키보드 접근
-- 현재 상태: `기본 계약 완료, broader context/state audit만 후속 필요`
-- 왜 지금 보류했는가: landing의 card-first entry와 reverse GNB handoff를 포함한 기본 keyboard/context matrix는 구현 및 smoke로 닫혔다. 남은 것은 추가 context/state audit과 대표 상태 확대 성격이 더 크다.
+- 현재 상태: `기본 계약 + desktop destination representative audit 완료, broader context/state audit 일부 후속 필요`
+- 왜 지금 보류했는가: landing의 card-first entry와 reverse GNB handoff를 포함한 기본 keyboard/context matrix, 그리고 desktop blog/history 대표 context의 기본 순회와 focus-out close smoke는 구현되었다. 남은 것은 추가 context/state audit과 대표 상태 확대 성격이 더 크다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§6.4`, `§10.2`, `§9.1`, checklist의 `GNB responsive behavior as single source`
 - 권장 구현 시점: keyboard audit 또는 context/state matrix 확대 시점
 - 함께 다루면 좋은 인접 항목: hidden-state tabbability, focus restore, settings/mobile menu open-state traversal

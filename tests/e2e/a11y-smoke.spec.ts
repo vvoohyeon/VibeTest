@@ -43,6 +43,20 @@ async function focusDesktopSettingsByKeyboard(page: Page) {
   await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
 }
 
+async function focusDesktopDestinationSettingsByKeyboard(page: Page) {
+  await page.locator('body').click({position: {x: 1, y: 1}});
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.gnb-desktop .gnb-ci-link')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.gnb-desktop .gnb-desktop-links a').nth(0)).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.gnb-desktop .gnb-desktop-links a').nth(1)).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByTestId('gnb-settings-trigger')).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+}
+
 async function focusMobileMenuByKeyboard(page: Page) {
   await page.locator('body').click({position: {x: 1, y: 1}});
   await page.keyboard.press('Tab');
@@ -89,6 +103,13 @@ test.describe('Canonical accessibility smoke', () => {
     await page.goto('/en');
     await focusDesktopSettingsByKeyboard(page);
     await expectPageToBeAxeClean(page);
+
+    for (const route of ['/en/blog', '/en/history']) {
+      await page.setViewportSize({width: 1440, height: 980});
+      await page.goto(route);
+      await focusDesktopDestinationSettingsByKeyboard(page);
+      await expectPageToBeAxeClean(page);
+    }
 
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');

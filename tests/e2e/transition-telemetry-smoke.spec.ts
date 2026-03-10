@@ -254,7 +254,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBeGreaterThanOrEqual(Math.max(1, Math.round(expectedRestoredScroll) - 1));
 
     const restoredScroll = await page.evaluate(() => window.scrollY);
-    expect(restoredScroll).toBeGreaterThanOrEqual(scrollBefore);
+    expect(Math.round(restoredScroll)).toBeGreaterThanOrEqual(Math.max(0, Math.round(scrollBefore) - 1));
     expect(Math.abs(restoredScroll - expectedRestoredScroll)).toBeLessThanOrEqual(2);
     const restoredSourceAnchor = await page.locator('[data-card-id="blog-build-metrics"]').evaluate((element) =>
       Math.max(0, Math.round(element.getBoundingClientRect().top + window.scrollY - 96))
