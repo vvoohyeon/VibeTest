@@ -97,6 +97,14 @@ if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
   if (!/landing-transition-source-gnb/u.test(e2eSpec) || !/assertion:B15-transition-correlation/u.test(e2eSpec)) {
     fail('Transition smoke must cover source GNB overlay visibility and destination-ready swap timing.');
   }
+
+  if (
+    !/userScrolledY/u.test(e2eSpec) ||
+    !/document\.body\.style\.overflow\)\)\.toBe\('hidden'\)/u.test(e2eSpec) ||
+    !/document\.body\.style\.overflow\)\)\.toBe\(''\)/u.test(e2eSpec)
+  ) {
+    fail('Transition smoke must cover OPEN-settled scroll unlock, closing relock, and current-scroll preservation for mobile lifecycle.');
+  }
 }
 
 if (fileExists('src/app/globals.css')) {

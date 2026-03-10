@@ -124,6 +124,7 @@ a {
   inset: 0;
   z-index: 10;
   background: rgb(4 6 10 / 64%);
+  touch-action: pan-y;
   transition: opacity 180ms ease;
 }
 

@@ -18,19 +18,11 @@
 - canonical axe-core audit 도입과 대표 상태 자동 접근성 감사
 - reduced-motion / cursor guardrail proof 강화
 - transition source GNB overlay 유지/교체/cleanup proof와 representative overlay a11y sanity
+- 모바일 Expanded settled-only page scroll unlock과 current-scroll-preserving close semantics
 
 ## 3. Deferred / Follow-up Items
 
-### 3.1 page/body scroll lock 해제
-- 현재 상태: `요구사항 변경 검토 필요`
-- 왜 지금 보류했는가: 현재 SSOT는 mobile full-bleed 동안 page scroll lock 유지를 명시한다. 단순 UX 개선으로 열기에는 요구사항 충돌이 크다.
-- 관련 요구사항 / 체크리스트 / 블로커 축: `§8.5`, `§14.3-14`, checklist의 `strict scroll-lock window`
-- 권장 구현 시점: 요구사항 재합의가 먼저 있을 때만
-- 함께 다루면 좋은 인접 항목: mobile lifecycle, y-anchor/title baseline, restore-ready, outside close, CTA priority
-- 아주 간단한 구현 방향 메모: page unlock이 아니라 internal expanded body scroll usability 검토가 먼저다. 정책이 바뀌면 mobile lifecycle 계약 전체를 다시 정의해야 한다.
-- 주의사항: `y-anchor`, snapshot, restore, dim/backdrop, scroll lock window를 부분 수정으로 건드리면 회귀 반경이 매우 크다.
-
-### 3.2 dark baseline 전체 확대
+### 3.1 dark baseline 전체 확대
 - 현재 상태: `visual regression coverage 확장 필요`
 - 왜 지금 보류했는가: 현재 핵심 기능 축과 직접 연결되지 않고, screenshot churn만 크게 늘릴 가능성이 높다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§6.9`, blocker `#8`
@@ -39,7 +31,7 @@
 - 아주 간단한 구현 방향 메모: dark/light baseline은 기능 구조가 안정된 뒤 matrix를 넓히는 방식이 적절하다.
 - 주의사항: 기능 수정과 baseline 확대를 같은 변경셋에 섞으면 diff 해석이 어려워진다.
 
-### 3.3 SSR/hydration determinism 전체 재개방
+### 3.2 SSR/hydration determinism 전체 재개방
 - 현재 상태: `기본 closure 완료, render-tree refactor 시 재검토`
 - 왜 지금 보류했는가: preview-mode hydration/log gate와 first-paint bootstrap은 구현되어 있다. 남은 것은 render/layout tree를 다시 여는 시점의 재감사다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§11.1`, checklist의 `SSR/hydration determinism`
@@ -48,7 +40,7 @@
 - 아주 간단한 구현 방향 메모: render tree를 다시 만질 때 build/preview log gate까지 포함해 재평가한다.
 - 주의사항: 현재 green gate를 깨뜨리지 않도록, SSR 재개방은 별도 변경축으로 다루는 편이 안전하다.
 
-### 3.4 전역 axe-core 접근성 자동화
+### 3.3 전역 axe-core 접근성 자동화
 - 현재 상태: `canonical audit 완료, broader coverage 강화 필요`
 - 왜 지금 보류했는가: canonical representative states에 대한 axe-core audit은 구현되었다. 남은 것은 broader crawl/locale 확장이다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§9.3`
@@ -57,7 +49,7 @@
 - 아주 간단한 구현 방향 메모: Playwright 기반 시나리오 위에 axe-core audit을 덧대는 방식이 적절하다.
 - 주의사항: 현재 smoke가 닫는 계약과 axe audit 결과를 혼동하지 않도록 역할을 분리한다.
 
-### 3.5 CTA visual rhythm / theme matrix 확대
+### 3.4 CTA visual rhythm / theme matrix 확대
 - 현재 상태: `visual polish 후속 필요`
 - 왜 지금 보류했는가: 핵심 기능 계약보다 visual polish 성격이 크며, 지금 열면 mobile/title/transition 변경과 기준선이 섞인다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§6.8`, `§6.9`
@@ -66,7 +58,7 @@
 - 아주 간단한 구현 방향 메모: token 통합과 screenshot matrix 확장을 같은 pass에서 검토하는 편이 효율적이다.
 - 주의사항: 기능 회귀 수정과 visual polish를 한 변경셋에 섞지 않는다.
 
-### 3.6 GNB 키보드 접근
+### 3.5 GNB 키보드 접근
 - 현재 상태: `기본 계약 완료, broader context/state audit만 후속 필요`
 - 왜 지금 보류했는가: landing의 card-first entry와 reverse GNB handoff를 포함한 기본 keyboard/context matrix는 구현 및 smoke로 닫혔다. 남은 것은 추가 context/state audit과 대표 상태 확대 성격이 더 크다.
 - 관련 요구사항 / 체크리스트 / 블로커 축: `§6.4`, `§10.2`, `§9.1`, checklist의 `GNB responsive behavior as single source`
@@ -77,8 +69,7 @@
 
 ## 4. Suggested Timing Map
 - 다음 Phase 전에 하면 안 되는 항목
-  - `page/body scroll lock 해제`
-  - 이유: SSOT 충돌 가능성이 크고, mobile 안정화 축을 다시 연다.
+  - 없음
 - 다음 Phase에 꼭 포함될 필요는 없지만, 관련 구조를 다시 만질 때 함께 보는 것이 좋은 항목
   - `GNB 키보드 접근`의 추가 context/state audit
 - 기능보다 검증/증빙 성격이 강한 항목
@@ -92,6 +83,6 @@
 
 ## 5. Notes for Future Agents
 - backlog는 구현 지시서가 아니다. 착수 전 반드시 현재 코드, smoke, traceability를 다시 읽는다.
-- mobile 관련 보류 항목을 열 때는 `y-anchor`, snapshot, restore, scroll lock window, CTA priority, keyboard handoff를 먼저 보호 대상으로 고정한다.
+- mobile 관련 후속 항목을 열 때는 `y-anchor`, snapshot, restore, scroll lock window, CTA priority, keyboard handoff를 먼저 보호 대상으로 고정한다.
 - traceability가 걸린 항목은 구현과 같은 변경셋에서 assertion mapping을 함께 갱신한다.
 - “기능 미구현”과 “증빙/coverage 미완”을 구분한다. 특히 GNB keyboard와 axe-core는 후자 성격이 강하다.

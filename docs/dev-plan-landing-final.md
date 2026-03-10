@@ -240,9 +240,9 @@
 8. 미세 이동 입력은 scroll gesture로 분류.
 9. pre-open snapshot은 시퀀스당 1회, 재기록 금지.
 10. `NORMAL` terminal은 snapshot 높이 복귀 0px 완료 후 허용.
-11. y-anchor drift 0px, settled title baseline 0px.
+11. OPENING/CLOSING transition window의 y-anchor drift 0px, settled title baseline 0px.
 12. layer는 `GNB > Expanded > backdrop > others`.
-13. full-bleed 전 구간 page scroll lock, 종료 시점 unlock.
+13. OPENING/CLOSING transition window page scroll lock, OPEN settled unlock, close 후 current scroll position 유지.
 - SSR/Hydration:
 1. 초기 렌더에서 `window/localStorage/sessionStorage/Date.now/Math.random` 분기 금지.
 2. `useSearchParams()`는 가장 가까운 Suspense 경계 강제.

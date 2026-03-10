@@ -55,10 +55,10 @@
 
 ## 5. Mobile Expanded Lifecycle
 - [x] Enforce lifecycle `OPENING -> OPEN -> CLOSING -> NORMAL` and one-transition-per-sequence rule (`§8.5`).
-- [x] Keep in-flow full-bleed behavior with strict scroll-lock window, fixed layer order, and y-anchor/title baseline `0px` settled guarantees (`§8.5`, `§14.3-6`, `§14.3-14`).
+- [x] Keep in-flow full-bleed behavior with OPENING/CLOSING-only scroll-lock window, fixed layer order, current-scroll-preserving close semantics, and y-anchor/title baseline `0px` guarantees (`§8.5`, `§14.3-6`, `§14.3-14`).
 - [x] Keep close controls limited to `X` and outside tap, with queue-close and closing-ignore rules (`§8.5`).
 - [x] Keep X visible in OPENING/OPEN/CLOSING and disabled during CLOSING (`§8.5`).
-- [x] Enforce viewport y-anchor zero drift across index/scroll/content combinations (`§8.5`).
+- [x] Enforce viewport y-anchor zero drift across OPENING/CLOSING transition windows and index/scroll/content combinations (`§8.5`).
 - [x] Enforce title baseline zero drift at Mobile Expanded settled state (`§8.5`, `§14.3-14`).
 - [x] Enforce mobile pre-open snapshot lifecycle (sequence당 1회 생성, 재기록 금지) and allow `NORMAL` terminal only after pre-open height restore `0px` completion (`§8.5`, `§14.3-14`).
 - [x] Keep CTA priority over close/outside and non-CTA internal no-op (`§8.5`).

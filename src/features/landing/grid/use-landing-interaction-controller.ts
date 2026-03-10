@@ -77,6 +77,7 @@ interface OutsideGesture {
   active: boolean;
   startX: number;
   startY: number;
+  closeOnPointerUp: boolean;
 }
 
 interface MobileBackdropBindings {
@@ -258,6 +259,10 @@ function shouldCancelOutsideCloseAsScroll(input: OutsideGesture, event: ReactPoi
   );
 }
 
+function shouldLockMobilePageScroll(phase: LandingCardMobilePhase): boolean {
+  return phase === 'OPENING' || phase === 'CLOSING';
+}
+
 function resolveCardBoundaryElement(shellElement: HTMLElement | null, cardId: string): HTMLElement | null {
   if (!shellElement) {
     return null;
@@ -326,7 +331,8 @@ export function useLandingInteractionController({
   const outsideGestureRef = useRef<OutsideGesture>({
     active: false,
     startX: 0,
-    startY: 0
+    startY: 0,
+    closeOnPointerUp: false
   });
   const mobileOpenTimerRef = useRef<number | null>(null);
   const mobileCloseTimerRef = useRef<number | null>(null);
@@ -533,8 +539,10 @@ export function useLandingInteractionController({
     };
   }, [firstAvailableCardId, shellRef]);
 
+  const mobilePageScrollLocked = shouldLockMobilePageScroll(mobileLifecycleState.phase);
+
   useEffect(() => {
-    if (mobileLifecycleState.phase === 'NORMAL') {
+    if (!mobilePageScrollLocked) {
       return;
     }
 
@@ -547,7 +555,7 @@ export function useLandingInteractionController({
       document.body.style.overflow = previousOverflow;
       document.body.style.touchAction = previousTouchAction;
     };
-  }, [mobileLifecycleState.phase]);
+  }, [mobilePageScrollLocked]);
 
   useEffect(() => {
     if (!isMobileViewport && mobileLifecycleState.phase !== 'NORMAL') {
@@ -838,20 +846,21 @@ export function useLandingInteractionController({
           `[data-testid="landing-grid-card"][data-card-id="${cardId}"]`
         );
         const titleElement = cardElement?.querySelector<HTMLElement>('[data-slot="cardTitle"]');
-        const cardRect = cardElement?.getBoundingClientRect();
-        const titleRect = titleElement?.getBoundingClientRect();
+      const cardRect = cardElement?.getBoundingClientRect();
+      const titleRect = titleElement?.getBoundingClientRect();
 
-        const heightSettled = Math.abs((cardRect?.height ?? 0) - snapshot.cardHeightPx) <= 1;
-        const anchorSettled = Math.abs((cardRect?.top ?? 0) - snapshot.anchorTopPx) <= 1;
-        const titleSettled = Math.abs((titleRect?.top ?? cardRect?.top ?? 0) - snapshot.titleTopPx) <= 1;
+      const heightSettled = Math.abs((cardRect?.height ?? 0) - snapshot.cardHeightPx) <= 1;
+      const snapshotTitleOffset = snapshot.titleTopPx - snapshot.anchorTopPx;
+      const currentTitleOffset = (titleRect?.top ?? cardRect?.top ?? 0) - (cardRect?.top ?? 0);
+      const titleSettled = Math.abs(currentTitleOffset - snapshotTitleOffset) <= 1;
 
-        attempts += 1;
-        if ((heightSettled && anchorSettled && titleSettled) || attempts >= 30) {
-          clearMobileRestoreReadyTimer();
-          setMobileRestoreReadyCardId(cardId);
-          mobileRestoreReadyTimerRef.current = window.setTimeout(() => {
-            mobileRestoreReadyTimerRef.current = null;
-            setMobileRestoreReadyCardId((current) => (current === cardId ? null : current));
+      attempts += 1;
+      if ((heightSettled && titleSettled) || attempts >= 30) {
+        clearMobileRestoreReadyTimer();
+        setMobileRestoreReadyCardId(cardId);
+        mobileRestoreReadyTimerRef.current = window.setTimeout(() => {
+          mobileRestoreReadyTimerRef.current = null;
+          setMobileRestoreReadyCardId((current) => (current === cardId ? null : current));
           }, MOBILE_RESTORE_READY_MARKER_MS);
           dispatchMobileLifecycle({type: 'RESTORE_READY'});
           frame = window.requestAnimationFrame(() => {
@@ -886,7 +895,8 @@ export function useLandingInteractionController({
 
     clearMobileOpenTimer();
     if (mobileLifecycleState.cardId && mobileLifecycleState.snapshot) {
-      startMobileTransientShell('CLOSING', mobileLifecycleState.cardId, mobileLifecycleState.snapshot);
+      const closingSnapshot = captureMobileSnapshot(shellRef.current, mobileLifecycleState.cardId);
+      startMobileTransientShell('CLOSING', mobileLifecycleState.cardId, closingSnapshot);
     }
     dispatchInteraction({
       type: 'CARD_COLLAPSE',
@@ -1440,9 +1450,12 @@ export function useLandingInteractionController({
       outsideGestureRef.current = {
         active: true,
         startX: event.clientX,
-        startY: event.clientY
+        startY: event.clientY,
+        closeOnPointerUp: mobileLifecycleState.phase === 'OPEN'
       };
-      beginMobileClose();
+      if (mobileLifecycleState.phase === 'OPENING') {
+        beginMobileClose();
+      }
     },
     onPointerMove: (event) => {
       if (!outsideGestureRef.current.active) {
@@ -1451,16 +1464,23 @@ export function useLandingInteractionController({
 
       if (shouldCancelOutsideCloseAsScroll(outsideGestureRef.current, event)) {
         outsideGestureRef.current.active = false;
+        outsideGestureRef.current.closeOnPointerUp = false;
         if (mobileLifecycleState.phase === 'OPENING') {
           dispatchMobileLifecycle({type: 'QUEUE_CLOSE_CANCEL'});
         }
       }
     },
     onPointerUp: () => {
+      const shouldClose = outsideGestureRef.current.active && outsideGestureRef.current.closeOnPointerUp;
       outsideGestureRef.current.active = false;
+      outsideGestureRef.current.closeOnPointerUp = false;
+      if (shouldClose) {
+        beginMobileClose();
+      }
     },
     onPointerCancel: () => {
       outsideGestureRef.current.active = false;
+      outsideGestureRef.current.closeOnPointerUp = false;
     }
   };
 

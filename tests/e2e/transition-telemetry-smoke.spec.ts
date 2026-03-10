@@ -203,7 +203,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBeNull();
   });
 
-  test('@smoke assertion:B14-mobile-baseline mobile expanded lifecycle keeps anchor, title baseline, and restore gating stable', async ({
+  test('@smoke assertion:B14-mobile-baseline mobile expanded lifecycle keeps transition-window anchor, title baseline, unlock timing, and restore gating stable', async ({
     page
   }) => {
     await page.setViewportSize({width: 390, height: 844});
@@ -245,6 +245,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(card).toHaveAttribute('data-mobile-phase', /OPENING|OPEN/u);
     await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
     const afterOpen = await card.boundingBox();
     const afterOpenTitleTop = await card
       .locator('[data-slot="cardTitle"]')
@@ -270,6 +271,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     });
     await expect(card).toHaveAttribute('data-card-state', 'normal');
     await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
     await expect(trigger).toHaveAttribute('data-trigger-state', 'collapsed');
     await expect
       .poll(() => shell.getAttribute('data-mobile-restore-ready-card-id'))
@@ -331,6 +333,16 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(before).not.toBeNull();
     await card.getByTestId('landing-grid-card-trigger').click();
     await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+
+    const userScrolledY = await page.evaluate(() => {
+      window.scrollBy(0, 220);
+      return Math.round(window.scrollY);
+    });
+    expect(userScrolledY).toBeGreaterThan(0);
+    await expect
+      .poll(() => page.evaluate(() => Math.round(window.scrollY)))
+      .toBeGreaterThanOrEqual(userScrolledY - 1);
 
     const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
     await backdrop.dispatchEvent('pointerdown', {
@@ -348,6 +360,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(card).toHaveAttribute('data-mobile-phase', 'CLOSING');
     await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
     await expect(card).toHaveAttribute('data-mobile-transient-mode', 'CLOSING');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
 
     const afterClose = await card.boundingBox();
     expect(Math.abs((afterClose?.width ?? 0) - (before?.width ?? 0))).toBeLessThanOrEqual(2);
@@ -381,9 +394,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(zOrder.transient).toBeGreaterThan(zOrder.backdrop);
 
     await expect(backdrop).toHaveAttribute('data-state', 'CLOSING');
-    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
     await expect(card).toHaveAttribute('data-mobile-phase', 'NORMAL');
     await expect(card).toHaveAttribute('data-mobile-transient-mode', 'NONE');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+    await expect
+      .poll(() => page.evaluate(() => Math.round(window.scrollY)))
+      .toBeGreaterThanOrEqual(userScrolledY - 1);
     await expect(card.locator('.landing-grid-card-content > [data-slot="cardTitle"]')).toHaveCSS('opacity', '1');
   });
 
@@ -430,6 +446,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(openingPreviewAnimation).toContain('landing-card-shell-reduced-open');
 
     await expect(card).toHaveAttribute('data-mobile-phase', 'OPEN');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
 
     const backdrop = page.getByTestId('landing-grid-mobile-backdrop');
     await backdrop.dispatchEvent('pointerdown', {
@@ -444,6 +461,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     });
 
     await expect(card).toHaveAttribute('data-expanded-layer', 'mobile-closing-shell');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
 
     const closingShellAnimation = await card
       .locator('[data-slot="mobileTransientShell"]')

@@ -564,7 +564,7 @@
 - 단일 pointer/touch 시퀀스에서 동일 카드 상태 전이는 최대 1회만 허용한다.
 - collapsed 카드의 유효 탭으로 OPENING이 시작된 동일 시퀀스에서 즉시 CLOSING으로 역전되는 전이를 금지한다.
 - Expanded는 in-flow 위치를 유지하며 top jump를 금지한다.
-- Expanded 시작부터 닫힘 완료까지 활성 카드 상단 y-anchor(뷰포트 기준)는 편차 없이 유지되어야 한다.
+- OPENING/CLOSING transition window 동안 활성 카드 상단 y-anchor(뷰포트 기준)는 편차 없이 유지되어야 한다.
 - Expanded 헤더는 `title + X` 구조를 유지한다.
 - 헤더(`title + X`)는 카드 최상단 첫 행에 위치해야 한다.
 - title은 줄바꿈 허용, truncate/ellipsis 금지, top align 유지.
@@ -573,7 +573,7 @@
 - X 버튼은 OPENING 시작 시점부터 CLOSING 종료 직전까지 항상 시각 노출되어야 한다.
 - CLOSING 동안 X 버튼은 시각적으로 유지하되 비활성 상태여야 한다.
 - 닫기 경로는 `X 버튼` 또는 `카드 외부(backdrop) 탭`만 허용한다.
-- 닫힘 후 Expanded 직전 scroll/위치/형태로 자연 복귀해야 한다.
+- 닫힘 후 Expanded 직전 카드 형상/높이/타이틀 연속성으로 자연 복귀해야 하며, Expanded 중 사용자가 이동한 현재 page scroll 위치는 유지해야 한다.
 - Expanded 진입 직전 Normal 카드 외곽 높이 snapshot을 기록하고, 닫힘 완료 시 해당 snapshot 높이로 `0px` 오차 복귀를 강제한다.
 - 모바일 높이 복원 기준은 항상 진입 직전 snapshot으로 고정하며, 전이 중 콘텐츠 변화가 있어도 복원 기준 snapshot 교체를 금지한다.
 - Mobile Expanded 시퀀스당 pre-open snapshot은 정확히 1개만 생성해야 하며 시퀀스 중 재기록을 금지한다.
@@ -583,10 +583,10 @@
 - Normal 카드에서 Expanded 카드로의 전환은 동일 카드의 연속 전이로 지각되어야 하며, 분리된 별도 카드가 돌출되는 듯한 강한 불연속 전이를 금지한다.
 - 모바일 외곽 컨테이너 높이 전이는 content-fit 목표 높이까지 monotonic(증가/감소)이어야 하며 overshoot를 금지한다.
 - content-fit 높이 계산은 런타임 실측(`from px -> to px -> auto`) 또는 동등 정확도 방식으로 수행한다.
-- 내부 스크롤은 body에서만 허용한다.
+- Expanded 내부 콘텐츠 스크롤은 body에서 허용하며, OPEN settled 이후에는 page scroll도 함께 허용한다.
 - 콘텐츠가 viewport를 넘지 않으면 내부 스크롤이 없어야 한다.
 - 자동 viewport 보정 스크롤을 금지한다.
-- full-bleed 동안 page scroll lock을 적용한다.
+- OPENING/CLOSING transition window 동안 page scroll lock을 적용하고, OPEN settled에서는 unlock을 유지한다.
 - 다른 카드 상호작용을 비활성화한다.
 - unavailable 카드는 Expanded 진입/닫기 토글 대상이 아니다.
 - OPENING 중 유효 닫기 입력(X/outside)은 OPEN settled 직후 1회 queue-close로 처리한다.
@@ -599,7 +599,7 @@
 - Mobile Expanded 내부 상호작용 우선순위는 `CTA(응답 A/B, Read more) > X 버튼 > 카드 외부 영역`으로 고정한다.
 - Mobile Expanded 내부 비-CTA 영역 탭은 no-op이어야 하며, 닫기/전환을 유발하면 안 된다.
 - Mobile tap 판정은 보수적으로 처리하며, 미세 이동이 감지된 입력은 scroll gesture로 분류해 카드 open/close 전이를 시작하면 안 된다.
-- 위 y-anchor 규칙은 카드 인덱스/스크롤 위치/콘텐츠 길이에 따른 예외를 허용하지 않는다.
+- 위 y-anchor 규칙은 transition window 기준으로 카드 인덱스/스크롤 위치/콘텐츠 길이에 따른 예외를 허용하지 않는다.
 
 **Verification**:
 1. Automated: 모바일에서 닫기 경로(X/backdrop)와 자연 복귀를 검증한다.
@@ -612,8 +612,8 @@
 8. Automated: 단일 pointer/touch sequence당 상태 전이가 최대 1회인지 검증한다.
 9. Automated: OPENING 중 닫기 입력이 OPEN settled 직후 queue-close 1회로만 처리되는지 검증한다.
 10. Automated: CLOSING 중 추가 open/close 입력이 무시되는지 검증한다.
-11. Automated: full-bleed 구간 전체에서 page scroll lock 유지 및 종료 시점 unlock을 검증한다.
-12. Automated: Expanded 시작부터 종료까지 y-anchor drift `0px`를 검증한다.
+11. Automated: OPENING/CLOSING transition window에서 page scroll lock 유지, OPEN settled unlock, 종료 후 현재 scroll 위치 유지 여부를 검증한다.
+12. Automated: OPENING/CLOSING transition window에서 y-anchor drift `0px`를 검증한다.
 13. Automated: 모바일 CTA 우선순위 경합 상황에서 `CTA > X > outside` 순서로 귀결되는지 검증한다.
 14. Automated: 시퀀스당 snapshot 1회 생성/재기록 금지와 `NORMAL` terminal의 높이 복귀 완료 선행 조건을 검증한다.
 15. Automated: 모바일 반복 open-close에서 누적 높이 오차 `0px`를 검증한다.
@@ -889,7 +889,7 @@
 11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되고, row index 기반 우회 신호 사용 `0건` PASS (Section 6.7).
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 available 카드 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
-14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, full-bleed 구간 scroll lock window, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
+14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
 15. Transition Terminal Correlation: 각 `transition_id`에서 `start=1`, `terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, fail/cancel `result_reason` 필수 PASS (Section 12.2, 13.3).
 16. Rollback Cleanup Closure: fail/cancel 3케이스에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).

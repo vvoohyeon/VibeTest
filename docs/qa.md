@@ -59,9 +59,9 @@
 ## 5) Mobile Full-bleed (`width<768`)
 - [ ] 탭한 카드만 in-flow로 Expanded되며 top jump가 없다. (§8.5, §14.3)
 - [ ] 헤더는 `title + X`, 첫 행 고정, X는 sticky 우측 끝 고정이다. (§8.5)
-- [ ] 닫기 경로는 `X` 또는 `backdrop`만 허용하며 닫은 뒤 Expanded 직전 위치/스크롤로 자연 복귀한다. (§8.5)
+- [ ] 닫기 경로는 `X` 또는 `backdrop`만 허용하며 닫은 뒤 Expanded 직전 카드 형상/높이/타이틀 연속성으로 자연 복귀하고, Expanded 중 사용자가 이동한 현재 page scroll 위치는 유지된다. (§8.5)
 - [ ] 전환은 220~360ms(기준 280ms), content-fit 높이로 monotonic하게 수렴하고 overshoot가 없다. (§8.5)
-- [ ] 내부 스크롤은 body 영역에서만 허용되고 full-bleed 동안 page scroll lock이 유지된다. (§8.5, §14.3)
+- [ ] Expanded 내부 콘텐츠 스크롤은 body 영역에서 허용되고, OPEN settled에서는 page scroll unlock, OPENING/CLOSING transition window에서는 page scroll lock이 유지된다. (§8.5, §14.3)
 - [ ] 레이어 순서가 `GNB > Expanded > backdrop > 기타 카드`를 유지한다. (§8.7)
 
 ## 6) Transition / Handshake / Pre-answer / Restore
