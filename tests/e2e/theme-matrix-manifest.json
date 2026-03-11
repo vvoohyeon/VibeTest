@@ -1,0 +1,183 @@
+{
+  "locales": ["en", "kr"],
+  "themes": ["light", "dark"],
+  "viewports": {
+    "desktop-wide": {"width": 1440, "height": 980, "tier": "desktop", "boundary": true, "stateCanonical": true},
+    "desktop-medium": {"width": 1180, "height": 980, "tier": "desktop", "boundary": true, "stateCanonical": false},
+    "desktop-narrow": {"width": 1024, "height": 980, "tier": "desktop", "boundary": true, "stateCanonical": false},
+    "tablet-wide": {"width": 1023, "height": 980, "tier": "tablet", "boundary": true, "stateCanonical": true},
+    "tablet-narrow": {"width": 900, "height": 980, "tier": "tablet", "boundary": true, "stateCanonical": false},
+    "mobile": {"width": 390, "height": 844, "tier": "mobile", "boundary": true, "stateCanonical": true}
+  },
+  "closure": {
+    "layoutCaseViewportKeys": {
+      "landing-normal": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "blog-default": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "history-default": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"],
+      "test-instruction": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+    },
+    "stateCaseViewportKeys": {
+      "landing-test-expanded": ["desktop-wide", "tablet-wide"],
+      "landing-blog-expanded": ["desktop-wide", "tablet-wide"],
+      "landing-settings-open": ["desktop-wide"],
+      "blog-settings-open": ["desktop-wide"],
+      "history-settings-open": ["desktop-wide"],
+      "test-question": ["desktop-wide", "tablet-wide"],
+      "test-result": ["desktop-wide", "tablet-wide"],
+      "mobile-landing-test-expanded": ["mobile"],
+      "mobile-landing-blog-expanded": ["mobile"],
+      "mobile-landing-menu-open": ["mobile"],
+      "mobile-blog-menu-open": ["mobile"],
+      "mobile-history-menu-open": ["mobile"],
+      "mobile-test-question": ["mobile"],
+      "mobile-test-result": ["mobile"]
+    }
+  },
+  "layoutCases": [
+    {
+      "id": "landing-normal",
+      "suite": "layout",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "landing-normal",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+    },
+    {
+      "id": "blog-default",
+      "suite": "layout",
+      "routeTemplate": "/{locale}/blog",
+      "settleRecipe": "landing-normal",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+    },
+    {
+      "id": "history-default",
+      "suite": "layout",
+      "routeTemplate": "/{locale}/history",
+      "settleRecipe": "landing-normal",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+    },
+    {
+      "id": "test-instruction",
+      "suite": "layout",
+      "routeTemplate": "/{locale}/test/rhythm-a/question",
+      "settleRecipe": "test-instruction",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "desktop-medium", "desktop-narrow", "tablet-wide", "tablet-narrow", "mobile"]
+    }
+  ],
+  "stateCases": [
+    {
+      "id": "landing-test-expanded",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "landing-test-expanded",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "tablet-wide"]
+    },
+    {
+      "id": "landing-blog-expanded",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "landing-blog-expanded",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "tablet-wide"]
+    },
+    {
+      "id": "landing-settings-open",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "desktop-settings-open",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide"]
+    },
+    {
+      "id": "blog-settings-open",
+      "suite": "state",
+      "routeTemplate": "/{locale}/blog",
+      "settleRecipe": "desktop-settings-open",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide"]
+    },
+    {
+      "id": "history-settings-open",
+      "suite": "state",
+      "routeTemplate": "/{locale}/history",
+      "settleRecipe": "desktop-settings-open",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide"]
+    },
+    {
+      "id": "test-question",
+      "suite": "state",
+      "routeTemplate": "/{locale}/test/rhythm-a/question",
+      "settleRecipe": "test-question",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "tablet-wide"]
+    },
+    {
+      "id": "test-result",
+      "suite": "state",
+      "routeTemplate": "/{locale}/test/rhythm-a/question",
+      "settleRecipe": "test-result",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["desktop-wide", "tablet-wide"]
+    },
+    {
+      "id": "mobile-landing-test-expanded",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "mobile-landing-test-expanded",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["mobile"]
+    },
+    {
+      "id": "mobile-landing-blog-expanded",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "mobile-landing-blog-expanded",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["mobile"]
+    },
+    {
+      "id": "mobile-landing-menu-open",
+      "suite": "state",
+      "routeTemplate": "/{locale}",
+      "settleRecipe": "mobile-menu-open",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["mobile"]
+    },
+    {
+      "id": "mobile-blog-menu-open",
+      "suite": "state",
+      "routeTemplate": "/{locale}/blog",
+      "settleRecipe": "mobile-menu-open",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["mobile"]
+    },
+    {
+      "id": "mobile-history-menu-open",
+      "suite": "state",
+      "routeTemplate": "/{locale}/history",
+      "settleRecipe": "mobile-menu-open",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["mobile"]
+    },
+    {
+      "id": "mobile-test-question",
+      "suite": "state",
+      "routeTemplate": "/{locale}/test/rhythm-a/question",
+      "settleRecipe": "test-question",
+      "localeKeys": ["en", "kr"],
+      "viewportKeys": ["mobile"]
+    },
+    {
+      "id": "mobile-test-result",
+      "suite": "state",
+      "routeTemplate": "/{locale}/test/rhythm-a/question",
+      "settleRecipe": "test-result",
+      "viewportKeys": ["mobile"]
+    }
+  ]
+}

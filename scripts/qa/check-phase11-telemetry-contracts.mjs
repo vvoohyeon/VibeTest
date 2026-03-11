@@ -1,4 +1,4 @@
-import {readFileSync, statSync} from 'node:fs';
+import {readdirSync, readFileSync, statSync} from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
@@ -20,13 +20,31 @@ function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function readJson(relativePath) {
+  return JSON.parse(read(relativePath));
+}
+
 const requiredFiles = [
   'src/features/landing/telemetry/runtime.ts',
   'src/features/landing/telemetry/validation.ts',
   'src/app/api/telemetry/route.ts',
   'tests/unit/landing-telemetry-validation.test.ts',
-  'tests/e2e/theme-matrix-smoke.spec.ts'
+  'tests/e2e/theme-matrix-smoke.spec.ts',
+  'tests/e2e/theme-matrix-manifest.json'
 ];
+
+const allowedSettleRecipes = new Set([
+  'landing-normal',
+  'landing-test-expanded',
+  'landing-blog-expanded',
+  'desktop-settings-open',
+  'test-instruction',
+  'test-question',
+  'test-result',
+  'mobile-landing-test-expanded',
+  'mobile-landing-blog-expanded',
+  'mobile-menu-open'
+]);
 
 for (const relativePath of requiredFiles) {
   if (!fileExists(relativePath)) {
@@ -57,30 +75,130 @@ if (fileExists('src/features/landing/telemetry/validation.ts')) {
   }
 }
 
+if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
+  const manifest = readJson('tests/e2e/theme-matrix-manifest.json');
+  const viewports = manifest.viewports ?? {};
+  const closure = manifest.closure ?? {};
+  const requiredLayoutCaseViewportKeys = closure.layoutCaseViewportKeys ?? {};
+  const requiredStateCaseViewportKeys = closure.stateCaseViewportKeys ?? {};
+  const layoutCases = manifest.layoutCases ?? [];
+  const stateCases = manifest.stateCases ?? [];
+  const allCases = [...layoutCases, ...stateCases];
+
+  if (JSON.stringify(manifest.locales) !== JSON.stringify(['en', 'kr'])) {
+    fail('Theme matrix manifest must encode the active locale set as en/kr.');
+  }
+
+  if (JSON.stringify(manifest.themes) !== JSON.stringify(['light', 'dark'])) {
+    fail('Theme matrix manifest must encode the active theme set as light/dark.');
+  }
+
+  for (const viewportKey of [
+    'desktop-wide',
+    'desktop-medium',
+    'desktop-narrow',
+    'tablet-wide',
+    'tablet-narrow',
+    'mobile'
+  ]) {
+    const viewport = viewports[viewportKey];
+    if (!viewport || typeof viewport.width !== 'number' || typeof viewport.height !== 'number') {
+      fail(`Theme matrix manifest must define viewport ${viewportKey}.`);
+    }
+  }
+
+  if (!layoutCases.length || !stateCases.length) {
+    fail('Theme matrix manifest must contain both layout and state case groups.');
+  }
+
+  const layoutCaseIds = new Set(layoutCases.map((matrixCase) => matrixCase.id));
+  const stateCaseIds = new Set(stateCases.map((matrixCase) => matrixCase.id));
+
+  for (const requiredId of Object.keys(requiredLayoutCaseViewportKeys)) {
+    if (!layoutCaseIds.has(requiredId)) {
+      fail(`Theme matrix manifest must keep exhaustive layout case ${requiredId}.`);
+    }
+  }
+
+  for (const requiredId of Object.keys(requiredStateCaseViewportKeys)) {
+    if (!stateCaseIds.has(requiredId)) {
+      fail(`Theme matrix manifest must keep exhaustive state case ${requiredId}.`);
+    }
+  }
+
+  for (const matrixCase of allCases) {
+    if (!matrixCase.id || !matrixCase.routeTemplate || !matrixCase.settleRecipe || !matrixCase.suite) {
+      fail(`Theme matrix manifest case is missing required fields: ${JSON.stringify(matrixCase)}`);
+      continue;
+    }
+
+    if (!matrixCase.routeTemplate.includes('{locale}')) {
+      fail(`Theme matrix case ${matrixCase.id} must express locale-aware routes via {locale}.`);
+    }
+
+    if (!allowedSettleRecipes.has(matrixCase.settleRecipe)) {
+      fail(`Theme matrix case ${matrixCase.id} must use a supported settle recipe.`);
+    }
+
+    if (!Array.isArray(matrixCase.viewportKeys) || matrixCase.viewportKeys.length === 0) {
+      fail(`Theme matrix case ${matrixCase.id} must define one or more viewport keys.`);
+      continue;
+    }
+
+    for (const viewportKey of matrixCase.viewportKeys) {
+      if (!viewports[viewportKey]) {
+        fail(`Theme matrix case ${matrixCase.id} references unknown viewport key ${viewportKey}.`);
+      }
+    }
+  }
+
+  for (const layoutCase of layoutCases) {
+    const localeKeys = layoutCase.localeKeys ?? manifest.locales;
+    if (JSON.stringify(localeKeys) !== JSON.stringify(manifest.locales)) {
+      fail(`Layout theme matrix case ${layoutCase.id} must cover the full locale set.`);
+    }
+
+    const expectedViewportKeys = requiredLayoutCaseViewportKeys[layoutCase.id];
+    if (!expectedViewportKeys) {
+      fail(`Layout theme matrix case ${layoutCase.id} is not part of the required exhaustive layout inventory.`);
+      continue;
+    }
+
+    if (JSON.stringify(layoutCase.viewportKeys) !== JSON.stringify(expectedViewportKeys)) {
+      fail(`Layout theme matrix case ${layoutCase.id} must cover viewport pattern ${expectedViewportKeys.join(', ')}.`);
+    }
+  }
+
+  for (const stateCase of stateCases) {
+    const localeKeys = stateCase.localeKeys ?? manifest.locales;
+    if (JSON.stringify(localeKeys) !== JSON.stringify(manifest.locales)) {
+      fail(`State theme matrix case ${stateCase.id} must cover the full locale set.`);
+    }
+
+    if (stateCase.themeKeys) {
+      fail(`State theme matrix case ${stateCase.id} must not narrow theme coverage below light/dark exhaustive closure.`);
+    }
+
+    const expectedViewportKeys = requiredStateCaseViewportKeys[stateCase.id];
+    if (!expectedViewportKeys) {
+      fail(`State theme matrix case ${stateCase.id} is not part of the required exhaustive state inventory.`);
+      continue;
+    }
+
+    if (JSON.stringify(stateCase.viewportKeys) !== JSON.stringify(expectedViewportKeys)) {
+      fail(`State theme matrix case ${stateCase.id} must use viewport pattern ${expectedViewportKeys.join(', ')}.`);
+    }
+  }
+}
+
 if (fileExists('tests/e2e/theme-matrix-smoke.spec.ts')) {
   const e2eSpec = read('tests/e2e/theme-matrix-smoke.spec.ts');
   if (!/toHaveScreenshot/u.test(e2eSpec)) {
     fail('Theme matrix smoke must capture screenshot baselines.');
   }
 
-  const requiredThemeSnapshotPatterns = [
-    /theme-landing-\$\{theme\}\.png/u,
-    /theme-landing-\$\{theme\}-expanded\.png/u,
-    /theme-landing-\$\{theme\}-blog-expanded\.png/u,
-    /theme-blog-\$\{theme\}\.png/u,
-    /theme-blog-\$\{theme\}-settings\.png/u,
-    /theme-history-\$\{theme\}\.png/u,
-    /theme-test-\$\{theme\}\.png/u,
-    /theme-test-\$\{theme\}-question\.png/u,
-    /theme-test-\$\{theme\}-result\.png/u,
-    /theme-landing-mobile-dark-blog-expanded\.png/u,
-    /theme-landing-kr-\$\{theme\}\.png/u
-  ];
-
-  for (const pattern of requiredThemeSnapshotPatterns) {
-    if (!pattern.test(e2eSpec)) {
-      fail(`Theme matrix smoke must cover representative screenshot pattern: ${pattern}`);
-    }
+  if (!/theme-matrix-manifest\.json/u.test(e2eSpec)) {
+    fail('Theme matrix smoke must consume the shared theme-matrix manifest.');
   }
 
   if (!/data-desktop-motion-role', 'steady'/u.test(e2eSpec) || !/data-mobile-phase', 'OPEN'/u.test(e2eSpec)) {
@@ -89,6 +207,33 @@ if (fileExists('tests/e2e/theme-matrix-smoke.spec.ts')) {
 
   if (!/gnb-settings-panel/u.test(e2eSpec) || !/test-result-panel/u.test(e2eSpec)) {
     fail('Theme matrix smoke must include destination settings-open and test-result representative states.');
+  }
+}
+
+if (fileExists('tests/e2e/theme-matrix-manifest.json')) {
+  const manifest = readJson('tests/e2e/theme-matrix-manifest.json');
+  const snapshotDir = path.join(rootDir, 'tests/e2e/theme-matrix-smoke.spec.ts-snapshots');
+  const snapshotFiles = fileExists('tests/e2e/theme-matrix-smoke.spec.ts')
+    ? readdirSync(snapshotDir).filter((fileName) => fileName.endsWith('.png'))
+    : [];
+  const allCases = [...manifest.layoutCases, ...manifest.stateCases];
+
+  for (const matrixCase of allCases) {
+    const locales = matrixCase.localeKeys ?? manifest.locales;
+    const themes = matrixCase.themeKeys ?? manifest.themes;
+    for (const locale of locales) {
+      for (const theme of themes) {
+        for (const viewportKey of matrixCase.viewportKeys) {
+          const snapshotStem = `theme-${matrixCase.suite}-${matrixCase.id}-${locale}-${theme}-${viewportKey}`;
+          const snapshotExists = snapshotFiles.some(
+            (fileName) => fileName.startsWith(`${snapshotStem}-`) && fileName.endsWith('.png')
+          );
+          if (!snapshotExists) {
+            fail(`Theme matrix snapshots must include ${snapshotStem}.png for manifest completeness.`);
+          }
+        }
+      }
+    }
   }
 }
 

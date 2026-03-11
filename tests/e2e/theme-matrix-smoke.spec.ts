@@ -1,11 +1,101 @@
 import {expect, test, type Browser, type Page, type ViewportSize} from '@playwright/test';
 
+import rawThemeMatrixManifest from './theme-matrix-manifest.json';
+
 const THEME_STORAGE_KEY = 'vibetest-theme';
 const PREVIEW_HOST = 'http://127.0.0.1:4173';
-const DESKTOP_VIEWPORT: ViewportSize = {width: 1280, height: 900};
-const MOBILE_VIEWPORT: ViewportSize = {width: 390, height: 844};
 
-async function setTheme(page: Page, theme: 'light' | 'dark') {
+type MatrixLocale = 'en' | 'kr';
+type MatrixTheme = 'light' | 'dark';
+type MatrixSuite = 'layout' | 'state';
+type SettleRecipe =
+  | 'landing-normal'
+  | 'landing-test-expanded'
+  | 'landing-blog-expanded'
+  | 'desktop-settings-open'
+  | 'test-instruction'
+  | 'test-question'
+  | 'test-result'
+  | 'mobile-landing-test-expanded'
+  | 'mobile-landing-blog-expanded'
+  | 'mobile-menu-open';
+type ViewportTier = 'desktop' | 'tablet' | 'mobile';
+type ViewportKey =
+  | 'desktop-wide'
+  | 'desktop-medium'
+  | 'desktop-narrow'
+  | 'tablet-wide'
+  | 'tablet-narrow'
+  | 'mobile';
+
+interface ManifestViewport extends ViewportSize {
+  tier: ViewportTier;
+  boundary: boolean;
+  stateCanonical: boolean;
+}
+
+interface ThemeMatrixCaseTemplate {
+  id: string;
+  suite: MatrixSuite;
+  routeTemplate: string;
+  settleRecipe: SettleRecipe;
+  localeKeys?: MatrixLocale[];
+  themeKeys?: MatrixTheme[];
+  viewportKeys: ViewportKey[];
+}
+
+interface ThemeMatrixManifest {
+  locales: MatrixLocale[];
+  themes: MatrixTheme[];
+  viewports: Record<ViewportKey, ManifestViewport>;
+  layoutCases: ThemeMatrixCaseTemplate[];
+  stateCases: ThemeMatrixCaseTemplate[];
+}
+
+interface ThemeMatrixCase extends ThemeMatrixCaseTemplate {
+  locale: MatrixLocale;
+  theme: MatrixTheme;
+  viewportKey: ViewportKey;
+  viewport: ViewportSize;
+  route: string;
+  screenshotName: string;
+}
+
+const themeMatrixManifest = rawThemeMatrixManifest as ThemeMatrixManifest;
+
+function buildThemeMatrixCases(manifest: ThemeMatrixManifest): ThemeMatrixCase[] {
+  const caseTemplates = [...manifest.layoutCases, ...manifest.stateCases];
+  const cases: ThemeMatrixCase[] = [];
+
+  for (const template of caseTemplates) {
+    const locales = template.localeKeys ?? manifest.locales;
+    const themes = template.themeKeys ?? manifest.themes;
+
+    for (const locale of locales) {
+      for (const theme of themes) {
+        for (const viewportKey of template.viewportKeys) {
+          const viewport = manifest.viewports[viewportKey];
+          cases.push({
+            ...template,
+            locale,
+            theme,
+            viewportKey,
+            viewport: {
+              width: viewport.width,
+              height: viewport.height
+            },
+            route: template.routeTemplate.replace('{locale}', locale),
+            screenshotName: `theme-${template.suite}-${template.id}-${locale}-${theme}-${viewportKey}.png`
+          });
+        }
+      }
+    }
+  }
+
+  return cases;
+}
+
+async function setTheme(page: Page, theme: MatrixTheme) {
   await page.addInitScript(
     ([storageKey, nextTheme]) => {
       window.localStorage.setItem(storageKey, nextTheme);
@@ -16,8 +106,8 @@ async function setTheme(page: Page, theme: 'light' | 'dark') {
 
 async function openThemedPage(
   browser: Browser,
-  theme: 'light' | 'dark',
-  viewport: ViewportSize = DESKTOP_VIEWPORT
+  theme: MatrixTheme,
+  viewport: ViewportSize
 ): Promise<Page> {
   const page = await browser.newPage({viewport});
   await setTheme(page, theme);
@@ -100,109 +190,65 @@ async function openMobileExpandedCard(page: Page, cardId: string) {
   await expect(card.locator('[data-slot="expandedBody"]')).toBeVisible();
 }
 
+async function openMobileMenu(page: Page) {
+  await page.getByTestId('gnb-mobile-menu-trigger').click();
+  await expect(page.getByTestId('gnb-mobile-menu-panel')).toBeVisible();
+}
+
+async function applySettleRecipe(page: Page, recipe: SettleRecipe) {
+  switch (recipe) {
+    case 'landing-normal':
+    case 'test-instruction':
+      return;
+    case 'landing-test-expanded':
+      await expandLandingCard(page, 'test-rhythm-a');
+      return;
+    case 'landing-blog-expanded':
+      await expandLandingCard(page, 'blog-build-metrics');
+      return;
+    case 'desktop-settings-open':
+      await openDesktopSettings(page);
+      return;
+    case 'test-question':
+      await startTestAttempt(page);
+      await answerCurrentQuestion(page, 'A');
+      return;
+    case 'test-result':
+      await completeTestAttempt(page);
+      return;
+    case 'mobile-landing-test-expanded':
+      await openMobileExpandedCard(page, 'test-rhythm-a');
+      return;
+    case 'mobile-landing-blog-expanded':
+      await openMobileExpandedCard(page, 'blog-build-metrics');
+      return;
+    case 'mobile-menu-open':
+      await openMobileMenu(page);
+      return;
+    default: {
+      const exhaustiveCheck: never = recipe;
+      throw new Error(`Unhandled settle recipe: ${exhaustiveCheck}`);
+    }
+  }
+}
+
+const themeMatrixCases = buildThemeMatrixCases(themeMatrixManifest);
+
 test.describe('Phase 11 theme matrix smoke', () => {
-  test('@smoke assertion:B8-theme-matrix theme matrix captures representative landing, CTA, destination, and mobile states in light and dark modes', async ({
-    browser
-  }) => {
-    for (const theme of ['light', 'dark'] as const) {
+  for (const matrixCase of themeMatrixCases) {
+    test(`@smoke assertion:B8-theme-matrix ${matrixCase.suite} ${matrixCase.id} ${matrixCase.locale} ${matrixCase.theme} ${matrixCase.viewportKey}`, async ({
+      browser
+    }) => {
       await captureRepresentativeState({
         browser,
-        theme,
-        route: '/en',
-        screenshotName: `theme-landing-${theme}.png`
-      });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en',
-        screenshotName: `theme-landing-${theme}-expanded.png`,
+        theme: matrixCase.theme,
+        route: matrixCase.route,
+        viewport: matrixCase.viewport,
+        screenshotName: matrixCase.screenshotName,
         settle: async (page) => {
-          await expandLandingCard(page, 'test-rhythm-a');
+          await applySettleRecipe(page, matrixCase.settleRecipe);
         }
       });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en',
-        screenshotName: `theme-landing-${theme}-blog-expanded.png`,
-        settle: async (page) => {
-          await expandLandingCard(page, 'blog-build-metrics');
-        }
-      });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en/blog',
-        screenshotName: `theme-blog-${theme}.png`
-      });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en/blog',
-        screenshotName: `theme-blog-${theme}-settings.png`,
-        settle: openDesktopSettings
-      });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en/history',
-        screenshotName: `theme-history-${theme}.png`
-      });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en/test/rhythm-a/question',
-        screenshotName: `theme-test-${theme}.png`
-      });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en/test/rhythm-a/question',
-        screenshotName: `theme-test-${theme}-question.png`,
-        settle: async (page) => {
-          await startTestAttempt(page);
-          await answerCurrentQuestion(page, 'A');
-        }
-      });
-
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/en/test/rhythm-a/question',
-        screenshotName: `theme-test-${theme}-result.png`,
-        settle: completeTestAttempt
-      });
-    }
-
-    await captureRepresentativeState({
-      browser,
-      theme: 'dark',
-      route: '/en',
-      viewport: MOBILE_VIEWPORT,
-      screenshotName: 'theme-landing-mobile-dark-blog-expanded.png',
-      settle: async (page) => {
-        await openMobileExpandedCard(page, 'blog-build-metrics');
-      }
     });
-  });
-
-  test('@smoke assertion:B8-theme-matrix theme matrix captures KR representative landing states in light and dark modes', async ({
-    browser
-  }) => {
-    for (const theme of ['light', 'dark'] as const) {
-      await captureRepresentativeState({
-        browser,
-        theme,
-        route: '/kr',
-        screenshotName: `theme-landing-kr-${theme}.png`
-      });
-    }
-  });
+  }
 });
