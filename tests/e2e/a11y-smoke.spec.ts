@@ -1,6 +1,7 @@
 import {expect, test, type Page} from '@playwright/test';
 
 import {expectPageToBeAxeClean} from './helpers/axe';
+import {seedTelemetryConsent} from './helpers/consent';
 
 async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   await page.addInitScript((timeoutMs) => {
@@ -88,6 +89,10 @@ async function tabUntilCardFocused(page: Page, cardId: string): Promise<void> {
 }
 
 test.describe('Canonical accessibility smoke', () => {
+  test.beforeEach(async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_OUT');
+  });
+
   test('@smoke assertion:B5-axe-canonical landing canonical states remain axe-clean', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');

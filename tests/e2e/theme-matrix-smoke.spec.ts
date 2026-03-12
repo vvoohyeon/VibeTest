@@ -1,5 +1,6 @@
 import {expect, test, type Browser, type Page, type ViewportSize} from '@playwright/test';
 
+import {seedTelemetryConsent} from './helpers/consent';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
 
 const THEME_STORAGE_KEY = 'vibetest-theme';
@@ -107,9 +108,10 @@ async function setTheme(page: Page, theme: MatrixTheme) {
 async function openThemedPage(
   browser: Browser,
   theme: MatrixTheme,
-  viewport: ViewportSize
+  viewport?: ViewportSize
 ): Promise<Page> {
   const page = await browser.newPage({viewport});
+  await seedTelemetryConsent(page, 'OPTED_OUT');
   await setTheme(page, theme);
   return page;
 }

@@ -1,6 +1,12 @@
 import {expect, test} from '@playwright/test';
 
+import {seedTelemetryConsent} from './helpers/consent';
+
 test.describe('Phase 4 grid smoke', () => {
+  test.beforeEach(async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_OUT');
+  });
+
   test('@smoke assertion:B12-underfilled-last-row desktop wide row rules and underfilled final row contract', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');

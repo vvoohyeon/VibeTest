@@ -55,8 +55,13 @@ function updateConsentSnapshot(nextSnapshot: TelemetryConsentSnapshot): Telemetr
   return consentSnapshot;
 }
 
-function resolveStoredConsentState(): PersistedTelemetryConsentState {
-  const raw = getLocalStorage()?.getItem(TELEMETRY_CONSENT_STORAGE_KEY)?.trim().toUpperCase() ?? '';
+function resolveStoredConsentState(): TelemetryConsentState {
+  const rawValue = getLocalStorage()?.getItem(TELEMETRY_CONSENT_STORAGE_KEY);
+  if (rawValue === null || rawValue === undefined) {
+    return 'UNKNOWN';
+  }
+
+  const raw = rawValue.trim().toUpperCase();
   return raw === 'OPTED_IN' ? 'OPTED_IN' : 'OPTED_OUT';
 }
 

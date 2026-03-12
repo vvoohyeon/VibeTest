@@ -92,6 +92,31 @@ describe('landing telemetry runtime', () => {
     expect(snapshot.synced).toBe(true);
   });
 
+  it('treats missing persisted consent as UNKNOWN while keeping network sends blocked', () => {
+    window.localStorage.removeItem(TELEMETRY_CONSENT_STORAGE_KEY);
+
+    const snapshot = syncTelemetryConsent();
+    trackLandingView({
+      locale: 'en',
+      route: '/en'
+    });
+
+    expect(snapshot.consentState).toBe('UNKNOWN');
+    expect(snapshot.sessionId).toBeNull();
+    expect(getTelemetryRuntimeQueueLengthForTests()).toBe(1);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('treats invalid persisted consent as OPTED_OUT for safety', () => {
+    window.localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'maybe-later');
+
+    const snapshot = syncTelemetryConsent();
+
+    expect(snapshot.consentState).toBe('OPTED_OUT');
+    expect(snapshot.synced).toBe(true);
+    expect(snapshot.sessionId).toBeNull();
+  });
+
   it('blocks network sends when random sources are unavailable even after OPTED_IN sync', () => {
     const originalCrypto = globalThis.crypto;
     Object.defineProperty(globalThis, 'crypto', {

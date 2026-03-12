@@ -53,5 +53,13 @@
     "goHome": "Go home",
     "open": "Open",
     "delete": "Delete"
+  },
+  "consent": {
+    "regionLabel": "Cookie consent",
+    "message": "We use cookies and similar technologies to help the service work properly and to understand how it is used. You can choose whether to allow optional cookies, and you can change your choice at any time.",
+    "accept": "Accept all",
+    "deny": "Deny",
+    "preferences": "Preferences",
+    "preferencesTitle": "Preferences panel coming soon"
   }
 }

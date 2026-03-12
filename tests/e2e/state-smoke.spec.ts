@@ -1,5 +1,7 @@
 import {expect, type Page, test} from '@playwright/test';
 
+import {seedTelemetryConsent} from './helpers/consent';
+
 async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   await page.addInitScript((timeoutMs) => {
     const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
@@ -52,6 +54,10 @@ async function tabUntilCardFocused(page: Page, cardId: string): Promise<void> {
 }
 
 test.describe('Phase 7 state + capability smoke', () => {
+  test.beforeEach(async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_OUT');
+  });
+
   test('@smoke capability gate keeps tap on mobile and hover on desktop-capable environments', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/en');

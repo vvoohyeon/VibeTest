@@ -173,7 +173,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
   });
 
-  test('@smoke assertion:B9-opted-out-no-send default opted-out policy blocks client telemetry network sends', async ({page}) => {
+  test('@smoke assertion:B9-opted-out-no-send missing consent blocks client telemetry network sends', async ({page}) => {
     let requestCount = 0;
 
     await page.addInitScript((storageKey) => {

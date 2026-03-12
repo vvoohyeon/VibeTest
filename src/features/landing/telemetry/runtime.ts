@@ -196,7 +196,9 @@ function applyConsentSnapshotToRuntime(consentSnapshot: TelemetryConsentSnapshot
   }
 
   clearSessionId();
-  runtimeState.queue = [];
+  if (consentSnapshot.consentState === 'OPTED_OUT') {
+    runtimeState.queue = [];
+  }
 }
 
 // telemetry queue/session 정책은 runtime이 책임지고, consent 값 자체는 외부 source에서만 읽는다.

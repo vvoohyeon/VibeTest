@@ -1,6 +1,12 @@
 import {expect, test} from '@playwright/test';
 
+import {seedTelemetryConsent} from './helpers/consent';
+
 test.describe('Phase 3 gnb shell smoke', () => {
+  test.beforeEach(async ({page}) => {
+    await seedTelemetryConsent(page, 'OPTED_OUT');
+  });
+
   test('@smoke assertion:B3-desktop-settings desktop settings open-close and gap contract', async ({page}) => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');

@@ -99,6 +99,14 @@ describe('VercelAnalyticsGate', () => {
     expect(analyticsRenderSpy).not.toHaveBeenCalled();
   });
 
+  it('does not render Analytics when consent stays UNKNOWN after sync', async () => {
+    window.localStorage.removeItem('vibetest-telemetry-consent');
+
+    await renderGate();
+
+    expect(analyticsRenderSpy).not.toHaveBeenCalled();
+  });
+
   it('does not render Analytics when consent is opted out', async () => {
     setTelemetryConsentState('OPTED_OUT');
 
