@@ -263,7 +263,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
 
-    const navigation = page.waitForURL(/\/en\/test\/rhythm-a\/question$/u);
+    const navigation = page.waitForURL(/\/en\/test\/rhythm-a$/u);
     await firstCard.locator('[data-slot="answerChoiceA"]').click({noWaitAfter: true});
     await expect(shell).toHaveAttribute('data-page-state', 'TRANSITIONING');
     await expect(secondCard).toHaveAttribute('data-hover-lock-blocked', 'true');

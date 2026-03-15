@@ -45,12 +45,14 @@ describe('locale resolution helpers', () => {
   it('handles allowlisted locale-less paths and bypass paths', () => {
     expect(isLocaleLessAllowlistedPath('/blog')).toBe(true);
     expect(isLocaleLessAllowlistedPath('/history')).toBe(true);
-    expect(isLocaleLessAllowlistedPath('/test/alpha/question')).toBe(true);
+    expect(isLocaleLessAllowlistedPath('/test/alpha')).toBe(true);
+    expect(isLocaleLessAllowlistedPath('/test/alpha/question')).toBe(false);
     expect(isLocaleLessAllowlistedPath('/foo')).toBe(false);
 
     expect(isAppOwnedPath('/')).toBe(true);
     expect(isAppOwnedPath('/en/blog')).toBe(true);
-    expect(isAppOwnedPath('/test/alpha/question')).toBe(true);
+    expect(isAppOwnedPath('/test/alpha')).toBe(true);
+    expect(isAppOwnedPath('/test/alpha/question')).toBe(false);
     expect(isAppOwnedPath('/foo')).toBe(false);
     expect(isAppOwnedPath('/va-123/view')).toBe(false);
 

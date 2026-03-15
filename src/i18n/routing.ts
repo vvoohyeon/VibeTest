@@ -10,6 +10,6 @@ export const routing = defineRouting({
     '/': '/',
     '/blog': '/blog',
     '/history': '/history',
-    '/test/[variant]/question': '/test/[variant]/question'
+    '/test/[variant]': '/test/[variant]'
   }
 });

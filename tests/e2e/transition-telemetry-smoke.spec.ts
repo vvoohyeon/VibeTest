@@ -80,7 +80,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await testCard.getByTestId('landing-grid-card-trigger').click();
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
-    await expect(page).toHaveURL(/\/en\/test\/rhythm-a\/question$/u);
+    await expect(page).toHaveURL(/\/en\/test\/rhythm-a$/u);
     await expectSourceGnbOverlay(page, 'test');
     await expect(page.getByTestId('landing-transition-source-gnb')).toContainText('VibeTest');
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
@@ -91,7 +91,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .not.toBeNull();
 
     await page.reload();
-    await expect(page).toHaveURL(/\/en\/test\/rhythm-a\/question$/u);
+    await expect(page).toHaveURL(/\/en\/test\/rhythm-a$/u);
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
 
@@ -124,7 +124,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(events.filter((event) => event.event_type === 'final_submit')).toHaveLength(1);
 
     expect(transitionStart?.source_card_id).toBe('test-rhythm-a');
-    expect(transitionStart?.target_route).toBe('/en/test/rhythm-a/question');
+    expect(transitionStart?.target_route).toBe('/en/test/rhythm-a');
     expect(transitionComplete?.transition_id).toBe(transitionStart?.transition_id);
     expect(attemptStart?.landing_ingress_flag).toBe(true);
     expect(attemptStart?.question_index_1based).toBe(2);
@@ -158,7 +158,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await testCard.getByTestId('landing-grid-card-trigger').click();
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
-    await expect(page).toHaveURL(/\/en\/test\/rhythm-a\/question$/u);
+    await expect(page).toHaveURL(/\/en\/test\/rhythm-a$/u);
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
 
@@ -168,7 +168,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       .toBeNull();
 
     await page.goto('/en');
-    await page.goto('/en/test/rhythm-a/question');
+    await page.goto('/en/test/rhythm-a');
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
   });
@@ -616,7 +616,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
           transitionId: 'transition-timeout-1',
           eventId: 'event-timeout-1',
           sourceCardId: 'test-rhythm-a',
-          targetRoute: '/en/test/rhythm-a/question',
+          targetRoute: '/en/test/rhythm-a',
           targetType: 'test',
           startedAtMs: Date.now(),
           variant: 'rhythm-a',
@@ -675,7 +675,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       await route.fulfill({status: 204, body: ''});
     });
 
-    await page.goto('/en/test/rhythm-a/question');
+    await page.goto('/en/test/rhythm-a');
 
     await expect
       .poll(() => events.find((event) => event.event_type === 'transition_fail')?.result_reason ?? null)
@@ -700,7 +700,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
           transitionId: 'transition-user-cancel-1',
           eventId: 'event-user-cancel-1',
           sourceCardId: 'test-rhythm-a',
-          targetRoute: '/en/test/rhythm-a/question',
+          targetRoute: '/en/test/rhythm-a',
           targetType: 'test',
           startedAtMs: Date.now(),
           variant: 'rhythm-a',

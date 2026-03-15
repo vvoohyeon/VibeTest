@@ -13,6 +13,6 @@ describe('RouteBuilder', () => {
     expect(buildLocaleFreePath(RouteBuilder.landing())).toBe('/');
     expect(buildLocaleFreePath(RouteBuilder.blog())).toBe('/blog');
     expect(buildLocaleFreePath(RouteBuilder.history())).toBe('/history');
-    expect(buildLocaleFreePath(RouteBuilder.question('beta'))).toBe('/test/beta/question');
+    expect(buildLocaleFreePath(RouteBuilder.question('beta'))).toBe('/test/beta');
   });
 });

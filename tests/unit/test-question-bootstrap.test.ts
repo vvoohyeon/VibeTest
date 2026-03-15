@@ -41,7 +41,7 @@ describe('test question bootstrap state', () => {
         transitionId: 'pending-transition',
         eventId: 'event-1',
         sourceCardId: 'test-rhythm-a',
-        targetRoute: '/en/test/rhythm-a/question',
+        targetRoute: '/en/test/rhythm-a',
         targetType: 'test',
         startedAtMs: 2,
         variant: 'rhythm-a',

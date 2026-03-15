@@ -8,6 +8,6 @@ describe('buildLocalizedPath', () => {
     expect(buildLocalizedPath(RouteBuilder.landing(), 'en')).toBe('/en');
     expect(buildLocalizedPath(RouteBuilder.blog(), 'kr')).toBe('/kr/blog');
     expect(buildLocalizedPath(RouteBuilder.history(), 'en')).toBe('/en/history');
-    expect(buildLocalizedPath(RouteBuilder.question('alpha'), 'kr')).toBe('/kr/test/alpha/question');
+    expect(buildLocalizedPath(RouteBuilder.question('alpha'), 'kr')).toBe('/kr/test/alpha');
   });
 });

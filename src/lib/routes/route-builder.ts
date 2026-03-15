@@ -12,7 +12,7 @@ export type LocaleFreeRoute =
       params?: undefined;
     }
   | {
-      pathname: '/test/[variant]/question';
+      pathname: '/test/[variant]';
       params: {
         variant: string;
       };
@@ -22,7 +22,7 @@ type LandingRoute = {pathname: '/'; params?: undefined};
 type BlogRoute = {pathname: '/blog'; params?: undefined};
 type HistoryRoute = {pathname: '/history'; params?: undefined};
 type QuestionRoute = {
-  pathname: '/test/[variant]/question';
+  pathname: '/test/[variant]';
   params: {
     variant: string;
   };
@@ -40,15 +40,15 @@ export const RouteBuilder = {
   },
   question(variant: string): QuestionRoute {
     return {
-      pathname: '/test/[variant]/question',
+      pathname: '/test/[variant]',
       params: {variant}
     };
   }
 };
 
 export function buildLocaleFreePath(route: LocaleFreeRoute): string {
-  if (route.pathname === '/test/[variant]/question') {
-    return `/test/${route.params.variant}/question`;
+  if (route.pathname === '/test/[variant]') {
+    return `/test/${route.params.variant}`;
   }
 
   return route.pathname;

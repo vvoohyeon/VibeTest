@@ -26,6 +26,16 @@ describe('proxy policy', () => {
       action: 'redirect',
       pathname: '/kr/blog'
     });
+
+    expect(
+      resolveProxyDecision({
+        pathname: '/test/alpha',
+        acceptLanguage: 'ko-KR,ko;q=0.9'
+      })
+    ).toEqual({
+      action: 'redirect',
+      pathname: '/kr/test/alpha'
+    });
   });
 
   it('rewrites duplicate locale prefixes but leaves non-app paths to Next not-found handling', () => {

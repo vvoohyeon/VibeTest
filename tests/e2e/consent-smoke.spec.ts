@@ -6,7 +6,7 @@ test.describe('Consent banner smoke', () => {
   test('@smoke deep-link first visit shows consent strip and accepts immediately', async ({page}) => {
     await clearTelemetryConsent(page);
     await page.setViewportSize({width: 1280, height: 900});
-    await page.goto('/en/test/rhythm-a/question');
+    await page.goto('/en/test/rhythm-a');
 
     const banner = page.getByTestId('telemetry-consent-banner');
     await expect(banner).toBeVisible();
@@ -25,7 +25,7 @@ test.describe('Consent banner smoke', () => {
   test('@smoke deep-link first visit shows localized consent strip and denies immediately', async ({page}) => {
     await clearTelemetryConsent(page);
     await page.setViewportSize({width: 390, height: 844});
-    await page.goto('/kr/test/rhythm-a/question');
+    await page.goto('/kr/test/rhythm-a');
 
     const banner = page.getByTestId('telemetry-consent-banner');
     await expect(banner).toBeVisible();

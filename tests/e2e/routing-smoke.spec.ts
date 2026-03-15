@@ -50,13 +50,17 @@ test.describe('Phase 1 routing smoke', () => {
     await page.goto('/history');
     await expect(page).toHaveURL(/\/(en|kr)\/history$/u);
     expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
+
+    await page.goto('/test/rhythm-a');
+    await expect(page).toHaveURL(/\/(en|kr)\/test\/rhythm-a$/u);
+    expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
   });
 
-  test('@smoke non-allowlisted and duplicate locale paths resolve to global 404', async ({page}) => {
+  test('@smoke non-allowlisted paths resolve to segment 404 and duplicate locale paths resolve to global 404', async ({page}) => {
     const previewLogBefore = readPreviewLog();
     const unmatchedResponse = await page.goto('/foo');
     expect(unmatchedResponse?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
 
     const duplicateLocaleResponse = await page.goto('/en/en/blog');
     expect(duplicateLocaleResponse?.status()).toBe(404);
@@ -69,7 +73,7 @@ test.describe('Phase 1 routing smoke', () => {
   });
 
   test('@smoke segment-local domain errors resolve to segment not-found', async ({page}) => {
-    const response = await page.goto('/en/test/INVALID!/question');
+    const response = await page.goto('/en/test/INVALID!');
     expect(response?.status()).toBe(404);
     await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
   });

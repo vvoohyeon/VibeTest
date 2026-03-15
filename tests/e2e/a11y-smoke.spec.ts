@@ -131,7 +131,7 @@ test.describe('Canonical accessibility smoke', () => {
     await expect(page.locator('[data-card-id="test-rhythm-a"]')).toHaveAttribute('data-mobile-phase', 'OPEN');
     await expectPageToBeAxeClean(page);
 
-    for (const route of ['/en/blog', '/en/history', '/en/test/rhythm-a/question']) {
+    for (const route of ['/en/blog', '/en/history', '/en/test/rhythm-a']) {
       await page.goto(route);
       await expectPageToBeAxeClean(page);
     }

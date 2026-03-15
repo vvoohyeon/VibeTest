@@ -1,6 +1,6 @@
 import {defaultLocale, isLocale, locales, type AppLocale} from '@/config/site';
 
-const allowlistPattern = [/^\/blog\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/question\/?$/u] as const;
+const allowlistPattern = [/^\/blog\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/?$/u] as const;
 export const globalUnmatchedPath = '/_not-found';
 
 function normalizeLocaleToken(token: string): AppLocale | null {
