@@ -8,6 +8,7 @@ export type {
   LandingCard,
   LandingCardType,
   LandingTestCard,
+  LocalizedStringList,
   LocalizedText,
   RawLandingCard
 } from '@/features/landing/data/types';

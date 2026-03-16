@@ -1,5 +1,10 @@
 import {defaultLocale} from '@/config/site';
-import type {FixtureContractReport, LocalizedText, RawLandingCard} from '@/features/landing/data/types';
+import type {
+  FixtureContractReport,
+  LocalizedStringList,
+  LocalizedText,
+  RawLandingCard
+} from '@/features/landing/data/types';
 
 function hasLongToken(value: string): boolean {
   return /[A-Za-z0-9_\-]{30,}/u.test(value);
@@ -27,12 +32,57 @@ function resolveForInspection(text: LocalizedText | undefined): string {
   return '';
 }
 
+function asLocalizedStringList(
+  value: LocalizedStringList | ReadonlyArray<string> | undefined
+): LocalizedStringList {
+  if (Array.isArray(value)) {
+    return {default: value};
+  }
+
+  return value && typeof value === 'object' ? value : {};
+}
+
+function normalizeTagList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0);
+}
+
+function resolveTagsForInspection(value: LocalizedStringList | ReadonlyArray<string> | undefined): string[] {
+  const normalized = asLocalizedStringList(value);
+
+  const direct = normalizeTagList(normalized[defaultLocale]);
+  if (direct.length > 0) {
+    return direct;
+  }
+
+  const defaultTags = normalizeTagList(normalized.default);
+  if (defaultTags.length > 0) {
+    return defaultTags;
+  }
+
+  for (const candidate of Object.values(normalized)) {
+    const candidateTags = normalizeTagList(candidate);
+    if (candidateTags.length > 0) {
+      return candidateTags;
+    }
+  }
+
+  return [];
+}
+
+function hasLocalizedListShape(value: unknown): boolean {
+  return Array.isArray(value) || (!!value && typeof value === 'object');
+}
+
 function hasRequiredSlotOmission(card: RawLandingCard): boolean {
   if (!card.id || !card.type || !card.availability) {
     return true;
   }
 
-  if (!card.title || !card.subtitle || !card.thumbnailOrIcon || !Array.isArray(card.tags)) {
+  if (!card.title || !card.subtitle || !card.thumbnailOrIcon || !hasLocalizedListShape(card.tags)) {
     return true;
   }
 
@@ -64,7 +114,7 @@ export function buildFixtureContractReport(fixtures: ReadonlyArray<RawLandingCar
   const hasLongBodyText = fixtures
     .filter((card) => card.type === 'blog')
     .some((card) => resolveForInspection(card.blog.summary).length >= 220);
-  const hasEmptyTags = fixtures.some((card) => card.tags.length === 0);
+  const hasEmptyTags = fixtures.some((card) => resolveTagsForInspection(card.tags).length === 0);
   const hasDebugSample = fixtures.some((card) => card.debug === true || card.sample === true);
   const hasRequiredSlotOmissionValue = fixtures.some((card) => hasRequiredSlotOmission(card));
 

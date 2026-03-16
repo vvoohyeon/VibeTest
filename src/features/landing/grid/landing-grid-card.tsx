@@ -334,11 +334,11 @@ function ExpandedCardBodyContent({
           data-motion-slot="primaryCTA"
           onClick={onPrimaryCtaClick}
         >
-          {card.blog.primaryCTA || copy.readMore}
+          {copy.readMore}
         </Link>
       ) : (
         <span className="landing-grid-card-primary-cta" aria-hidden="true" data-motion-slot="primaryCTA">
-          {card.blog.primaryCTA || copy.readMore}
+          {copy.readMore}
         </span>
       )}
     </div>
