@@ -12,6 +12,11 @@ import type {
 
 import type {AppLocale} from '@/config/site';
 import type {LandingCard} from '@/features/landing/data';
+import {
+  type LandingCardDesktopMotionRole,
+  type LandingCardDesktopShellPhase,
+  shouldRenderDesktopStageShell
+} from '@/features/landing/grid/desktop-shell-phase';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 import {LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
@@ -27,13 +32,6 @@ export type LandingCardInteractionMode = 'hover' | 'tap';
 export type LandingCardViewportTier = 'mobile' | 'tablet' | 'desktop';
 export type LandingCardMobilePhase = 'NORMAL' | 'OPENING' | 'OPEN' | 'CLOSING';
 export type LandingCardMobileTransientMode = 'NONE' | 'OPENING' | 'CLOSING';
-export type LandingCardDesktopMotionRole =
-  | 'idle'
-  | 'opening'
-  | 'steady'
-  | 'closing'
-  | 'handoff-target'
-  | 'handoff-source';
 
 export interface LandingMobileSnapshotView {
   cardHeightPx: number;
@@ -75,6 +73,7 @@ interface LandingGridCardProps {
   mobileTransientMode?: LandingCardMobileTransientMode;
   mobileRestoreReady?: boolean;
   desktopMotionRole?: LandingCardDesktopMotionRole;
+  desktopShellPhase?: LandingCardDesktopShellPhase;
   mobileSnapshot?: LandingMobileSnapshotView | null;
   desktopTransformOriginX?: '0%' | '50%' | '100%';
   spacing?: LandingCardSpacingContract;
@@ -356,6 +355,7 @@ export function LandingGridCard({
   mobileTransientMode = 'NONE',
   mobileRestoreReady = false,
   desktopMotionRole = 'idle',
+  desktopShellPhase = 'idle',
   mobileSnapshot = null,
   desktopTransformOriginX = '50%',
   spacing,
@@ -385,8 +385,11 @@ export function LandingGridCard({
   const isMobileOpening = isMobileViewport && mobileTransientMode === 'OPENING' && !isUnavailable;
   const isMobileClosing = isMobileViewport && mobileTransientMode === 'CLOSING' && !isUnavailable;
   const isMobileExpanded = isMobileViewport && mobilePhase === 'OPEN' && !isUnavailable;
-  const isExpanded = (resolvedState === 'expanded' && !isMobileViewport) || isMobileExpanded;
-  const isDesktopExpanded = resolvedState === 'expanded' && !isMobileViewport;
+  const desktopStagePhase = !isMobileViewport && !isUnavailable ? desktopShellPhase : 'idle';
+  const showDesktopExpandedShell =
+    !isMobileViewport && !isUnavailable && shouldRenderDesktopStageShell(desktopStagePhase);
+  const isExpanded = showDesktopExpandedShell || isMobileExpanded;
+  const isDesktopExpanded = showDesktopExpandedShell;
   const showMobileExpandedBody = isMobileExpanded;
   const showMobileTransientShell = isMobileOpening || isMobileClosing;
   const resolvedSpacing = resolveSpacingContract(spacing);
@@ -419,6 +422,7 @@ export function LandingGridCard({
       data-mobile-phase={isMobileViewport ? mobilePhase : undefined}
       data-mobile-transient-mode={isMobileViewport ? mobileTransientMode : undefined}
       data-desktop-motion-role={!isMobileViewport ? desktopMotionRole : undefined}
+      data-desktop-shell-phase={!isMobileViewport ? desktopStagePhase : undefined}
       data-mobile-snapshot-height={mobileSnapshot ? mobileSnapshot.cardHeightPx : undefined}
       data-mobile-snapshot-anchor-top={mobileSnapshot ? mobileSnapshot.anchorTopPx : undefined}
       data-mobile-snapshot-left={mobileSnapshot ? mobileSnapshot.cardLeftPx : undefined}
@@ -429,7 +433,7 @@ export function LandingGridCard({
         isMobileViewport && mobilePhase !== 'NORMAL' ? (mobileRestoreReady ? 'true' : 'false') : undefined
       }
       data-expanded-layer={
-        isDesktopExpanded
+        showDesktopExpandedShell
           ? 'desktop-overlay'
           : isMobileOpening
             ? 'mobile-opening-shell'
@@ -490,21 +494,40 @@ export function LandingGridCard({
         </div>
       </button>
 
-      {isDesktopExpanded ? (
-        <div className="landing-grid-card-expanded-layer" data-slot="expandedLayer">
-          <div className="landing-grid-card-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
-            <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
-              {card.title}
-            </h2>
-            <ExpandedCardBodyContent
-              card={card}
-              locale={locale}
-              copy={copy}
-              interactive
-              onAnswerChoiceSelect={onAnswerChoiceSelect}
-              onPrimaryCtaClick={handlePrimaryCtaClick}
-            />
-          </div>
+      {!isMobileViewport && !isUnavailable ? (
+        <div
+          className="landing-grid-card-desktop-stage"
+          data-testid="landing-grid-card-desktop-stage"
+          data-slot="desktopStage"
+          data-phase={desktopStagePhase}
+          aria-hidden={showDesktopExpandedShell ? undefined : 'true'}
+        >
+          {showDesktopExpandedShell ? (
+            <div className="landing-grid-card-expanded-layer" data-slot="expandedLayer">
+              <div className="landing-grid-card-expanded-shell" data-slot="expandedShell">
+                <div
+                  className="landing-grid-card-expanded-shadow"
+                  data-slot="expandedShadowPlate"
+                  aria-hidden="true"
+                />
+                <div className="landing-grid-card-expanded-surface" data-slot="expandedSurface">
+                  <div className="landing-grid-card-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
+                    <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
+                      {card.title}
+                    </h2>
+                    <ExpandedCardBodyContent
+                      card={card}
+                      locale={locale}
+                      copy={copy}
+                      interactive={desktopStagePhase !== 'cleanup-pending'}
+                      onAnswerChoiceSelect={onAnswerChoiceSelect}
+                      onPrimaryCtaClick={handlePrimaryCtaClick}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

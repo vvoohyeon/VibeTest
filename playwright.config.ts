@@ -23,6 +23,21 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure'
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        browserName: 'chromium'
+      }
+    },
+    {
+      name: 'webkit-ghosting',
+      testMatch: /safari-hover-ghosting\.spec\.ts/,
+      use: {
+        browserName: 'webkit'
+      }
+    }
+  ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {

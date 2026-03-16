@@ -8,10 +8,14 @@ import type {
 import {useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 
 import type {LandingCard} from '@/features/landing/data';
+import {
+  resolveDesktopShellPhase,
+  type LandingCardDesktopMotionRole,
+  type LandingCardDesktopShellPhase
+} from '@/features/landing/grid/desktop-shell-phase';
 import type {
   LandingCardMobilePhase,
   LandingCardMobileTransientMode,
-  LandingCardDesktopMotionRole,
   LandingCardViewportTier,
   LandingCardVisualState,
   LandingMobileSnapshotView
@@ -53,6 +57,7 @@ const initialMobileTransientShellState: MobileTransientShellState = {
 export interface LandingCardInteractionBindings {
   state: LandingCardVisualState;
   desktopMotionRole: LandingCardDesktopMotionRole;
+  desktopShellPhase: LandingCardDesktopShellPhase;
   tabIndex: number;
   ariaDisabled: boolean;
   interactionBlocked: boolean;
@@ -98,6 +103,7 @@ interface MobileTransientShellState {
 interface DesktopMotionState {
   openingCardId: string | null;
   closingCardId: string | null;
+  cleanupPendingCardId: string | null;
   handoffSourceCardId: string | null;
   handoffTargetCardId: string | null;
 }
@@ -301,6 +307,7 @@ export function useLandingInteractionController({
   const [desktopMotionState, setDesktopMotionState] = useState<DesktopMotionState>({
     openingCardId: null,
     closingCardId: null,
+    cleanupPendingCardId: null,
     handoffSourceCardId: null,
     handoffTargetCardId: null
   });
@@ -339,6 +346,8 @@ export function useLandingInteractionController({
   const mobileRestoreReadyTimerRef = useRef<number | null>(null);
   const mobileTransientShellTimerRef = useRef<number | null>(null);
   const desktopMotionTimerRef = useRef<number | null>(null);
+  const desktopCleanupFrameRef = useRef<number | null>(null);
+  const desktopCleanupFrameNestedRef = useRef<number | null>(null);
   const previousExpandedCardIdRef = useRef<string | null>(null);
   const desktopTransitionReasonRef = useRef<'expand' | 'collapse' | 'handoff'>('expand');
 
@@ -383,6 +392,52 @@ export function useLandingInteractionController({
       desktopMotionTimerRef.current = null;
     }
   }, []);
+
+  const clearDesktopCleanupFrames = useCallback(() => {
+    if (desktopCleanupFrameRef.current !== null) {
+      window.cancelAnimationFrame(desktopCleanupFrameRef.current);
+      desktopCleanupFrameRef.current = null;
+    }
+
+    if (desktopCleanupFrameNestedRef.current !== null) {
+      window.cancelAnimationFrame(desktopCleanupFrameNestedRef.current);
+      desktopCleanupFrameNestedRef.current = null;
+    }
+  }, []);
+
+  const beginDesktopCleanupPending = useCallback(
+    (cardId: string) => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      clearDesktopCleanupFrames();
+      setDesktopMotionState((current) => ({
+        ...current,
+        openingCardId: current.openingCardId === cardId ? null : current.openingCardId,
+        closingCardId: current.closingCardId === cardId ? null : current.closingCardId,
+        cleanupPendingCardId: cardId,
+        handoffSourceCardId: current.handoffSourceCardId === cardId ? null : current.handoffSourceCardId,
+        handoffTargetCardId: current.handoffTargetCardId === cardId ? null : current.handoffTargetCardId
+      }));
+
+      desktopCleanupFrameRef.current = window.requestAnimationFrame(() => {
+        desktopCleanupFrameRef.current = null;
+        desktopCleanupFrameNestedRef.current = window.requestAnimationFrame(() => {
+          desktopCleanupFrameNestedRef.current = null;
+          setDesktopMotionState((current) =>
+            current.cleanupPendingCardId === cardId
+              ? {
+                  ...current,
+                  cleanupPendingCardId: null
+                }
+              : current
+          );
+        });
+      });
+    },
+    [clearDesktopCleanupFrames]
+  );
 
   const focusLandingReverseGnbTarget = useCallback((): boolean => {
     if (typeof document === 'undefined') {
@@ -588,8 +643,10 @@ export function useLandingInteractionController({
       clearMobileRestoreReadyTimer();
       clearMobileTransientShellTimer();
       clearDesktopMotionTimer();
+      clearDesktopCleanupFrames();
     };
   }, [
+    clearDesktopCleanupFrames,
     clearDesktopMotionTimer,
     clearHoverTimer,
     clearMobileCloseTimer,
@@ -602,9 +659,11 @@ export function useLandingInteractionController({
     if (isMobileViewport) {
       previousExpandedCardIdRef.current = null;
       clearDesktopMotionTimer();
+      clearDesktopCleanupFrames();
       setDesktopMotionState({
         openingCardId: null,
         closingCardId: null,
+        cleanupPendingCardId: null,
         handoffSourceCardId: null,
         handoffTargetCardId: null
       });
@@ -619,11 +678,13 @@ export function useLandingInteractionController({
     }
 
     clearDesktopMotionTimer();
+    clearDesktopCleanupFrames();
 
     if (previousExpandedCardId && nextExpandedCardId && previousExpandedCardId !== nextExpandedCardId) {
       setDesktopMotionState({
         openingCardId: nextExpandedCardId,
         closingCardId: null,
+        cleanupPendingCardId: null,
         handoffSourceCardId: previousExpandedCardId,
         handoffTargetCardId: nextExpandedCardId
       });
@@ -641,6 +702,7 @@ export function useLandingInteractionController({
       setDesktopMotionState({
         openingCardId: nextExpandedCardId,
         closingCardId: null,
+        cleanupPendingCardId: null,
         handoffSourceCardId: null,
         handoffTargetCardId: null
       });
@@ -654,26 +716,31 @@ export function useLandingInteractionController({
       setDesktopMotionState({
         openingCardId: null,
         closingCardId: previousExpandedCardId,
+        cleanupPendingCardId: null,
         handoffSourceCardId: null,
         handoffTargetCardId: null
       });
       desktopMotionTimerRef.current = window.setTimeout(() => {
-        setDesktopMotionState((current) => ({
-          ...current,
-          closingCardId: current.closingCardId === previousExpandedCardId ? null : current.closingCardId
-        }));
+        beginDesktopCleanupPending(previousExpandedCardId);
       }, CORE_MOTION_DURATION_MS);
     } else {
       setDesktopMotionState({
         openingCardId: null,
         closingCardId: null,
+        cleanupPendingCardId: null,
         handoffSourceCardId: null,
         handoffTargetCardId: null
       });
     }
 
     previousExpandedCardIdRef.current = nextExpandedCardId;
-  }, [clearDesktopMotionTimer, interactionState.expandedCardId, isMobileViewport]);
+  }, [
+    beginDesktopCleanupPending,
+    clearDesktopCleanupFrames,
+    clearDesktopMotionTimer,
+    interactionState.expandedCardId,
+    isMobileViewport
+  ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const collapseExpandedCard = useCallback(() => {
@@ -1033,6 +1100,8 @@ export function useLandingInteractionController({
       mobileTransientShellState.cardId === card.id ? mobileTransientShellState.mode : 'NONE';
     const desktopClosingVisible =
       !isMobileViewport && desktopMotionState.closingCardId === card.id && card.availability === 'available';
+    const desktopCleanupPending =
+      !isMobileViewport && desktopMotionState.cleanupPendingCardId === card.id && card.availability === 'available';
     const desktopMotionRole: LandingCardDesktopMotionRole =
       desktopMotionState.handoffSourceCardId === card.id
         ? 'handoff-source'
@@ -1046,6 +1115,13 @@ export function useLandingInteractionController({
                   (transitionExpanded || (cardState === 'EXPANDED' && card.availability === 'available'))
                 ? 'steady'
                 : 'idle';
+    const desktopShellPhase = resolveDesktopShellPhase({
+      available: card.availability === 'available',
+      isMobileViewport,
+      motionRole: desktopMotionRole,
+      visuallyExpanded: transitionExpanded || (cardState === 'EXPANDED' && card.availability === 'available'),
+      cleanupPending: desktopCleanupPending
+    });
     const mobileInteractionLocked =
       isMobileViewport &&
       mobileLifecycleState.phase !== 'NORMAL' &&
@@ -1053,6 +1129,7 @@ export function useLandingInteractionController({
     const visualState: LandingCardVisualState =
       transitionExpanded ||
       desktopClosingVisible ||
+      desktopCleanupPending ||
       (cardState === 'EXPANDED' && card.availability === 'available')
         ? 'expanded'
         : cardState === 'FOCUSED'
@@ -1135,6 +1212,7 @@ export function useLandingInteractionController({
     return {
       state: visualState,
       desktopMotionRole,
+      desktopShellPhase,
       hoverLockEnabled: interactionState.hoverLock.enabled,
       keyboardMode: interactionState.hoverLock.keyboardMode,
       interactionBlocked:
@@ -1486,7 +1564,10 @@ export function useLandingInteractionController({
 
   const activeVisualCardId = isMobileViewport
     ? mobileLifecycleState.cardId ?? mobileTransientShellState.cardId
-    : transitionSourceCardId ?? interactionState.expandedCardId ?? desktopMotionState.closingCardId;
+    : transitionSourceCardId ??
+      interactionState.expandedCardId ??
+      desktopMotionState.closingCardId ??
+      desktopMotionState.cleanupPendingCardId;
 
   return {
     interactionMode,

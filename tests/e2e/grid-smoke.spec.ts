@@ -390,7 +390,7 @@ test.describe('Phase 4 grid smoke', () => {
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     const expandedRadius = await firstCard
-      .locator('[data-slot="expandedBody"]')
+      .locator('[data-slot="expandedSurface"]')
       .evaluate((element) => getComputedStyle(element).getPropertyValue('border-radius').trim());
     const collapsedRadius = await firstCard.evaluate((element) => getComputedStyle(element).getPropertyValue('border-radius').trim());
     expect(expandedRadius).toBe(collapsedRadius);
@@ -401,12 +401,16 @@ test.describe('Phase 4 grid smoke', () => {
 
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'steady');
 
     await page.mouse.move(8, 8);
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'closing');
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'closing');
     await expect(firstCard.locator('[data-slot="thumbnailOrIcon"]')).toHaveCount(0);
     await expect(firstCard.locator('[data-slot="expandedLayer"]')).toHaveCount(1);
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
     await expect(firstCard.locator('[data-slot="thumbnailOrIcon"]')).toHaveCount(1);
     await expect(firstCard.locator('[data-slot="expandedLayer"]')).toHaveCount(0);
 
@@ -426,7 +430,9 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await secondCard.hover();
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'handoff-source');
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-source');
     await expect(secondCard).toHaveAttribute('data-desktop-motion-role', 'handoff-target');
+    await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-target');
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 });

@@ -7,6 +7,10 @@ export type LocalizedText = Partial<Record<AppLocale, string>> & {
   default?: string;
 };
 
+export type LocalizedStringList = Partial<Record<AppLocale, ReadonlyArray<string>>> & {
+  default?: ReadonlyArray<string>;
+};
+
 export interface RawTestPayload {
   variant: string;
   previewQuestion: LocalizedText;
@@ -27,7 +31,6 @@ export interface RawBlogPayload {
     shares: number;
     views: number;
   };
-  primaryCTA?: LocalizedText;
 }
 
 interface RawLandingCardCommon {
@@ -37,7 +40,7 @@ interface RawLandingCardCommon {
   title: LocalizedText;
   subtitle: LocalizedText;
   thumbnailOrIcon: string;
-  tags: string[];
+  tags: LocalizedStringList;
   isHero?: boolean;
   debug?: boolean;
   sample?: boolean;
@@ -62,7 +65,6 @@ export interface LocaleResolvedText {
   answerChoiceA?: string;
   answerChoiceB?: string;
   summary?: string;
-  primaryCTA?: string;
 }
 
 export interface LandingCardCommon {
@@ -98,7 +100,6 @@ export interface LandingBlogCard extends LandingCardCommon {
   type: 'blog';
   blog: {
     summary: string;
-    primaryCTA: string;
     meta: {
       readMinutes: number;
       shares: number;

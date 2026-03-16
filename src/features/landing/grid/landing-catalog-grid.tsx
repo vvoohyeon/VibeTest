@@ -465,6 +465,7 @@ export function LandingCatalogGrid({cards}: LandingCatalogGridProps) {
                     mobileTransientMode={interactionBindings.mobileTransientMode}
                     mobileRestoreReady={interactionBindings.mobileRestoreReady}
                     desktopMotionRole={interactionBindings.desktopMotionRole}
+                    desktopShellPhase={interactionBindings.desktopShellPhase}
                     mobileSnapshot={interactionBindings.mobileSnapshot}
                     desktopTransformOriginX={resolveDesktopTransformOriginX({
                       cardOffset: offset,
