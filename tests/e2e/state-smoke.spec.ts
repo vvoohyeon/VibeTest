@@ -1,6 +1,21 @@
-import {expect, type Page, test} from '@playwright/test';
+import {expect, type Locator, type Page, test} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
+
+const THEME_STORAGE_KEY = 'vibetest-theme';
+
+interface InteractiveMetrics {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  top: number;
+  backgroundColor: string;
+  borderColor: string;
+  boxShadow: string;
+  transform: string;
+  hovered: boolean;
+}
 
 async function delayDestinationReadyRaf(page: Page, delayMs = 180) {
   await page.addInitScript((timeoutMs) => {
@@ -51,6 +66,44 @@ async function tabUntilCardFocused(page: Page, cardId: string): Promise<void> {
   }
 
   throw new Error(`Failed to focus card via Tab within budget: ${cardId}`);
+}
+
+async function setTheme(page: Page, theme: 'light' | 'dark') {
+  await page.addInitScript(
+    ([storageKey, nextTheme]) => {
+      window.localStorage.setItem(storageKey, nextTheme);
+    },
+    [THEME_STORAGE_KEY, theme] as const
+  );
+}
+
+async function movePointerToCenter(page: Page, locator: Locator): Promise<void> {
+  const box = await locator.boundingBox();
+  if (!box) {
+    throw new Error('Missing bounding box for pointer move target.');
+  }
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+async function readInteractiveMetrics(locator: Locator): Promise<InteractiveMetrics> {
+  return locator.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+
+    return {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      top: rect.top,
+      backgroundColor: style.backgroundColor,
+      borderColor: style.borderColor,
+      boxShadow: style.boxShadow,
+      transform: style.transform,
+      hovered: element.matches(':hover')
+    };
+  });
 }
 
 test.describe('Phase 7 state + capability smoke', () => {
@@ -302,4 +355,75 @@ test.describe('Phase 7 state + capability smoke', () => {
       .evaluate((element) => getComputedStyle(element).cursor);
     expect(primaryCtaCursor).toBe('pointer');
   });
+
+  test('@smoke blog Read more hover keeps CTA geometry and adjacent layout stable', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const blogCard = page.locator('[data-card-id="blog-ops-handbook"]');
+    await movePointerToCenter(page, blogCard.getByTestId('landing-grid-card-trigger'));
+    await expect(blogCard).toHaveAttribute('data-card-state', 'expanded');
+    await expect(blogCard).toHaveAttribute('data-desktop-motion-role', 'steady');
+
+    await movePointerToCenter(page, blogCard.locator('[data-slot="cardTitleExpanded"]'));
+
+    const cta = blogCard.locator('[data-slot="primaryCTA"]');
+    const meta = blogCard.locator('[data-slot="meta"]');
+    const beforeCta = await readInteractiveMetrics(cta);
+    const beforeMeta = await readInteractiveMetrics(meta);
+
+    expect(beforeCta.hovered).toBe(false);
+
+    await cta.hover();
+    await page.waitForTimeout(180);
+
+    const afterCta = await readInteractiveMetrics(cta);
+    const afterMeta = await readInteractiveMetrics(meta);
+
+    expect(afterCta.hovered).toBe(true);
+    expect(afterCta.transform).toBe('none');
+    expect(afterCta.boxShadow).not.toBe(beforeCta.boxShadow);
+    expect(afterCta.backgroundColor).not.toBe(beforeCta.backgroundColor);
+    expect(Math.abs(afterCta.x - beforeCta.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterCta.y - beforeCta.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterCta.width - beforeCta.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterCta.height - beforeCta.height)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterMeta.top - beforeMeta.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterMeta.height - beforeMeta.height)).toBeLessThanOrEqual(1);
+  });
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`@smoke test answer choice hover feedback is visible and stable in ${theme} theme`, async ({page}) => {
+      await setTheme(page, theme);
+      await page.setViewportSize({width: 1440, height: 980});
+      await page.goto('/en');
+
+      const testCard = page.locator('[data-card-id="test-rhythm-a"]');
+      await movePointerToCenter(page, testCard.getByTestId('landing-grid-card-trigger'));
+      await expect(testCard).toHaveAttribute('data-card-state', 'expanded');
+      await expect(testCard).toHaveAttribute('data-desktop-motion-role', 'steady');
+
+      await movePointerToCenter(page, testCard.locator('[data-slot="cardTitleExpanded"]'));
+
+      const answerChoice = testCard.locator('[data-slot="answerChoiceA"]');
+      const beforeHover = await readInteractiveMetrics(answerChoice);
+
+      expect(beforeHover.hovered).toBe(false);
+
+      await answerChoice.hover();
+      await page.waitForTimeout(180);
+
+      const afterHover = await readInteractiveMetrics(answerChoice);
+
+      expect(afterHover.hovered).toBe(true);
+      expect(afterHover.transform).toBe('none');
+      expect(afterHover.backgroundColor).not.toBe(beforeHover.backgroundColor);
+      expect(afterHover.borderColor).not.toBe(beforeHover.borderColor);
+      expect(afterHover.boxShadow).not.toBe(beforeHover.boxShadow);
+      expect(Math.abs(afterHover.x - beforeHover.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(afterHover.y - beforeHover.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(afterHover.width - beforeHover.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(afterHover.height - beforeHover.height)).toBeLessThanOrEqual(1);
+    });
+  }
 });

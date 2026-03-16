@@ -1,8 +1,11 @@
+import {createElement} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
 
 import {createLandingCatalog, normalizeLandingCards} from '../../src/features/landing/data/adapter';
 import {buildFixtureContractReport} from '../../src/features/landing/data/fixture-contract';
 import {landingRawFixtures} from '../../src/features/landing/data/raw-fixtures';
+import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
 import type {RawLandingCard} from '../../src/features/landing/data/types';
 
 describe('landing fixture and adapter contract', () => {
@@ -21,17 +24,82 @@ describe('landing fixture and adapter contract', () => {
     expect(report.hasRequiredSlotOmission).toBe(false);
   });
 
-  it('normalizes locale text with fallback and blocks unavailable blog cards', () => {
+  it('normalizes localized Korean text and tags while blocking unavailable blog cards', () => {
     const catalogKr = createLandingCatalog('kr');
 
-    const releaseGateBlog = catalogKr.find((card) => card.id === 'blog-release-gate');
-    expect(releaseGateBlog?.type).toBe('blog');
-    if (!releaseGateBlog || releaseGateBlog.type !== 'blog') {
-      throw new Error('Expected blog-release-gate to be present as a blog card');
+    const rhythmATest = catalogKr.find((card) => card.id === 'test-rhythm-a');
+    expect(rhythmATest?.type).toBe('test');
+    if (!rhythmATest || rhythmATest.type !== 'test') {
+      throw new Error('Expected test-rhythm-a to be present as a test card');
     }
 
-    expect(releaseGateBlog.blog.primaryCTA).toBe('Read more');
+    expect(rhythmATest.title).toBe('집중 리듬 A');
+    expect(rhythmATest.subtitle).toBe('내 기본 딥워크 리듬을 빠르게 찾아보세요.');
+    expect(rhythmATest.tags).toEqual(['집중', '루틴']);
+    expect(rhythmATest.test.previewQuestion).toBe('언제 가장 깊게 몰입되나요?');
+
+    const opsHandbookBlog = catalogKr.find((card) => card.id === 'blog-ops-handbook');
+    expect(opsHandbookBlog?.type).toBe('blog');
+    if (!opsHandbookBlog || opsHandbookBlog.type !== 'blog') {
+      throw new Error('Expected blog-ops-handbook to be present as a blog card');
+    }
+
+    expect(opsHandbookBlog.title).toBe('안정적인 배포를 위한 운영 핸드북');
+    expect(opsHandbookBlog.tags).toEqual(['운영', '배포']);
+    expect(opsHandbookBlog.blog.summary).toContain('사고 대응 태세');
+    expect('primaryCTA' in opsHandbookBlog.blog).toBe(false);
     expect(catalogKr.some((card) => card.type === 'blog' && card.availability === 'unavailable')).toBe(false);
+  });
+
+  it('falls back to default-locale and default values for missing localized text and tags', () => {
+    const fallbackInput: Array<Partial<RawLandingCard>> = [
+      {
+        id: 'fallback-test',
+        type: 'test',
+        availability: 'available',
+        title: {
+          en: 'English fallback title'
+        },
+        subtitle: {
+          default: 'Default subtitle'
+        },
+        thumbnailOrIcon: 'icon-fallback',
+        tags: {
+          en: ['fallback-tag']
+        },
+        test: {
+          variant: 'fallback-variant',
+          previewQuestion: {
+            en: 'English fallback question'
+          },
+          answerChoiceA: {
+            default: 'Default choice A'
+          },
+          answerChoiceB: {
+            default: 'Default choice B'
+          },
+          meta: {
+            estimatedMinutes: 1,
+            shares: 2,
+            attempts: 3
+          }
+        }
+      } as Partial<RawLandingCard>
+    ];
+
+    const [fallbackCard] = normalizeLandingCards(fallbackInput, 'kr');
+
+    expect(fallbackCard.title).toBe('English fallback title');
+    expect(fallbackCard.subtitle).toBe('Default subtitle');
+    expect(fallbackCard.tags).toEqual(['fallback-tag']);
+
+    if (fallbackCard.type !== 'test') {
+      throw new Error('Expected fallback card to normalize as a test card');
+    }
+
+    expect(fallbackCard.test.previewQuestion).toBe('English fallback question');
+    expect(fallbackCard.test.answerChoiceA).toBe('Default choice A');
+    expect(fallbackCard.test.answerChoiceB).toBe('Default choice B');
   });
 
   it('hides debug/sample fixtures from the end-user catalog while keeping them available for QA', () => {
@@ -52,12 +120,12 @@ describe('landing fixture and adapter contract', () => {
         test: {
           variant: ''
         }
-      } as Partial<RawLandingCard>,
+      } as unknown as Partial<RawLandingCard>,
       {
         id: 'broken-blog',
         type: 'blog',
         availability: 'unavailable'
-      } as Partial<RawLandingCard>
+      } as unknown as Partial<RawLandingCard>
     ];
 
     expect(() => normalizeLandingCards(malformed, 'en')).not.toThrow();
@@ -85,5 +153,43 @@ describe('landing fixture and adapter contract', () => {
       shares: 0,
       attempts: 0
     });
+  });
+
+  it('renders blog CTA text from copy even if a legacy fixture CTA leaks in', () => {
+    const blogCard = createLandingCatalog('kr').find((card) => card.id === 'blog-release-gate');
+
+    if (!blogCard || blogCard.type !== 'blog') {
+      throw new Error('Expected blog-release-gate as a blog card fixture');
+    }
+
+    const legacyCard = {
+      ...blogCard,
+      blog: {
+        ...blogCard.blog,
+        primaryCTA: 'LEGACY_FIXTURE_CTA'
+      }
+    } as typeof blogCard & {
+      blog: typeof blogCard.blog & {
+        primaryCTA: string;
+      };
+    };
+    const copy = {
+      ...getDefaultCardCopy(),
+      readMore: 'CTA_FROM_COPY'
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(LandingGridCard, {
+        card: legacyCard,
+        locale: 'kr',
+        viewportTier: 'mobile',
+        mobilePhase: 'OPEN',
+        copy,
+        sequence: 0
+      })
+    );
+
+    expect(html).toContain('CTA_FROM_COPY');
+    expect(html).not.toContain('LEGACY_FIXTURE_CTA');
   });
 });

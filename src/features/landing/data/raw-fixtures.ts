@@ -7,28 +7,31 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'available',
     title: {
       en: 'Focus Rhythm A',
-      kr: 'Focus Rhythm A'
+      kr: '집중 리듬 A'
     },
     subtitle: {
       en: 'Find your default deep-work cadence.',
-      kr: 'Find your default deep-work cadence.'
+      kr: '내 기본 딥워크 리듬을 빠르게 찾아보세요.'
     },
     thumbnailOrIcon: 'icon-test-rhythm-a',
-    tags: ['focus', 'daily'],
+    tags: {
+      en: ['focus', 'daily'],
+      kr: ['집중', '루틴']
+    },
     isHero: true,
     test: {
       variant: 'rhythm-a',
       previewQuestion: {
         en: 'When do you feel most focused?',
-        kr: 'When do you feel most focused?'
+        kr: '언제 가장 깊게 몰입되나요?'
       },
       answerChoiceA: {
         en: 'Early morning blocks',
-        kr: 'Early morning blocks'
+        kr: '이른 오전 집중 블록'
       },
       answerChoiceB: {
         en: 'Late-night sprints',
-        kr: 'Late-night sprints'
+        kr: '늦은 밤 몰입 스프린트'
       },
       meta: {
         estimatedMinutes: 3,
@@ -43,27 +46,30 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'available',
     title: {
       en: 'Focus Rhythm B',
-      kr: 'Focus Rhythm B'
+      kr: '집중 리듬 B'
     },
     subtitle: {
       en: 'LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT',
-      kr: 'LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT'
+      kr: '집중기준점_LONGTOKENWITHOUTBREAKS_ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890_REPEAT_REPEAT_REPEAT'
     },
     thumbnailOrIcon: 'icon-test-rhythm-b',
-    tags: ['workflow'],
+    tags: {
+      en: ['workflow'],
+      kr: ['워크플로']
+    },
     test: {
       variant: 'rhythm-b',
       previewQuestion: {
         en: 'How often do interruptions break your pace?',
-        kr: 'How often do interruptions break your pace?'
+        kr: '방해가 흐름을 끊는 빈도는 어느 정도인가요?'
       },
       answerChoiceA: {
         en: 'Almost never',
-        kr: 'Almost never'
+        kr: '거의 없다'
       },
       answerChoiceB: {
         en: 'Multiple times each hour',
-        kr: 'Multiple times each hour'
+        kr: '한 시간에도 여러 번 있다'
       },
       meta: {
         estimatedMinutes: 4,
@@ -78,29 +84,32 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'available',
     title: {
       en: 'Sample Debug Variant',
-      kr: 'Sample Debug Variant'
+      kr: '샘플 디버그 변형'
     },
     subtitle: {
       en: 'Internal reference card for QA and snapshots.',
-      kr: 'Internal reference card for QA and snapshots.'
+      kr: 'QA와 스냅샷 검증을 위한 내부 참조 카드입니다.'
     },
     thumbnailOrIcon: 'icon-test-debug',
-    tags: [],
+    tags: {
+      en: [],
+      kr: []
+    },
     debug: true,
     sample: true,
     test: {
       variant: 'debug-sample',
       previewQuestion: {
         en: 'Do you prefer deterministic or exploratory planning?',
-        kr: 'Do you prefer deterministic or exploratory planning?'
+        kr: '계획은 정해진 흐름과 탐색형 접근 중 어느 쪽이 더 편한가요?'
       },
       answerChoiceA: {
         en: 'Deterministic',
-        kr: 'Deterministic'
+        kr: '정해진 흐름'
       },
       answerChoiceB: {
         en: 'Exploratory',
-        kr: 'Exploratory'
+        kr: '탐색형 접근'
       },
       meta: {
         estimatedMinutes: 2,
@@ -115,27 +124,30 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'available',
     title: {
       en: 'Energy Allocation Check',
-      kr: 'Energy Allocation Check'
+      kr: '에너지 배분 점검'
     },
     subtitle: {
       en: 'Identify where your mental load leaks each day.',
-      kr: 'Identify where your mental load leaks each day.'
+      kr: '하루 동안 정신 에너지가 새는 지점을 찾아봅니다.'
     },
     thumbnailOrIcon: 'icon-test-energy',
-    tags: ['energy', 'planning'],
+    tags: {
+      en: ['energy', 'planning'],
+      kr: ['에너지', '계획']
+    },
     test: {
       variant: 'energy-check',
       previewQuestion: {
         en: 'Which block drains your energy the most?',
-        kr: 'Which block drains your energy the most?'
+        kr: '어떤 시간대가 에너지를 가장 많이 소모시키나요?'
       },
       answerChoiceA: {
         en: 'Context switching',
-        kr: 'Context switching'
+        kr: '잦은 맥락 전환'
       },
       answerChoiceB: {
         en: 'Long meetings',
-        kr: 'Long meetings'
+        kr: '긴 회의'
       },
       meta: {
         estimatedMinutes: 5,
@@ -150,27 +162,30 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'unavailable',
     title: {
       en: 'Creativity Profile (Soon)',
-      kr: 'Creativity Profile (Soon)'
+      kr: '창의성 프로필 (곧 공개)'
     },
     subtitle: {
       en: 'Upcoming variant under editorial review.',
-      kr: 'Upcoming variant under editorial review.'
+      kr: '에디토리얼 검토 중인 예정 변형입니다.'
     },
     thumbnailOrIcon: 'icon-test-coming-soon-1',
-    tags: ['coming-soon'],
+    tags: {
+      en: ['coming-soon'],
+      kr: ['출시예정']
+    },
     test: {
       variant: 'creativity-profile',
       previewQuestion: {
         en: 'Placeholder preview question for upcoming card.',
-        kr: 'Placeholder preview question for upcoming card.'
+        kr: '공개 예정 카드를 위한 임시 미리보기 질문입니다.'
       },
       answerChoiceA: {
         en: 'Option A',
-        kr: 'Option A'
+        kr: '옵션 A'
       },
       answerChoiceB: {
         en: 'Option B',
-        kr: 'Option B'
+        kr: '옵션 B'
       },
       meta: {
         estimatedMinutes: 4,
@@ -185,27 +200,30 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'unavailable',
     title: {
       en: 'Burnout Risk Signal (Soon)',
-      kr: 'Burnout Risk Signal (Soon)'
+      kr: '번아웃 위험 신호 (곧 공개)'
     },
     subtitle: {
       en: 'Upcoming resilience check for recurring fatigue patterns.',
-      kr: 'Upcoming resilience check for recurring fatigue patterns.'
+      kr: '반복되는 피로 패턴을 살피는 회복탄력성 체크가 곧 추가됩니다.'
     },
     thumbnailOrIcon: 'icon-test-coming-soon-2',
-    tags: ['coming-soon', 'wellbeing'],
+    tags: {
+      en: ['coming-soon', 'wellbeing'],
+      kr: ['출시예정', '웰빙']
+    },
     test: {
       variant: 'burnout-risk',
       previewQuestion: {
         en: 'Placeholder preview question for upcoming card.',
-        kr: 'Placeholder preview question for upcoming card.'
+        kr: '공개 예정 카드를 위한 임시 미리보기 질문입니다.'
       },
       answerChoiceA: {
         en: 'Option A',
-        kr: 'Option A'
+        kr: '옵션 A'
       },
       answerChoiceB: {
         en: 'Option B',
-        kr: 'Option B'
+        kr: '옵션 B'
       },
       meta: {
         estimatedMinutes: 4,
@@ -220,28 +238,27 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'available',
     title: {
       en: 'Operational Handbook for Stable Releases',
-      kr: 'Operational Handbook for Stable Releases'
+      kr: '안정적인 배포를 위한 운영 핸드북'
     },
     subtitle: {
       en: 'Patterns to reduce release-day surprises.',
-      kr: 'Patterns to reduce release-day surprises.'
+      kr: '배포 당일의 돌발 변수를 줄이는 운영 패턴을 정리했습니다.'
     },
     thumbnailOrIcon: 'icon-blog-ops',
-    tags: ['operations', 'release'],
+    tags: {
+      en: ['operations', 'release'],
+      kr: ['운영', '배포']
+    },
     blog: {
       articleId: 'ops-handbook',
       summary: {
         en: 'This long-form article walks through incident posture, deployment sequencing, rollback ergonomics, observability baselines, and a practical checklist for reducing mean-time-to-detect and mean-time-to-recover. It intentionally includes extended prose so summary clamp and overflow rules can be validated against realistic payload sizes in both desktop and mobile layouts.',
-        kr: 'This long-form article walks through incident posture, deployment sequencing, rollback ergonomics, observability baselines, and a practical checklist for reducing mean-time-to-detect and mean-time-to-recover. It intentionally includes extended prose so summary clamp and overflow rules can be validated against realistic payload sizes in both desktop and mobile layouts.'
+        kr: '이 글은 사고 대응 태세를 어떻게 준비할지, 배포 순서를 어떤 원칙으로 고정할지, 롤백을 얼마나 빠르고 안전하게 수행할지, 그리고 관측 가능성 기준선을 어디까지 갖춰야 하는지를 긴 호흡으로 정리합니다. 또한 탐지 시간과 복구 시간을 줄이기 위한 실전 체크리스트를 함께 다루며, 데스크톱과 모바일 레이아웃 모두에서 summary clamp 와 overflow 규칙을 충분히 검증할 수 있도록 의도적으로 긴 문장 길이를 유지합니다.'
       },
       meta: {
         readMinutes: 8,
         shares: 1920,
         views: 42401
-      },
-      primaryCTA: {
-        en: 'Read more',
-        kr: 'Read more'
       }
     }
   },
@@ -251,28 +268,27 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'available',
     title: {
       en: 'Build Metrics That Actually Matter',
-      kr: 'Build Metrics That Actually Matter'
+      kr: '정말 중요한 빌드 지표'
     },
     subtitle: {
       en: 'Avoid vanity charts and pick deterministic release indicators.',
-      kr: 'Avoid vanity charts and pick deterministic release indicators.'
+      kr: '허영 지표를 걷어내고 배포를 막을 수 있는 결정적 신호에 집중합니다.'
     },
     thumbnailOrIcon: 'icon-blog-build-metrics',
-    tags: [],
+    tags: {
+      en: [],
+      kr: []
+    },
     blog: {
       articleId: 'build-metrics',
       summary: {
         en: 'A compact field guide to selecting build-time, test-time, and runtime quality indicators that correlate with user outcomes.',
-        kr: 'A compact field guide to selecting build-time, test-time, and runtime quality indicators that correlate with user outcomes.'
+        kr: '사용자 결과와 실제로 연결되는 빌드, 테스트, 런타임 품질 지표를 고르는 짧고 실용적인 가이드입니다.'
       },
       meta: {
         readMinutes: 6,
         shares: 1180,
         views: 21502
-      },
-      primaryCTA: {
-        en: 'Read more',
-        kr: 'Read more'
       }
     }
   },
@@ -282,29 +298,28 @@ export const landingRawFixtures: ReadonlyArray<RawLandingCard> = [
     availability: 'available',
     title: {
       en: 'Designing a Reliable Release Gate',
-      kr: 'Designing a Reliable Release Gate'
+      kr: '신뢰할 수 있는 릴리스 게이트 설계'
     },
     subtitle: {
       en: 'How to turn quality assumptions into blocking assertions.',
-      kr: 'How to turn quality assumptions into blocking assertions.'
+      kr: '품질 가정을 실제 차단 규칙으로 바꾸는 방법을 설명합니다.'
     },
     thumbnailOrIcon: 'icon-blog-release-gate',
-    tags: ['qa', 'gate'],
+    tags: {
+      en: ['qa', 'gate'],
+      kr: ['QA', '게이트']
+    },
     isHero: true,
     blog: {
       articleId: 'release-gate',
       summary: {
         en: 'A practical implementation strategy for layering static checks, deterministic state assertions, and e2e smoke contracts into one release boundary.',
-        kr: 'A practical implementation strategy for layering static checks, deterministic state assertions, and e2e smoke contracts into one release boundary.'
+        kr: '정적 검사, 결정적 상태 단언, e2e 스모크 계약을 하나의 릴리스 경계 안에 겹겹이 쌓아 넣는 실용적인 구현 전략입니다.'
       },
       meta: {
         readMinutes: 5,
         shares: 890,
         views: 17943
-      },
-      primaryCTA: {
-        en: 'Read more',
-        default: 'Read more'
       }
     }
   }

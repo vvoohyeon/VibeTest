@@ -39,7 +39,11 @@ function asLocalizedStringList(
     return {default: value};
   }
 
-  return value && typeof value === 'object' ? value : {};
+  if (value && typeof value === 'object') {
+    return value as LocalizedStringList;
+  }
+
+  return {};
 }
 
 function normalizeTagList(value: unknown): string[] {

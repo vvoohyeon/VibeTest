@@ -40,12 +40,6 @@
 
 **목적**: §2.1, §2.8에서 명시된 core entity를 코드 상 명확한 타입으로 고정한다.
 
-**제거 항목 (기존 설계 대비)**:
-- `AxisId` brand type — 문항에서 제거. axisId는 poleA+poleB 파생값으로만 사용
-- `AnswerPole = 'A' | 'B'` — 추상 이진 기호 제거. 응답은 pole 문자열을 직접 저장
-- `AnswerOption` 타입 — Question의 poleA/poleB가 직접 선택지 의미를 가지므로 제거
-- `AxisDefinition.positivePole` — ScoreStats 계산이 counts 기준 다수결이므로 불필요
-
 **구현 범위**:
 
 ```typescript
@@ -56,61 +50,85 @@ AxisCount       // 1 | 2 | 4
 SectionId       // string (supportedSections 항목 식별자)
 
 // 신규/변경 타입
+QuestionType = 'scoring' | 'profile'
+
+ScoringMode = 'binary_majority' | 'scale'
+// 현재 구현 대상: 'binary_majority'만.
+// 'scale'은 타입 예약 상태. validateVariantDataIntegrity에서 'scale' 선언 시 blocking error 반환.
+
 AxisSpec = {
-  poleA: string   // 첫 번째 선택지에 대응하는 pole (e.g., 'E')
-  poleB: string   // 두 번째 선택지에 대응하는 pole (e.g., 'I')
-  // axisId는 파생값: `${poleA}${poleB}` — 이 타입에 별도 필드로 포함하지 않음
+  poleA: string
+  poleB: string
+  scoringMode: ScoringMode  // default: 'binary_majority'
 }
 
 Question = {
-  index: QuestionIndex     // 1-based, 불변
-  poleA: string            // 첫 번째 선택지의 pole
-  poleB: string            // 두 번째 선택지의 pole
-  // 축 소속: poleA+poleB 쌍이 schema.axes 중 동일 쌍과 일치하는 항목으로 결정
+  index: QuestionIndex        // 1-based, 불변
+  poleA: string
+  poleB: string
+  questionType: QuestionType  // 'scoring' | 'profile'
+  // 축 소속(scoring): poleA+poleB 쌍이 schema.axes 중 동일 쌍과 일치하는 항목으로 결정
+  // profile 문항은 axis 귀속 없음
   // 표시용 텍스트는 별도 i18n 레이어 — 이 타입에 포함하지 않음
 }
 
-// 응답 저장 타입
-// Map<QuestionIndex, string>: 선택된 pole 문자열 직접 저장 (e.g., 'E' 또는 'I')
-// 'A'/'B' 추상 기호를 경유하지 않음
+// 응답 저장 타입 (변경 없음)
+// Map<QuestionIndex, string>: 선택된 pole 문자열 직접 저장
+// scoring question: axis pole값 (e.g., 'E' 또는 'I')
+// profile question: qualifier pole값 (e.g., 'm' 또는 'f')
+
+QualifierFieldSpec = {
+  key: string              // qualifier 식별자 (e.g., 'sex')
+  questionIndex: QuestionIndex  // 이 qualifier 값을 제공하는 profile 문항의 index
+  values: string[]         // 허용 응답값 목록 (e.g., ['m', 'f'])
+  tokenLength: number      // type segment에서 이 qualifier가 차지하는 문자 수 (일반적으로 1)
+}
 
 AxisScoreStat = {
   poleA: string
   poleB: string
   counts: Record<string, number>  // e.g., { 'E': 7, 'I': 3 }
-  dominant: string                 // counts 기준 다수 pole (e.g., 'E')
+  dominant: string                 // counts 기준 다수 pole
 }
 
 ScoreStats = Record<string, AxisScoreStat>
-// key: axisId = poleA + poleB (e.g., 'EI')
+// key: axisId = poleA + poleB (scoring axis만. profile 문항 응답 포함하지 않음)
 // key 순서는 schema.axes 선언 순서와 일치
 
 DerivedType = string  // 길이 = axisCount, 각 위치 = schema.axes 순서 매핑
 
+// type segment 구조
+// typeSegment = derivedType(길이=axisCount) + qualifier토큰들(qualifierFields 순서대로)
+// 전체 길이 = axisCount + sum(qualifierFields[i].tokenLength)
+// qualifierFields 없음/빈 배열 → 길이 = axisCount (MBTI 등)
+
 ScoringSchema = {
   variantId: VariantId
-  scoringSchemaId: string       // URL에 노출하지 않음 (§4.1 불변식)
+  scoringSchemaId: string         // URL에 노출하지 않음 (§4.1 불변식)
   axisCount: AxisCount
-  axes: AxisSpec[]              // ordered, 길이 = axisCount
+  axes: AxisSpec[]                // ordered, 길이 = axisCount, scoring axes만
   supportedSections: SectionId[]
+  qualifierFields?: QualifierFieldSpec[]  // 없거나 빈 배열 = qualifier 없음
 }
 
 VariantSchema = {
   variant: VariantId
   schema: ScoringSchema
-  questions: Question[]
+  questions: Question[]           // scoring + profile 문항 모두 포함. 실행 순서 소스
 }
 
 ResultPayload = {
-  scoreStats: ScoreStats
+  scoreStats: ScoreStats    // scoring axis만 포함
   shared: boolean
 }
 ```
 
 **검증 기준**:
-- `ScoringSchema.axes` 배열 길이가 `axisCount`와 다르면 런타임 검증 함수로 차단 (T1-4 위임).
-- `DerivedType` 길이가 `axisCount`와 불일치하는 값 생성은 §2.11 계약 위반 — 생성 함수에서 검증.
-- 동일 poleA+poleB 쌍이 `schema.axes` 내에서 중복되면 안 된다. T1-4에서 검증.
+- `ScoringSchema.axes` 배열 길이가 `axisCount`와 다르면 T1-4 차단.
+- `DerivedType` 길이 = `axisCount` — 생성 함수에서 검증.
+- 동일 poleA+poleB 쌍이 `schema.axes` 내에서 중복되면 안 된다 — T1-4에서 검증.
+- `qualifierFields`의 `questionIndex`는 반드시 `questionType === 'profile'`인 문항을 가리켜야 한다 — T1-4에서 검증.
+- `qualifierFields` 내 `key` 중복 없음 — T1-4에서 검증.
 
 ---
 
@@ -144,15 +162,26 @@ type ValidationResult<T> =
 **목적**: §2.8에서 명시된 불변식을 검증하는 pure 함수를 확립한다.
 
 **불변식 체크리스트 (question 단위)**:
-1. 각 question은 `poleA`와 `poleB` 두 필드를 모두 가져야 한다.
-2. `poleA`와 `poleB`는 서로 달라야 한다 (`poleA ≠ poleB`). 동일하면 axis 내 상반된 선택지가 성립하지 않는다.
+
+*공통 (questionType 무관)*:
+1. 각 question은 `poleA`, `poleB`, `questionType`, `index` 필드를 모두 가져야 한다.
+2. `poleA`와 `poleB`는 서로 달라야 한다 (`poleA ≠ poleB`).
 3. 각 question의 `index`는 1-based이며, 동일 variant 내 중복이 없어야 한다.
 
-> schema.axes 내 중복 poleA+poleB 쌍 검증은 schema-level 관심사로 T1-4(`DUPLICATE_AXIS_SPEC`)에서 처리한다. T1-3은 question 단위 불변식만 담당한다.
+*scoring question 전용*:
+4. `poleA`+`poleB` 쌍이 `schema.axes` 중 정확히 1개와 일치해야 한다. 0개 또는 2개 이상 일치 시 위반.
+
+*profile question 전용*:
+5. axis 귀속 요구 없음. `poleA`+`poleB` 쌍이 `schema.axes`와 일치하지 않아도 통과.
 
 ```typescript
-validateQuestionModel(questions: Question[]): ValidationResult<Question[]>
+validateQuestionModel(
+  questions: Question[],
+  schema: ScoringSchema
+): ValidationResult<Question[]>
 ```
+
+> scoring question의 axis 매핑 검증(불변식 4)은 schema 참조가 필요하므로 `schema`를 인자로 추가한다. profile question은 schema 참조 없이 검증 가능하나 동일 함수 시그니처로 통일한다.
 
 ---
 
@@ -161,35 +190,38 @@ validateQuestionModel(questions: Question[]): ValidationResult<Question[]>
 **목적**: §5.2의 blocking data error 조건을 variant 로드 시점에 검증하는 pure 함수를 확립한다.
 
 **차단 조건 (하나라도 해당 시 `BlockingDataError` 반환)**:
-- `questions` 배열이 비어 있음
-- question model 불변식 위반 (T1-3 재사용)
-- **Odd-count rule 위반**: 동일 axis에 배정된 question 수가 짝수인 경우  
-  — 짝수이면 동점(tie)이 발생 가능 → scoring schema 계약 위반
-- scoring schema 선언의 `axes` 배열 길이가 `axisCount`와 불일치
 
-```
+```typescript
 type BlockingDataErrorReason =
   | 'EMPTY_QUESTION_SET'
   | 'QUESTION_MODEL_VIOLATION'
-  | 'EVEN_AXIS_QUESTION_COUNT'      // odd-count rule 위반
-  | 'AXIS_COUNT_SCHEMA_MISMATCH'
+  | 'EVEN_AXIS_QUESTION_COUNT'       // odd-count rule 위반 (binary_majority scoring axis에만 적용)
+  | 'AXIS_COUNT_SCHEMA_MISMATCH'     // axes 배열 길이 ≠ axisCount
+  | 'DUPLICATE_AXIS_SPEC'            // schema.axes 내 동일 poleA+poleB 쌍 중복
+  | 'UNSUPPORTED_SCORING_MODE'       // 'scale' 등 미구현 scoringMode 선언
+  | 'QUALIFIER_QUESTION_NOT_FOUND'   // qualifierFields의 questionIndex에 해당하는 문항 없음
+  | 'QUALIFIER_QUESTION_NOT_PROFILE' // qualifierFields의 questionIndex가 scoring 문항을 가리킴
+  | 'DUPLICATE_QUALIFIER_KEY'        // qualifierFields 내 key 중복
 
 validateVariantDataIntegrity(
   schema: VariantSchema
 ): { ok: true } | { ok: false; reason: BlockingDataErrorReason; detail?: string }
 ```
 
-**Odd-count rule 구현 세부**:
+**Odd-count rule 구현 세부 (binary_majority scoring axis에만 적용)**:
 ```typescript
-// schema.axes를 순회하며 각 AxisSpec의 poleA+poleB 쌍에 매칭되는
-// questions를 필터링한 뒤 개수가 짝수이면 차단
 function checkOddCountRule(
   questions: Question[],
   axes: AxisSpec[]
 ): { ok: true } | { ok: false; axisId: string; count: number } {
+  // binary_majority scoring 문항만 필터링
+  const scoringQuestions = questions.filter(
+    q => q.questionType === 'scoring'
+  )
   for (const axis of axes) {
+    if (axis.scoringMode !== 'binary_majority') continue  // scale 등은 별도 차단
     const axisId = axis.poleA + axis.poleB
-    const axisQuestions = questions.filter(
+    const axisQuestions = scoringQuestions.filter(
       q => q.poleA === axis.poleA && q.poleB === axis.poleB
     )
     if (axisQuestions.length % 2 === 0) {
@@ -200,10 +232,35 @@ function checkOddCountRule(
 }
 ```
 
-추가 검증: `schema.axes` 내 중복 poleA+poleB 쌍 존재 시 `'DUPLICATE_AXIS_SPEC'` 반환.
-추가 `BlockingDataErrorReason` 항목:
+**Unsupported scoring mode 검증**:
 ```typescript
-| 'DUPLICATE_AXIS_SPEC'    // schema.axes 내 동일 poleA+poleB 쌍 중복
+function checkScoringModes(axes: AxisSpec[]): { ok: true } | { ok: false; axisId: string } {
+  for (const axis of axes) {
+    if (axis.scoringMode !== 'binary_majority') {
+      return { ok: false, axisId: axis.poleA + axis.poleB }
+    }
+  }
+  return { ok: true }
+}
+```
+
+**QualifierFields 검증**:
+```typescript
+function checkQualifierFields(
+  qualifierFields: QualifierFieldSpec[] | undefined,
+  questions: Question[]
+): { ok: true } | { ok: false; reason: BlockingDataErrorReason; detail: string } {
+  if (!qualifierFields || qualifierFields.length === 0) return { ok: true }
+  const keys = new Set<string>()
+  for (const field of qualifierFields) {
+    if (keys.has(field.key)) return { ok: false, reason: 'DUPLICATE_QUALIFIER_KEY', detail: field.key }
+    keys.add(field.key)
+    const question = questions.find(q => q.index === field.questionIndex)
+    if (!question) return { ok: false, reason: 'QUALIFIER_QUESTION_NOT_FOUND', detail: String(field.questionIndex) }
+    if (question.questionType !== 'profile') return { ok: false, reason: 'QUALIFIER_QUESTION_NOT_PROFILE', detail: String(field.questionIndex) }
+  }
+  return { ok: true }
+}
 ```
 
 ---
@@ -215,12 +272,12 @@ function checkOddCountRule(
 **구현 범위**:
 
 ```typescript
-// Step 1: responses에서 axis별 점수를 집계 → ScoreStats 구성
+// Step 1: scoring 문항 응답에서 axis별 점수를 집계 → ScoreStats 구성
 computeScoreStats(
   questions: Question[],
-  responses: Map<QuestionIndex, string>,   // 선택된 pole 문자열 직접 저장
+  responses: Map<QuestionIndex, string>,
   schema: ScoringSchema
-): ScoreStats | { error: 'INCOMPLETE_RESPONSES' | 'UNMATCHED_QUESTION' }
+): ScoreStats | { error: 'INCOMPLETE_SCORING_RESPONSES' | 'UNMATCHED_QUESTION' }
 
 // Step 2: ScoreStats에서 derivedType 토큰 생성
 deriveDerivedType(
@@ -230,20 +287,21 @@ deriveDerivedType(
 ```
 
 **`computeScoreStats` 계약**:
-- `responses.size`가 `questions.length`와 다르면 `INCOMPLETE_RESPONSES` 반환 (completed run 전제 위반 — §2.11).
+- `questions[]`에서 `questionType === 'scoring'`인 문항만 필터링해 처리한다. profile 문항은 완전히 무시한다.
+- 필터링 후 scoring 문항 수 = `scoringQuestions.length`이어야 한다. `responses`의 scoring 문항 응답 완료 여부는 `scoringQuestions`를 기준으로 검증한다.
+- `scoringQuestions`의 각 index에 대한 응답이 `responses`에 없으면 `INCOMPLETE_SCORING_RESPONSES` 반환.
 - `schema.axes`를 선언 순서대로 순회한다.
 - 각 `AxisSpec { poleA, poleB }`에 대해 `axisId = poleA + poleB`를 파생한다.
-- 해당 axis 소속 문항: `questions`에서 `q.poleA === axis.poleA && q.poleB === axis.poleB`인 항목.
+- 해당 axis 소속 scoring 문항: 필터링된 scoring 문항 중 `q.poleA === axis.poleA && q.poleB === axis.poleB`인 항목.
 - 응답이 `poleA`도 `poleB`도 아닌 값이면 `UNMATCHED_QUESTION` 반환.
-- `counts` 집계 후 더 높은 카운트 pole을 `dominant`로 결정. 홀수 문항 보장 하에 동점 불가.
+- `counts` 집계 후 더 높은 카운트 pole을 `dominant`로 결정.
 - 결과: `scoreStats[axisId] = { poleA, poleB, counts, dominant }`.
 - MBTI 문자를 하드코딩하지 않는다. axisCount 1/2/4 모두 동일 함수로 처리.
 
-**`deriveDerivedType` 계약**:
+**`deriveDerivedType` 계약 (변경 없음)**:
 - `schema.axes` 선언 순서대로 각 axis의 `scoreStats[axisId].dominant`를 연결한다.
 - `axisId`가 `scoreStats`에 없으면 `AXIS_NOT_FOUND` 반환.
 - 생성된 토큰 길이가 `schema.axisCount`와 불일치하면 `TOKEN_LENGTH_MISMATCH` 반환.
-- 결과 토큰의 각 문자 위치는 `schema.axes` 선언 순서와 결정적으로 매핑된다.
 
 **예시 (axisCount=4, MBTI 기준)**:
 ```typescript
@@ -261,9 +319,94 @@ schema.axes = [
 // derivedType = "INFJ"
 ```
 
+**EGTT 예시 (axisCount=1)**:
+```typescript
+// scoring 문항만 필터링 후 처리 (Q1 profile 문항은 제외)
+// schema.axes = [{ poleA: 'e', poleB: 't', scoringMode: 'binary_majority' }]
+// scoringQuestions = questions.filter(q => q.questionType === 'scoring')
+// scoreStats['et'] = { ..., counts: { e:15, t:10 }, dominant: 'e' }
+// derivedType = 'e'
+```
+
 ---
 
-#### T1-6 — Payload Schema 타입 정의 (Phase 7 전제 확립)
+#### T1-6 — Type Segment 인코딩/파싱 (pure 함수)
+
+**목적**: §4.1의 `type` segment 인코딩과 파싱 계약을 pure 함수로 확립한다. Phase 7 URL 인코딩/디코딩 구현의 전제.
+
+**구현 범위**:
+
+```typescript
+// type segment 파싱 (result URL 수신 시 사용)
+parseTypeSegment(
+  typeSegment: string,
+  schema: ScoringSchema
+):
+  | { ok: true; derivedType: string; qualifiers: Record<string, string> }
+  | { ok: false; reason: 'LENGTH_MISMATCH' | 'INVALID_QUALIFIER_VALUE' }
+
+// type segment 생성 (result URL 생성 시 사용)
+buildTypeSegment(
+  derivedType: string,
+  responses: Map<QuestionIndex, string>,
+  schema: ScoringSchema
+):
+  | { ok: true; typeSegment: string }
+  | { ok: false; reason: 'QUALIFIER_RESPONSE_MISSING' | 'INVALID_QUALIFIER_VALUE' }
+```
+
+**`parseTypeSegment` 계약**:
+```typescript
+function parseTypeSegment(typeSegment, schema) {
+  const qualifierFields = schema.qualifierFields ?? []
+  const expectedLength = schema.axisCount + qualifierFields.reduce((sum, f) => sum + f.tokenLength, 0)
+  if (typeSegment.length !== expectedLength) return { ok: false, reason: 'LENGTH_MISMATCH' }
+
+  const derivedType = typeSegment.slice(0, schema.axisCount)
+  const qualifiers: Record<string, string> = {}
+  let cursor = schema.axisCount
+
+  for (const field of qualifierFields) {
+    const value = typeSegment.slice(cursor, cursor + field.tokenLength)
+    if (!field.values.includes(value)) return { ok: false, reason: 'INVALID_QUALIFIER_VALUE' }
+    qualifiers[field.key] = value
+    cursor += field.tokenLength
+  }
+
+  return { ok: true, derivedType, qualifiers }
+}
+```
+
+**`buildTypeSegment` 계약**:
+```typescript
+function buildTypeSegment(derivedType, responses, schema) {
+  const qualifierFields = schema.qualifierFields ?? []
+  let typeSegment = derivedType
+
+  for (const field of qualifierFields) {
+    const value = responses.get(field.questionIndex)
+    if (value === undefined) return { ok: false, reason: 'QUALIFIER_RESPONSE_MISSING' }
+    if (!field.values.includes(value)) return { ok: false, reason: 'INVALID_QUALIFIER_VALUE' }
+    typeSegment += value
+  }
+
+  return { ok: true, typeSegment }
+}
+```
+
+**MBTI 검증 (qualifierFields 없음)**:
+- `parseTypeSegment('infj', mbtiSchema)` → `{ ok: true, derivedType: 'infj', qualifiers: {} }`
+- expectedLength = 4 + 0 = 4. `'infj'.length === 4` → 통과.
+
+**EGTT 검증 (qualifierFields 1개)**:
+- `parseTypeSegment('em', egttSchema)` → `{ ok: true, derivedType: 'e', qualifiers: { sex: 'm' } }`
+- expectedLength = 1 + 1 = 2. `'em'.length === 2` → 통과.
+- `parseTypeSegment('ex', egttSchema)` → `{ ok: false, reason: 'INVALID_QUALIFIER_VALUE' }` ('x' ∉ ['m','f'])
+- `parseTypeSegment('e', egttSchema)` → `{ ok: false, reason: 'LENGTH_MISMATCH' }` (길이 1 ≠ 2)
+
+---
+
+#### T1-7 — Payload Schema 타입 정의 (Phase 7 전제 확립)
 
 **목적**: §4.1 Self-contained Payload 구조의 타입을 Phase 1에서 선언한다. 인코딩/디코딩 구현은 Phase 7에서 수행. Phase 1에서 타입만 선언해두면 Phase 6, 7, 8에서 일관된 타입 참조 가능.
 
@@ -310,15 +453,36 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 | validateVariantDataIntegrity — 빈 questions | `EMPTY_QUESTION_SET` | #12 |
 | validateVariantDataIntegrity — axes 길이≠axisCount | `AXIS_COUNT_SCHEMA_MISMATCH` | #12 |
 | validateVariantDataIntegrity — 정상 schema | pass | — |
+| validateQuestionModel — scoring 문항 + schema axis 일치 | pass | #7 |
+| validateQuestionModel — scoring 문항 + axis 불일치 | `QUESTION_MODEL_VIOLATION` | #7 |
+| validateQuestionModel — profile 문항 + axis 불일치 | pass (axis 귀속 불필요) | #7 |
+| validateQuestionModel — profile 문항 + poleA=poleB | `QUESTION_MODEL_VIOLATION` | #7 |
+| validateVariantDataIntegrity — scale mode axis | `UNSUPPORTED_SCORING_MODE` | #12 |
+| validateVariantDataIntegrity — qualifierFields.questionIndex가 없는 index | `QUALIFIER_QUESTION_NOT_FOUND` | #27 |
+| validateVariantDataIntegrity — qualifierFields.questionIndex가 scoring 문항 | `QUALIFIER_QUESTION_NOT_PROFILE` | #27 |
+| validateVariantDataIntegrity — qualifierFields 중복 key | `DUPLICATE_QUALIFIER_KEY` | #27 |
+| validateVariantDataIntegrity — 정상 EGTT schema | pass | — |
+| computeScoreStats — profile 문항 응답이 scoring 결과에 영향 없음 | ScoreStats에 profile axis 없음 | #11 |
+| computeScoreStats — scoring 문항 미응답 (profile 응답은 있음) | `INCOMPLETE_SCORING_RESPONSES` | #11 |
+| parseTypeSegment — MBTI (qualifierFields 없음) | derivedType='infj', qualifiers={} | #27 |
+| parseTypeSegment — EGTT (qualifierFields 1개) | derivedType='e', qualifiers={sex:'m'} | #27 |
+| parseTypeSegment — 길이 불일치 | `LENGTH_MISMATCH` | #27 |
+| parseTypeSegment — qualifier 값 목록 외 값 | `INVALID_QUALIFIER_VALUE` | #27 |
+| buildTypeSegment — MBTI | typeSegment='infj' | #27 |
+| buildTypeSegment — EGTT | typeSegment='em' | #27 |
+| buildTypeSegment — qualifier 응답 누락 | `QUALIFIER_RESPONSE_MISSING` | #27 |
 
 ---
 
 ### Phase 1 완료 정의 (DoD)
 
-- [ ] T1-1~T1-6 타입 및 pure 함수 구현 완료
+- [ ] T1-1~T1-7 타입 및 pure 함수 구현 완료
 - [ ] 위 단위 테스트 전부 GREEN
-- [ ] 릴리스 블로커 #7, #11, #12에 각각 최소 1개 자동 단언 매핑 기록
+- [ ] 릴리스 블로커 #7, #11, #12, #27에 각각 최소 1개 자동 단언 매핑 기록
 - [ ] MBTI 4축 하드코딩 없음 (axisCount 1/2/4 동일 경로 처리 확인)
+- [ ] `qualifierFields` 부재 시 MBTI 기존 동작 회귀 없음 (`parseTypeSegment` + `buildTypeSegment` MBTI 케이스 통과)
+- [ ] `computeScoreStats`가 profile 문항을 scoring 결과에 포함하지 않음 확인
+- [ ] `scale` scoringMode 선언 variant에서 blocking error 확인
 - [ ] storage, UI, 라우팅 의존 없음 (import 트리 검사)
 
 ---
