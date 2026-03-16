@@ -28,6 +28,13 @@
   --interactive-accent-border-strong: color-mix(in srgb, var(--accent-solid) 52%, var(--chip-border));
   --interactive-accent-outline: color-mix(in srgb, var(--accent-solid) 36%, transparent);
   --interactive-accent-shadow: 0 10px 24px color-mix(in srgb, var(--accent-solid) 14%, transparent);
+  --interactive-accent-shadow-hover: 0 14px 30px color-mix(in srgb, var(--accent-solid) 18%, transparent);
+  --landing-answer-hover-bg-top: color-mix(in srgb, var(--accent-solid) 13%, var(--panel-solid));
+  --landing-answer-hover-bg-bottom: color-mix(in srgb, var(--accent-solid) 8%, var(--panel-solid));
+  --landing-answer-hover-border: color-mix(in srgb, var(--accent-solid) 34%, var(--chip-border));
+  --landing-answer-hover-shadow:
+    0 10px 22px color-mix(in srgb, var(--accent-solid) 12%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
   --focus-ring-outer: color-mix(in srgb, var(--accent-solid) 72%, transparent);
   --focus-ring-inner: rgb(255 255 255 / 78%);
   --card-shadow: 0 14px 30px rgb(11 15 22 / 10%);
@@ -61,6 +68,13 @@ html[data-theme='dark'] {
   --panel-solid: #121821;
   --link-ink: #f2f6ff;
   --muted-ink: rgb(239 242 248 / 80%);
+  --interactive-accent-shadow-hover: 0 16px 34px color-mix(in srgb, var(--accent-solid) 26%, transparent);
+  --landing-answer-hover-bg-top: color-mix(in srgb, var(--accent-solid) 20%, var(--panel-solid));
+  --landing-answer-hover-bg-bottom: color-mix(in srgb, var(--accent-solid) 14%, var(--panel-solid));
+  --landing-answer-hover-border: color-mix(in srgb, var(--accent-solid) 42%, var(--chip-border));
+  --landing-answer-hover-shadow:
+    0 12px 28px rgb(0 0 0 / 28%),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 24%, transparent);
   --card-shadow: 0 16px 34px rgb(0 0 0 / 30%);
   --card-shadow-elevated: 0 20px 40px rgb(0 0 0 / 36%);
   --card-shadow-expanded-contact: 0 12px 20px rgb(0 0 0 / 26%);
@@ -342,6 +356,13 @@ a {
   isolation: isolate;
 }
 
+.landing-grid-card[data-expanded-layer='desktop-overlay'],
+.landing-grid-card[data-card-viewport-tier='mobile'][data-mobile-phase='OPEN'],
+.landing-grid-card[data-expanded-layer='mobile-opening-shell'],
+.landing-grid-card[data-expanded-layer='mobile-closing-shell'] {
+  box-shadow: none;
+}
+
 .landing-grid-card:has(:focus-visible) {
   box-shadow:
     0 0 0 3px var(--focus-ring-outer),
@@ -535,7 +556,6 @@ a {
   inset: 0;
   border-radius: var(--landing-card-radius);
   box-shadow:
-    var(--card-shadow-expanded-contact),
     var(--card-shadow-expanded-mid),
     var(--card-shadow-expanded-far);
   pointer-events: none;
@@ -742,8 +762,8 @@ a {
   max-height: calc(100dvh - 116px);
   border-radius: var(--landing-card-radius);
   box-shadow:
-    var(--card-shadow-elevated),
-    0 0 0 1px color-mix(in srgb, var(--surface-divider) 92%, transparent);
+    var(--card-shadow-expanded-mid),
+    var(--card-shadow-expanded-far);
   overflow: hidden;
   pointer-events: none;
   isolation: isolate;
@@ -838,8 +858,7 @@ a {
     border-color 140ms ease,
     background-color 140ms ease,
     box-shadow 140ms ease,
-    color 140ms ease,
-    transform 140ms ease;
+    color 140ms ease;
 }
 
 .landing-grid-card-answer-choice:disabled {
@@ -847,13 +866,16 @@ a {
 }
 
 .landing-grid-card-answer-choice:hover:not(:disabled) {
-  border-color: var(--interactive-neutral-border-strong);
-  background: var(--interactive-neutral-bg-hover);
+  border-color: var(--landing-answer-hover-border);
+  background:
+    linear-gradient(180deg, var(--landing-answer-hover-bg-top), var(--landing-answer-hover-bg-bottom));
+  box-shadow: var(--landing-answer-hover-shadow);
 }
 
 .landing-grid-card-answer-choice:active:not(:disabled) {
   border-color: var(--interactive-accent-border);
   background: var(--interactive-accent-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
 }
 
 .landing-grid-card-answer-choice:focus-visible {
@@ -931,8 +953,7 @@ a {
     border-color 140ms ease,
     background-color 140ms ease,
     box-shadow 140ms ease,
-    color 140ms ease,
-    transform 140ms ease;
+    color 140ms ease;
 }
 
 a.landing-grid-card-primary-cta {
@@ -942,12 +963,16 @@ a.landing-grid-card-primary-cta {
 a.landing-grid-card-primary-cta:hover {
   border-color: var(--interactive-accent-border-strong);
   background: var(--interactive-accent-bg-hover);
-  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px var(--interactive-accent-outline),
+    var(--interactive-accent-shadow-hover);
 }
 
 a.landing-grid-card-primary-cta:active {
   background: var(--interactive-accent-bg-pressed);
-  transform: translateY(0);
+  box-shadow:
+    inset 0 0 0 1px var(--interactive-accent-outline),
+    var(--interactive-accent-shadow);
 }
 
 a.landing-grid-card-primary-cta:focus-visible {
