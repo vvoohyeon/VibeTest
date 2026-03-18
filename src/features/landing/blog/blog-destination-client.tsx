@@ -1,12 +1,10 @@
 'use client';
 
-import {usePathname} from 'next/navigation';
 import {useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {createLandingCatalog} from '@/features/landing/data';
 import type {LandingBlogCard} from '@/features/landing/data/types';
-import {useTelemetryBootstrap} from '@/features/landing/telemetry/runtime';
 import {
   completePendingLandingTransition,
   terminatePendingLandingTransition
@@ -24,9 +22,6 @@ export function BlogDestinationClient({
   selectedLabel,
   allArticlesLabel
 }: BlogDestinationClientProps) {
-  const pathname = usePathname();
-  useTelemetryBootstrap();
-
   const articles = useMemo(
     () =>
       createLandingCatalog(locale).filter(
@@ -49,9 +44,7 @@ export function BlogDestinationClient({
     const pendingTransition = readPendingLandingTransition();
     if (pendingTransition && pendingTransition.targetType !== 'blog') {
       terminatePendingLandingTransition({
-        locale,
-        route: pathname,
-        eventType: 'transition_fail',
+        signal: 'transition_fail',
         resultReason: 'DESTINATION_LOAD_ERROR'
       });
     }
@@ -62,9 +55,7 @@ export function BlogDestinationClient({
     if (!fallbackArticle) {
       if (nextPendingTransition) {
         terminatePendingLandingTransition({
-          locale,
-          route: pathname,
-          eventType: 'transition_fail',
+          signal: 'transition_fail',
           resultReason: 'BLOG_FALLBACK_EMPTY'
         });
       }
@@ -88,7 +79,7 @@ export function BlogDestinationClient({
     queueMicrotask(() => {
       setSelectedArticleId(matchedArticle.id);
     });
-  }, [articles, locale, pathname]);
+  }, [articles, locale]);
 
   useEffect(() => {
     if (selectedArticleId === null || pendingTransitionToCompleteRef.current === null) {
@@ -98,8 +89,6 @@ export function BlogDestinationClient({
     const expectedTransitionId = pendingTransitionToCompleteRef.current;
     const frame = window.requestAnimationFrame(() => {
       const completed = completePendingLandingTransition({
-        locale,
-        route: pathname,
         targetType: 'blog'
       });
 
@@ -111,7 +100,7 @@ export function BlogDestinationClient({
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [locale, pathname, selectedArticleId]);
+  }, [selectedArticleId]);
 
   const selectedArticle = articles.find((candidate) => candidate.id === selectedArticleId) ?? articles[0] ?? null;
 

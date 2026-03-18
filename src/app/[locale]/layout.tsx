@@ -38,7 +38,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messagesByLocale[locale]}>
       <LocaleHtmlLangSync locale={locale} />
-      <TransitionRuntimeMonitor locale={locale} />
+      <TransitionRuntimeMonitor />
       <div data-locale={locale}>{children}</div>
     </NextIntlClientProvider>
   );

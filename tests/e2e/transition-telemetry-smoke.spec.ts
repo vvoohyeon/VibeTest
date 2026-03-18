@@ -1,6 +1,8 @@
 import {expect, test} from '@playwright/test';
 
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
+const LANDING_TRANSITION_SIGNAL_EVENT = 'landing:transition-signal';
+const LANDING_TRANSITION_SIGNAL_STORAGE_KEY = 'vibetest-test-transition-signals';
 const TRANSITION_OVERLAY_READY_DELAY_MS = 180;
 
 function collectForbiddenKeys(value: unknown, trail = ''): string[] {
@@ -10,7 +12,7 @@ function collectForbiddenKeys(value: unknown, trail = ''): string[] {
 
   return Object.entries(value).flatMap(([key, nestedValue]) => {
     const nextTrail = trail ? `${trail}.${key}` : key;
-    const matches = /^(question_text|answer_text|free_input|free_text|email|ip|fingerprint)$/iu.test(key)
+    const matches = /^(question_text|answer_text|free_input|free_text|email|ip|fingerprint|transition_id|result_reason|final_q1_response)$/iu.test(key)
       ? [nextTrail]
       : [];
     return [...matches, ...collectForbiddenKeys(nestedValue, nextTrail)];
@@ -55,13 +57,67 @@ async function expectSourceGnbOverlay(page: import('@playwright/test').Page, des
   await expect(page.locator('.page-shell > .gnb-shell')).toHaveAttribute('data-gnb-context', destinationContext);
 }
 
+async function installTransitionSignalCollector(page: import('@playwright/test').Page) {
+  await page.addInitScript(([eventName, storageKey]) => {
+    const signalStore = (() => {
+      try {
+        const stored = window.sessionStorage.getItem(storageKey);
+        if (!stored) {
+          return [] as Array<Record<string, unknown>>;
+        }
+
+        const parsed = JSON.parse(stored);
+        return Array.isArray(parsed) ? (parsed as Array<Record<string, unknown>>) : [];
+      } catch {
+        return [] as Array<Record<string, unknown>>;
+      }
+    })();
+    const signalWindow = window as unknown as Window & {
+      __landingTransitionSignals?: Array<Record<string, unknown>>;
+    };
+    signalWindow.__landingTransitionSignals = signalStore;
+    const persistSignals = () => {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(signalStore));
+    };
+
+    persistSignals();
+
+    window.addEventListener(eventName, (event) => {
+      if (event instanceof CustomEvent && event.detail && typeof event.detail === 'object') {
+        signalStore.push(event.detail as Record<string, unknown>);
+        persistSignals();
+      }
+    });
+  }, [LANDING_TRANSITION_SIGNAL_EVENT, LANDING_TRANSITION_SIGNAL_STORAGE_KEY] as const);
+}
+
+async function readTransitionSignals(page: import('@playwright/test').Page) {
+  return page.evaluate(
+    () =>
+      (() => {
+        try {
+          const stored = window.sessionStorage.getItem('vibetest-test-transition-signals');
+          if (!stored) {
+            return [] as Array<Record<string, unknown>>;
+          }
+
+          const parsed = JSON.parse(stored);
+          return Array.isArray(parsed) ? (parsed as Array<Record<string, unknown>>) : [];
+        } catch {
+          return [] as Array<Record<string, unknown>>;
+        }
+      })()
+  );
+}
+
 test.describe('Phase 10/11 transition + telemetry smoke', () => {
-  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload landing test transition keeps source GNB until destination-ready and records ingress, attempt_start, and final_submit payload completeness', async ({
+  test('@smoke assertion:B6-transition-ingress assertion:B15-transition-correlation assertion:B18-final-submit-payload landing test transition keeps source GNB until destination-ready and records card_answered, attempt_start, final_submit, and internal transition signals', async ({
     page
   }) => {
     const events: Array<Record<string, unknown>> = [];
 
     await delayDestinationReadyRaf(page);
+    await installTransitionSignalCollector(page);
     await page.addInitScript((storageKey) => {
       window.localStorage.setItem(storageKey, 'OPTED_IN');
     }, TELEMETRY_CONSENT_STORAGE_KEY);
@@ -110,33 +166,46 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(page.getByTestId('test-result-panel')).toBeVisible();
     await expect
-      .poll(() => events.filter((event) => event.event_type !== 'landing_view').length)
-      .toBeGreaterThanOrEqual(4);
+      .poll(() =>
+        events.filter((event) =>
+          ['card_answered', 'attempt_start', 'final_submit'].includes(String(event.event_type ?? ''))
+        ).length
+      )
+      .toBe(3);
 
-    const transitionStart = events.find((event) => event.event_type === 'transition_start');
-    const transitionComplete = events.find((event) => event.event_type === 'transition_complete');
+    const cardAnswered = events.find((event) => event.event_type === 'card_answered');
     const attemptStart = events.find((event) => event.event_type === 'attempt_start');
     const finalSubmit = events.find((event) => event.event_type === 'final_submit');
+    const transitionSignals = await readTransitionSignals(page);
+    const transitionStart = transitionSignals.find((signal) => signal.signal === 'transition_start');
+    const transitionComplete = transitionSignals.find((signal) => signal.signal === 'transition_complete');
 
-    expect(events.filter((event) => event.event_type === 'transition_start')).toHaveLength(1);
-    expect(events.filter((event) => event.event_type === 'transition_complete')).toHaveLength(1);
+    expect(events.filter((event) => event.event_type === 'card_answered')).toHaveLength(1);
     expect(events.filter((event) => event.event_type === 'attempt_start')).toHaveLength(1);
     expect(events.filter((event) => event.event_type === 'final_submit')).toHaveLength(1);
+    expect(events.filter((event) => String(event.event_type ?? '').startsWith('transition_'))).toHaveLength(0);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(1);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_complete')).toHaveLength(1);
 
-    expect(transitionStart?.source_card_id).toBe('test-rhythm-a');
-    expect(transitionStart?.target_route).toBe('/en/test/rhythm-a');
-    expect(transitionComplete?.transition_id).toBe(transitionStart?.transition_id);
+    expect(cardAnswered?.source_card_id).toBe('test-rhythm-a');
+    expect(cardAnswered?.target_route).toBe('/en/test/rhythm-a');
+    expect(cardAnswered?.landing_ingress_flag).toBe(true);
+    expect(transitionStart?.sourceCardId).toBe('test-rhythm-a');
+    expect(transitionStart?.targetRoute).toBe('/en/test/rhythm-a');
+    expect(transitionComplete?.transitionId).toBe(transitionStart?.transitionId);
     expect(attemptStart?.landing_ingress_flag).toBe(true);
     expect(attemptStart?.question_index_1based).toBe(2);
     expect(finalSubmit?.landing_ingress_flag).toBe(true);
     expect(finalSubmit?.question_index_1based).toBe(4);
-    expect(finalSubmit?.final_q1_response).toBe('A');
     expect(finalSubmit?.final_responses).toEqual({
       q1: 'A',
       q2: 'A',
       q3: 'B',
       q4: 'A'
     });
+    expect(finalSubmit).not.toHaveProperty('final_q1_response');
+    expect(finalSubmit).not.toHaveProperty('transition_id');
+    expect(finalSubmit).not.toHaveProperty('result_reason');
     expect(collectForbiddenKeys(finalSubmit)).toEqual([]);
 
     await expect
@@ -146,6 +215,44 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
         )
       )
       .toBe(0);
+  });
+
+  test('@smoke direct /test entry emits attempt_start(question_index_1based=1) without card_answered or internal transition_start', async ({
+    page
+  }) => {
+    const events: Array<Record<string, unknown>> = [];
+
+    await installTransitionSignalCollector(page);
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, 'OPTED_IN');
+    }, TELEMETRY_CONSENT_STORAGE_KEY);
+    await page.route('**/api/telemetry', async (route) => {
+      const payload = route.request().postDataJSON();
+      if (payload && typeof payload === 'object') {
+        events.push(payload as Record<string, unknown>);
+      }
+      await route.fulfill({status: 204, body: ''});
+    });
+
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en/test/rhythm-a');
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
+
+    await page.getByTestId('test-start-button').click();
+
+    await expect
+      .poll(() => events.filter((event) => event.event_type === 'attempt_start').length)
+      .toBe(1);
+
+    const attemptStart = events.find((event) => event.event_type === 'attempt_start');
+    const transitionSignals = await readTransitionSignals(page);
+
+    expect(events.filter((event) => event.event_type === 'card_answered')).toHaveLength(0);
+    expect(events.filter((event) => String(event.event_type ?? '').startsWith('transition_'))).toHaveLength(0);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(0);
+    expect(attemptStart?.question_index_1based).toBe(1);
+    expect(attemptStart?.landing_ingress_flag).toBe(false);
   });
 
   test('@smoke assertion:B6-transition-ingress test route re-entry without ingress falls back to Q1 after start consumes ingress', async ({
@@ -199,7 +306,20 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B15-transition-correlation assertion:B17-return-restore blog transition keeps source GNB until destination-ready and landing return restores scroll once', async ({
     page
   }) => {
+    const events: Array<Record<string, unknown>> = [];
+
     await delayDestinationReadyRaf(page);
+    await installTransitionSignalCollector(page);
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, 'OPTED_IN');
+    }, TELEMETRY_CONSENT_STORAGE_KEY);
+    await page.route('**/api/telemetry', async (route) => {
+      const payload = route.request().postDataJSON();
+      if (payload && typeof payload === 'object') {
+        events.push(payload as Record<string, unknown>);
+      }
+      await route.fulfill({status: 204, body: ''});
+    });
     await page.setViewportSize({width: 1440, height: 720});
     await page.goto('/en');
 
@@ -231,6 +351,12 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expectSourceGnbOverlay(page, 'blog');
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
+    const transitionSignals = await readTransitionSignals(page);
+
+    expect(events.filter((event) => event.event_type === 'card_answered')).toHaveLength(0);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(1);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_complete')).toHaveLength(1);
+
     const savedReturnScroll = await page.evaluate(() =>
       Number(window.sessionStorage.getItem('vibetest-landing-return-scroll-y') ?? '0')
     );
@@ -603,40 +729,27 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   });
 
   test('@smoke assertion:B16-timeout stale pending transitions fail closed on non-destination routes', async ({page}) => {
-    const events: Array<Record<string, unknown>> = [];
-
+    await installTransitionSignalCollector(page);
     await page.addInitScript(
-      ([consentKey, pendingTransition]) => {
-        window.localStorage.setItem(consentKey, 'OPTED_IN');
+      (pendingTransition) => {
         window.sessionStorage.setItem('vibetest-landing-pending-transition', JSON.stringify(pendingTransition));
       },
-      [
-        TELEMETRY_CONSENT_STORAGE_KEY,
-        {
-          transitionId: 'transition-timeout-1',
-          eventId: 'event-timeout-1',
-          sourceCardId: 'test-rhythm-a',
-          targetRoute: '/en/test/rhythm-a',
-          targetType: 'test',
-          startedAtMs: Date.now(),
-          variant: 'rhythm-a',
-          preAnswerChoice: 'A'
-        }
-      ] as const
-    );
-    await page.route('**/api/telemetry', async (route) => {
-      const payload = route.request().postDataJSON();
-      if (payload && typeof payload === 'object') {
-        events.push(payload as Record<string, unknown>);
+      {
+        transitionId: 'transition-timeout-1',
+        sourceCardId: 'test-rhythm-a',
+        targetRoute: '/en/test/rhythm-a',
+        targetType: 'test',
+        startedAtMs: Date.now(),
+        variant: 'rhythm-a',
+        preAnswerChoice: 'A'
       }
-      await route.fulfill({status: 204, body: ''});
-    });
+    );
 
     await page.goto('/en/history');
     await expectSourceGnbOverlay(page, 'history');
 
     await expect
-      .poll(() => events.find((event) => event.event_type === 'transition_fail')?.result_reason ?? null)
+      .poll(async () => (await readTransitionSignals(page)).find((signal) => signal.signal === 'transition_fail')?.resultReason ?? null)
       .toBe('DESTINATION_TIMEOUT');
     await expect(page.getByTestId('landing-transition-source-gnb')).toHaveCount(0);
     await expect
@@ -647,38 +760,25 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   test('@smoke assertion:B16-destination-load-error mismatched destination routes rollback pending transition state', async ({
     page
   }) => {
-    const events: Array<Record<string, unknown>> = [];
-
+    await installTransitionSignalCollector(page);
     await page.addInitScript(
-      ([consentKey, pendingTransition]) => {
-        window.localStorage.setItem(consentKey, 'OPTED_IN');
+      (pendingTransition) => {
         window.sessionStorage.setItem('vibetest-landing-pending-transition', JSON.stringify(pendingTransition));
       },
-      [
-        TELEMETRY_CONSENT_STORAGE_KEY,
-        {
-          transitionId: 'transition-load-error-1',
-          eventId: 'event-load-error-1',
-          sourceCardId: 'blog-build-metrics',
-          targetRoute: '/en/blog',
-          targetType: 'blog',
-          startedAtMs: Date.now(),
-          blogArticleId: 'build-metrics'
-        }
-      ] as const
-    );
-    await page.route('**/api/telemetry', async (route) => {
-      const payload = route.request().postDataJSON();
-      if (payload && typeof payload === 'object') {
-        events.push(payload as Record<string, unknown>);
+      {
+        transitionId: 'transition-load-error-1',
+        sourceCardId: 'blog-build-metrics',
+        targetRoute: '/en/blog',
+        targetType: 'blog',
+        startedAtMs: Date.now(),
+        blogArticleId: 'build-metrics'
       }
-      await route.fulfill({status: 204, body: ''});
-    });
+    );
 
     await page.goto('/en/test/rhythm-a');
 
     await expect
-      .poll(() => events.find((event) => event.event_type === 'transition_fail')?.result_reason ?? null)
+      .poll(async () => (await readTransitionSignals(page)).find((signal) => signal.signal === 'transition_fail')?.resultReason ?? null)
       .toBe('DESTINATION_LOAD_ERROR');
     await expect(page.getByTestId('landing-transition-source-gnb')).toHaveCount(0);
     await expect
@@ -687,39 +787,26 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
   });
 
   test('@smoke assertion:B16-user-cancel landing remount cancels stale pending transitions without leaks', async ({page}) => {
-    const events: Array<Record<string, unknown>> = [];
-
+    await installTransitionSignalCollector(page);
     await page.addInitScript(
-      ([consentKey, pendingTransition]) => {
-        window.localStorage.setItem(consentKey, 'OPTED_IN');
+      (pendingTransition) => {
         window.sessionStorage.setItem('vibetest-landing-pending-transition', JSON.stringify(pendingTransition));
       },
-      [
-        TELEMETRY_CONSENT_STORAGE_KEY,
-        {
-          transitionId: 'transition-user-cancel-1',
-          eventId: 'event-user-cancel-1',
-          sourceCardId: 'test-rhythm-a',
-          targetRoute: '/en/test/rhythm-a',
-          targetType: 'test',
-          startedAtMs: Date.now(),
-          variant: 'rhythm-a',
-          preAnswerChoice: 'A'
-        }
-      ] as const
-    );
-    await page.route('**/api/telemetry', async (route) => {
-      const payload = route.request().postDataJSON();
-      if (payload && typeof payload === 'object') {
-        events.push(payload as Record<string, unknown>);
+      {
+        transitionId: 'transition-user-cancel-1',
+        sourceCardId: 'test-rhythm-a',
+        targetRoute: '/en/test/rhythm-a',
+        targetType: 'test',
+        startedAtMs: Date.now(),
+        variant: 'rhythm-a',
+        preAnswerChoice: 'A'
       }
-      await route.fulfill({status: 204, body: ''});
-    });
+    );
 
     await page.goto('/en');
 
     await expect
-      .poll(() => events.find((event) => event.event_type === 'transition_cancel')?.result_reason ?? null)
+      .poll(async () => (await readTransitionSignals(page)).find((signal) => signal.signal === 'transition_cancel')?.resultReason ?? null)
       .toBe('USER_CANCEL');
     await expect
       .poll(() => page.evaluate(() => window.sessionStorage.getItem('vibetest-landing-pending-transition')))

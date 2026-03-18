@@ -22,6 +22,7 @@ function read(relativePath) {
 
 const requiredFiles = [
   'src/features/landing/transition/runtime.ts',
+  'src/features/landing/transition/signals.ts',
   'src/features/landing/transition/use-landing-transition.ts',
   'src/features/landing/landing-runtime.tsx',
   'src/features/landing/test/test-question-client.tsx',
@@ -43,8 +44,12 @@ if (fileExists('src/features/landing/transition/runtime.ts')) {
     fail('Transition runtime must persist pending transition state and return scrollY.');
   }
 
-  if (!/writeLandingIngress/u.test(runtimeFile) || !/trackTransitionStart/u.test(runtimeFile)) {
-    fail('Transition runtime must persist landing ingress and emit transition_start.');
+  if (!/writeLandingIngress/u.test(runtimeFile) || !/trackCardAnswered/u.test(runtimeFile)) {
+    fail('Transition runtime must persist landing ingress and emit card_answered for test ingress.');
+  }
+
+  if (!/emitLandingTransitionSignal/u.test(runtimeFile) || /trackTransitionStart/u.test(runtimeFile)) {
+    fail('Transition runtime must use the internal transition signal channel instead of transition_* telemetry.');
   }
 
   if (!/completePendingLandingTransition/u.test(runtimeFile) || !/terminatePendingLandingTransition/u.test(runtimeFile)) {
@@ -62,6 +67,10 @@ if (fileExists('src/features/landing/test/test-question-client.tsx')) {
   if (!/trackAttemptStart/u.test(questionClient) || !/trackFinalSubmit/u.test(questionClient)) {
     fail('Test question client must emit attempt_start and final_submit.');
   }
+
+  if (/fallbackTransitionId/u.test(questionClient) || /runtimeState\.transitionId/u.test(questionClient)) {
+    fail('Test question client must not depend on fallback/runtime transitionId state.');
+  }
 }
 
 if (fileExists('src/features/landing/blog/blog-destination-client.tsx')) {
@@ -69,16 +78,21 @@ if (fileExists('src/features/landing/blog/blog-destination-client.tsx')) {
   if (!/completePendingLandingTransition/u.test(blogClient) || !/BLOG_FALLBACK_EMPTY/u.test(blogClient)) {
     fail('Blog destination client must complete transitions and handle empty fallback closure.');
   }
+
+  if (/useTelemetryBootstrap/u.test(blogClient)) {
+    fail('Blog destination client must not bootstrap telemetry directly.');
+  }
 }
 
 if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
   const e2eSpec = read('tests/e2e/transition-telemetry-smoke.spec.ts');
   if (
+    !/card_answered/u.test(e2eSpec) ||
     !/attempt_start/u.test(e2eSpec) ||
     !/final_submit/u.test(e2eSpec) ||
     !/landing return restores scroll once/u.test(e2eSpec)
   ) {
-    fail('Transition smoke must cover attempt_start, final_submit, and one-shot scroll restoration.');
+    fail('Transition smoke must cover card_answered, attempt_start, final_submit, and one-shot scroll restoration.');
   }
 
   if (!/assertion:B14-mobile-close-perception/u.test(e2eSpec)) {
@@ -96,6 +110,10 @@ if (fileExists('tests/e2e/transition-telemetry-smoke.spec.ts')) {
 
   if (!/landing-transition-source-gnb/u.test(e2eSpec) || !/assertion:B15-transition-correlation/u.test(e2eSpec)) {
     fail('Transition smoke must cover source GNB overlay visibility and destination-ready swap timing.');
+  }
+
+  if (!/__landingTransitionSignals/u.test(e2eSpec) || !/LANDING_TRANSITION_SIGNAL_EVENT/u.test(e2eSpec)) {
+    fail('Transition smoke must collect internal transition signals alongside public telemetry.');
   }
 
   if (

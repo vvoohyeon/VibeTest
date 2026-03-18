@@ -1,8 +1,8 @@
 # 랜딩페이지 구현 계획
 
 ## 0. 문서 목적 및 기준 문서
-- 목적: `docs/req-landing-final.md`의 요구사항을 구현 가능한 실행 계획으로 재구성하고, 구현 순서/책임 경계/검증/릴리스 판정을 단일 문서로 고정한다.
-- 최상위 기준: `docs/req-landing-final.md`.
+- 목적: `docs/req-landing.md`의 요구사항을 구현 가능한 실행 계획으로 재구성하고, 구현 순서/책임 경계/검증/릴리스 판정을 단일 문서로 고정한다.
+- 최상위 기준: `docs/req-landing.md`.
 - 보조 흡수: `docs/dev-plan-landing.md`의 유효 내용만 선별 반영.
 - 문서 사용 원칙:
 1. 요구사항과 충돌 시 요구사항 우선.
@@ -38,7 +38,7 @@
 
 ### 1.4 경로 표면
 1. `/{locale}`.
-2. `/{locale}/test/[variant]/question`.
+2. `/{locale}/test/[variant]`.
 3. `/{locale}/blog`.
 4. `/{locale}/history`.
 
@@ -81,7 +81,7 @@
 | Keyboard Mode | `Tab/Shift+Tab` 기반 탐색 모드 |
 | Landing Ingress Flag | Q1/Q2 시작 문항 판단의 유일 근거 |
 | Question Index | UI/Telemetry 1-based 고정 |
-| Transition Correlation | `transition_id` 단위 `start=1`, terminal 1회 |
+| Transition Correlation | internal `transitionId` 단위 `start=1`, terminal 1회 |
 
 ### 2.4 모호성 처리
 - 단일 해석 불가 시 릴리스 중단 후 옵션/선택 근거를 문서에 고정한다.
@@ -111,7 +111,7 @@
 - `src/proxy.ts`는 locale 해석/리다이렉트/allowlist 분기만 담당한다.
 - localized request pass-through 시에는 root document semantics용 request locale header를 함께 주입한다.
 - `/` 처리: cookie -> Accept-Language -> defaultLocale.
-- locale-less allowlist: `/blog`, `/history`, `/test/[variant]/question`.
+- locale-less allowlist: `/blog`, `/history`, `/test/[variant]`.
 - allowlist 외 locale-less 경로는 locale 주입 금지 + global unmatched 404.
 - duplicate locale prefix는 비정상 경로로 global unmatched 404.
 - `middleware.ts` 도입은 Section 15 예외 등록 후에만 허용.
@@ -276,14 +276,14 @@
 - `UNKNOWN/OPTED_OUT`는 전송 금지(유예 큐 저장 가능).
 - V1 텔레메트리 이벤트: `landing_view`, `card_answered`(ingress 경로 전용), `attempt_start`, `final_submit`.
 - `attempt_start` 발화 시점: ingress 경로 Q2 제시, 직접 진입 Q1 제시.
-- `transition_complete`/`transition_fail`/`transition_cancel`은 내부 시스템 신호. 텔레메트리 전송 제외.
+- `transition_start`/`transition_complete`/`transition_fail`/`transition_cancel`은 내부 시스템 신호. 텔레메트리 전송 제외.
 - transition correlation(`start=1`, terminal=1) 규칙은 내부 시스템 로직으로만 유지.
 - `result_reason` enum은 내부 시스템 신호 전용. 텔레메트리 payload 불포함.
 - 필수 공통 필드: `event_id`, `session_id`, `ts_ms`, `locale`, `route`, `consent_state`.
 - `card_answered` 추가 필수 필드: `source_card_id`, `target_route`, `landing_ingress_flag(=true)`.
 - `attempt_start` 추가 필수 필드: `landing_ingress_flag`, `question_index_1based`.
 - payload 금지: 원문 질문/답변, 자유입력 텍스트, PII/지문성 식별자.
-- `final_submit` 필수: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`, `final_q1_response`.
+- `final_submit` 필수: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`.
 - fixture + adapter 강제:
 1. Test 4+, Blog 3+, unavailable Test 2+, unavailable Blog 0.
 2. long text/empty tags/debug/sample 포함.
@@ -389,9 +389,7 @@
 - `transition_start`/`transition_complete`/`transition_fail`/`transition_cancel`은 텔레메트리 제외. 내부 시스템 신호로만 유지한다. `card_answered`는 위 신호와 독립적인 사용자 행위 이벤트다.
 - `attempt_start` 발화 시점: ingress 경로 Q2 제시, 직접 진입 Q1 제시.
 - payload 금지 필드 위반은 즉시 릴리스 차단이다.
-- 전체 제품 글로벌 최소 이벤트 중 V1 미수집 항목(단계별 발화):
-  1. `question_answered`: Test Flow 단계. 문항 응답 시 반복 발화. `questionIndex`(1-based), `totalQuestions` 필수.
-  2. `result_viewed`: Result Flow 단계. 결과 페이지의 필수 콘텐츠(`derived_type` 블록)가 뷰포트에 진입한 시점에 1회 발화(Intersection Observer, 발화 즉시 disconnect).
+- `question_answered`, `result_viewed`는 다음 Phase reserved subset이며 이번 변경셋의 구현/QA 게이트 범위에 포함하지 않는다.
 
 ### 6.3 동의/익명 ID 계약
 - `UNKNOWN -> OPTED_IN | OPTED_OUT` 상태기계 고정.

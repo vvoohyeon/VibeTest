@@ -1,11 +1,9 @@
 'use client';
 
 import type {AppLocale} from '@/config/site';
-import {
-  trackTransitionStart,
-  trackTransitionTerminal,
-  createCorrelationId
-} from '@/features/landing/telemetry/runtime';
+import {createCorrelationId} from '@/features/landing/lib/correlation-id';
+import {trackCardAnswered} from '@/features/landing/telemetry/runtime';
+import {emitLandingTransitionSignal} from '@/features/landing/transition/signals';
 import {
   clearPendingLandingTransition,
   readPendingLandingTransition,
@@ -34,7 +32,6 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
   const transitionId = createCorrelationId('transition');
   const pendingTransition: PendingLandingTransition = {
     transitionId,
-    eventId: createCorrelationId('transition-start'),
     sourceCardId: input.sourceCardId,
     targetRoute: input.targetRoute,
     targetType: input.targetType,
@@ -53,15 +50,20 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
     writeLandingIngress({
       variant: input.variant,
       preAnswerChoice: input.preAnswerChoice,
-      transitionId,
       createdAtMs: pendingTransition.startedAtMs,
       landingIngressFlag: true
     });
+
+    trackCardAnswered({
+      locale: input.locale,
+      route: input.route,
+      sourceCardId: input.sourceCardId,
+      targetRoute: input.targetRoute
+    });
   }
 
-  trackTransitionStart({
-    locale: input.locale,
-    route: input.route,
+  emitLandingTransitionSignal({
+    signal: 'transition_start',
     transitionId,
     sourceCardId: input.sourceCardId,
     targetRoute: input.targetRoute
@@ -69,9 +71,7 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
 
   if (DUPLICATE_LOCALE_PATH_PATTERN.test(input.targetRoute)) {
     terminatePendingLandingTransition({
-      locale: input.locale,
-      route: input.route,
-      eventType: 'transition_fail',
+      signal: 'transition_fail',
       resultReason: 'DUPLICATE_LOCALE'
     });
     return null;
@@ -81,8 +81,6 @@ export function beginLandingTransition(input: BeginLandingTransitionInput): Pend
 }
 
 export function completePendingLandingTransition(input: {
-  locale: AppLocale;
-  route: string;
   targetType: 'test' | 'blog';
 }): PendingLandingTransition | null {
   const pendingTransition = readPendingLandingTransition();
@@ -90,10 +88,8 @@ export function completePendingLandingTransition(input: {
     return null;
   }
 
-  trackTransitionTerminal({
-    eventType: 'transition_complete',
-    locale: input.locale,
-    route: input.route,
+  emitLandingTransitionSignal({
+    signal: 'transition_complete',
     transitionId: pendingTransition.transitionId,
     sourceCardId: pendingTransition.sourceCardId,
     targetRoute: pendingTransition.targetRoute
@@ -103,9 +99,7 @@ export function completePendingLandingTransition(input: {
 }
 
 export function terminatePendingLandingTransition(input: {
-  locale: AppLocale;
-  route: string;
-  eventType: 'transition_fail' | 'transition_cancel';
+  signal: 'transition_fail' | 'transition_cancel';
   resultReason: LandingTransitionResultReason;
 }): PendingLandingTransition | null {
   const pendingTransition = readPendingLandingTransition();
@@ -113,10 +107,8 @@ export function terminatePendingLandingTransition(input: {
     return null;
   }
 
-  trackTransitionTerminal({
-    eventType: input.eventType,
-    locale: input.locale,
-    route: input.route,
+  emitLandingTransitionSignal({
+    signal: input.signal,
     transitionId: pendingTransition.transitionId,
     sourceCardId: pendingTransition.sourceCardId,
     targetRoute: pendingTransition.targetRoute,

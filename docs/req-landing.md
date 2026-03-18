@@ -830,7 +830,8 @@
 1. ingress flag 존재 시 즉시 시작 + Q2 진입
 2. ingress flag 부재 시 Q1 진입
 - 사용자는 테스트 중 Q1을 재수정할 수 있다.
-- staged entry 만료(A/B 선택 시점으로부터 7분 경과)는 commit failure로 처리되며, pre-answer 롤백 대상에 포함된다 (§13.6 QA 케이스 4, Test Flow Requirements §2.5 참조).
+- staged entry 만료(A/B 선택 시점으로부터 7분 경과)와 commit-failure UX는 다음 Phase(Test Flow Requirements) 범위다.
+- 이번 Phase에서는 ingress save/read/consume/rollback 계약만 release-blocking으로 유지한다.
 
 ### 13.5 Instruction Contract
 **Rule**: instruction 노출/재노출/입력차단 규칙을 아래와 같이 고정한다.
@@ -855,7 +856,7 @@
 1. 랜딩 CTA 직후 사용자 취소(뒤로가기/중단)
 2. locale duplicate 실패
 3. 목적지 라우트 진입 실패(타임아웃/로드 실패)
-4. staged entry 만료(A/B 선택 시점으로부터 7분 경과) 후 commit 시도 — pre-answer 롤백 및 Commit-failure Error State(Test Flow Requirements §5.6) 처리 확인
+- staged entry 만료/commit-failure 시나리오는 다음 Phase에서 Test Flow Requirements와 함께 별도 게이트로 다룬다.
 
 ### 13.7 Question Dwell Time
 **Rule**: dwell time은 포그라운드 여부와 무관하게 누적 계산한다.
@@ -905,7 +906,7 @@
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
 15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_card_id`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
 Test Flow Requirements §11.2 Blocker #28과 연동하며, 연계 검증 단언은 동일 픽스처를 공유해야 한다.
-16. Rollback Cleanup Closure: fail/cancel 4케이스에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
+16. Rollback Cleanup Closure: fail/cancel 3케이스(사용자 취소, locale duplicate, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
 18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses` 포함, Q1~QN 전 문항 맵) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
 19. Traceability Closure: Section 14.3 모든 블로킹 항목이 최소 1개 이상의 자동 단언과 매핑되어야 하며, 미매핑 `0건` PASS (Section 14.4).

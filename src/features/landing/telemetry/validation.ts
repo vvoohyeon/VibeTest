@@ -2,6 +2,7 @@ import type {TelemetryConsentState, TelemetryEvent} from '@/features/landing/tel
 
 const FORBIDDEN_FIELD_PATTERN =
   /^(question_text|answer_text|free_input|free_text|email|ip|fingerprint)$/iu;
+const LEGACY_FORBIDDEN_FIELD_PATTERN = /^(transition_id|result_reason|final_q1_response)$/u;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -43,6 +44,9 @@ function assertNoForbiddenFields(value: unknown): void {
     if (FORBIDDEN_FIELD_PATTERN.test(key)) {
       throw new Error(`Forbidden telemetry field detected: ${key}`);
     }
+    if (LEGACY_FORBIDDEN_FIELD_PATTERN.test(key)) {
+      throw new Error(`Legacy telemetry field detected: ${key}`);
+    }
     assertNoForbiddenFields(nestedValue);
   }
 }
@@ -53,49 +57,38 @@ export function validateTelemetryEvent(event: TelemetryEvent): TelemetryEvent {
   assertNoForbiddenFields(event);
 
   switch (event.event_type) {
-    case 'transition_start':
-      if (!event.transition_id.trim() || !event.source_card_id.trim() || !event.target_route.trim()) {
-        throw new Error('transition_start requires transition_id, source_card_id, and target_route.');
-      }
-      break;
-    case 'transition_complete':
-      if (!event.transition_id.trim() || !event.source_card_id.trim() || !event.target_route.trim()) {
-        throw new Error('transition_complete requires transition correlation fields.');
-      }
-      break;
-    case 'transition_fail':
-    case 'transition_cancel':
+    case 'card_answered':
       if (
-        !event.transition_id.trim() ||
         !event.source_card_id.trim() ||
         !event.target_route.trim() ||
-        !event.result_reason
+        !event.target_route.startsWith('/') ||
+        event.landing_ingress_flag !== true
       ) {
-        throw new Error(`${event.event_type} requires transition correlation fields and result_reason.`);
+        throw new Error('card_answered requires source_card_id, target_route, and landing_ingress_flag=true.');
       }
       break;
     case 'attempt_start':
       if (
-        !event.transition_id.trim() ||
         !event.variant.trim() ||
         !Number.isFinite(event.question_index_1based) ||
         event.question_index_1based < 1 ||
         !Number.isFinite(event.dwell_ms_accumulated) ||
-        event.dwell_ms_accumulated < 0
+        event.dwell_ms_accumulated < 0 ||
+        typeof event.landing_ingress_flag !== 'boolean'
       ) {
-        throw new Error('attempt_start requires transition_id, variant, 1-based question index, and dwell.');
+        throw new Error('attempt_start requires variant, 1-based question index, dwell, and landing_ingress_flag.');
       }
       break;
     case 'final_submit':
       if (
-        !event.transition_id.trim() ||
         !event.variant.trim() ||
         !Number.isFinite(event.question_index_1based) ||
         event.question_index_1based < 1 ||
         !Number.isFinite(event.dwell_ms_accumulated) ||
-        event.dwell_ms_accumulated < 0
+        event.dwell_ms_accumulated < 0 ||
+        typeof event.landing_ingress_flag !== 'boolean'
       ) {
-        throw new Error('final_submit requires transition_id, variant, 1-based question index, and dwell.');
+        throw new Error('final_submit requires variant, 1-based question index, dwell, and landing_ingress_flag.');
       }
 
       if (!isPlainObject(event.final_responses) || Object.keys(event.final_responses).length === 0) {
@@ -106,10 +99,6 @@ export function validateTelemetryEvent(event: TelemetryEvent): TelemetryEvent {
         if (response !== 'A' && response !== 'B') {
           throw new Error('final_submit responses must use semantic A/B codes only.');
         }
-      }
-
-      if (event.final_q1_response !== 'A' && event.final_q1_response !== 'B') {
-        throw new Error('final_submit requires final_q1_response.');
       }
       break;
     default:

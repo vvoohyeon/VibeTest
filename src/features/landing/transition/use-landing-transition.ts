@@ -1,6 +1,5 @@
 'use client';
 
-import type {Route} from 'next';
 import {useCallback} from 'react';
 import {usePathname, useRouter} from 'next/navigation';
 
@@ -37,7 +36,7 @@ export function useLandingTransition({locale, onTransitionStart}: UseLandingTran
       }
 
       onTransitionStart?.(card.id);
-      router.push(targetRoute as Route);
+      router.push(targetRoute);
       return true;
     },
     [locale, onTransitionStart, pathname, router]
@@ -60,7 +59,7 @@ export function useLandingTransition({locale, onTransitionStart}: UseLandingTran
       }
 
       onTransitionStart?.(card.id);
-      router.push(targetRoute as Route);
+      router.push(targetRoute);
       return true;
     },
     [locale, onTransitionStart, pathname, router]

@@ -1,6 +1,5 @@
 'use client';
 
-import type {Route} from 'next';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
@@ -316,7 +315,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
       closeSettingsImmediate();
       clearMobileMenuCloseTimer();
       setMobileMenuState('closed');
-      router.push(buildLocalizedPath(currentRoute, nextLocale) as Route);
+      router.push(buildLocalizedPath(currentRoute, nextLocale));
     },
     [clearMobileMenuCloseTimer, closeSettingsImmediate, currentRoute, locale, router]
   );

@@ -71,9 +71,7 @@ export function LandingRuntime({locale}: LandingRuntimeProps) {
     }
 
     terminatePendingLandingTransition({
-      locale,
-      route: pathname,
-      eventType: 'transition_cancel',
+      signal: 'transition_cancel',
       resultReason: 'USER_CANCEL'
     });
   }, [locale, pathname]);

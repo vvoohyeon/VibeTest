@@ -2,6 +2,11 @@
 
 import type {AppLocale} from '@/config/site';
 import {
+  createCorrelationId,
+  createOpaqueId,
+  resetCorrelationIdCounterForTests
+} from '@/features/landing/lib/correlation-id';
+import {
   ensureTelemetryConsentSourceSync,
   getTelemetryConsentSnapshot,
   resetTelemetryConsentSourceForTests,
@@ -13,15 +18,13 @@ import {
 } from '@/features/landing/telemetry/consent-source';
 import type {
   AttemptStartTelemetryEvent,
+  CardAnsweredTelemetryEvent,
   FinalSubmitTelemetryEvent,
   TelemetryBaseEvent,
   TelemetryConsentState,
-  TelemetryEvent,
-  TransitionStartTelemetryEvent,
-  TransitionTerminalTelemetryEvent
+  TelemetryEvent
 } from '@/features/landing/telemetry/types';
 import {patchTelemetryEventForTransport, validateTelemetryEvent} from '@/features/landing/telemetry/validation';
-import type {LandingTransitionResultReason} from '@/features/landing/transition/store';
 
 const TELEMETRY_ENDPOINT = '/api/telemetry';
 const TELEMETRY_SESSION_ID_STORAGE_KEY = 'vibetest-telemetry-session-id';
@@ -36,19 +39,13 @@ interface TelemetryRuntimeState {
   sessionId: string | null;
   queue: TelemetryEvent[];
   sentLandingViews: Set<string>;
-  sentTransitionStarts: Set<string>;
-  sentTransitionTerminals: Set<string>;
 }
 
 const runtimeState: TelemetryRuntimeState = {
   sessionId: null,
   queue: [],
-  sentLandingViews: new Set(),
-  sentTransitionStarts: new Set(),
-  sentTransitionTerminals: new Set()
+  sentLandingViews: new Set()
 };
-
-let fallbackCorrelationCounter = 0;
 
 function getLocalStorage(): Storage | null {
   if (typeof window === 'undefined') {
@@ -62,23 +59,6 @@ function getLocalStorage(): Storage | null {
   }
 }
 
-function resolveRandomUuid(): string | null {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID();
-  }
-
-  if (typeof globalThis.crypto?.getRandomValues !== 'function') {
-    return null;
-  }
-
-  const bytes = new Uint8Array(16);
-  globalThis.crypto.getRandomValues(bytes);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
 function resolveSessionId(): string | null {
   const storage = getLocalStorage();
   const stored = storage?.getItem(TELEMETRY_SESSION_ID_STORAGE_KEY)?.trim() ?? '';
@@ -86,7 +66,7 @@ function resolveSessionId(): string | null {
     return stored;
   }
 
-  const nextSessionId = resolveRandomUuid();
+  const nextSessionId = createOpaqueId();
   if (!nextSessionId) {
     return null;
   }
@@ -213,16 +193,6 @@ export function setTelemetryConsentState(nextState: Exclude<TelemetryConsentStat
   return getTelemetrySnapshot();
 }
 
-export function createCorrelationId(prefix: string): string {
-  const randomId = resolveRandomUuid();
-  if (randomId) {
-    return `${prefix}-${randomId}`;
-  }
-
-  fallbackCorrelationCounter += 1;
-  return `${prefix}-fallback-${fallbackCorrelationCounter}`;
-}
-
 export function getTelemetrySnapshot(): TelemetrySnapshot {
   const consentSnapshot = getTelemetryConsentSnapshot();
 
@@ -241,9 +211,7 @@ export function resetTelemetryRuntimeForTests(): void {
   runtimeState.sessionId = null;
   runtimeState.queue = [];
   runtimeState.sentLandingViews.clear();
-  runtimeState.sentTransitionStarts.clear();
-  runtimeState.sentTransitionTerminals.clear();
-  fallbackCorrelationCounter = 0;
+  resetCorrelationIdCounterForTests();
 
   resetTelemetryConsentSourceForTests();
 
@@ -274,55 +242,23 @@ export function trackLandingView(input: {locale: AppLocale; route: string}): Tel
   return enqueueOrSend(createBaseEvent({...input, eventType: 'landing_view'}));
 }
 
-export function trackTransitionStart(input: {
+export function trackCardAnswered(input: {
   locale: AppLocale;
   route: string;
-  transitionId: string;
   sourceCardId: string;
   targetRoute: string;
-}): TransitionStartTelemetryEvent | null {
-  if (runtimeState.sentTransitionStarts.has(input.transitionId)) {
-    return null;
-  }
-
-  runtimeState.sentTransitionStarts.add(input.transitionId);
-
+}): CardAnsweredTelemetryEvent {
   return enqueueOrSend({
-    ...createBaseEvent({...input, eventType: 'transition_start'}),
-    transition_id: input.transitionId,
-    source_card_id: input.sourceCardId,
-    target_route: input.targetRoute
-  } satisfies TransitionStartTelemetryEvent) as TransitionStartTelemetryEvent;
-}
-
-export function trackTransitionTerminal(input: {
-  eventType: TransitionTerminalTelemetryEvent['event_type'];
-  locale: AppLocale;
-  route: string;
-  transitionId: string;
-  sourceCardId: string;
-  targetRoute: string;
-  resultReason?: LandingTransitionResultReason;
-}): TransitionTerminalTelemetryEvent | null {
-  if (runtimeState.sentTransitionTerminals.has(input.transitionId)) {
-    return null;
-  }
-
-  runtimeState.sentTransitionTerminals.add(input.transitionId);
-
-  return enqueueOrSend({
-    ...createBaseEvent({...input, eventType: input.eventType}),
-    transition_id: input.transitionId,
+    ...createBaseEvent({...input, eventType: 'card_answered'}),
     source_card_id: input.sourceCardId,
     target_route: input.targetRoute,
-    result_reason: input.resultReason
-  } satisfies TransitionTerminalTelemetryEvent) as TransitionTerminalTelemetryEvent;
+    landing_ingress_flag: true
+  } satisfies CardAnsweredTelemetryEvent) as CardAnsweredTelemetryEvent;
 }
 
 export function trackAttemptStart(input: {
   locale: AppLocale;
   route: string;
-  transitionId: string;
   variant: string;
   questionIndex: number;
   dwellMsAccumulated: number;
@@ -330,7 +266,6 @@ export function trackAttemptStart(input: {
 }): AttemptStartTelemetryEvent {
   return enqueueOrSend({
     ...createBaseEvent({...input, eventType: 'attempt_start'}),
-    transition_id: input.transitionId,
     variant: input.variant,
     question_index_1based: input.questionIndex,
     dwell_ms_accumulated: input.dwellMsAccumulated,
@@ -341,22 +276,18 @@ export function trackAttemptStart(input: {
 export function trackFinalSubmit(input: {
   locale: AppLocale;
   route: string;
-  transitionId: string;
   variant: string;
   questionIndex: number;
   dwellMsAccumulated: number;
   landingIngressFlag: boolean;
   finalResponses: Record<string, 'A' | 'B'>;
-  finalQ1Response: 'A' | 'B';
 }): FinalSubmitTelemetryEvent {
   return enqueueOrSend({
     ...createBaseEvent({...input, eventType: 'final_submit'}),
-    transition_id: input.transitionId,
     variant: input.variant,
     question_index_1based: input.questionIndex,
     dwell_ms_accumulated: input.dwellMsAccumulated,
     landing_ingress_flag: input.landingIngressFlag,
-    final_responses: input.finalResponses,
-    final_q1_response: input.finalQ1Response
+    final_responses: input.finalResponses
   } satisfies FinalSubmitTelemetryEvent) as FinalSubmitTelemetryEvent;
 }

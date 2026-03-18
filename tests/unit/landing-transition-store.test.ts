@@ -47,7 +47,6 @@ describe('landing transition store', () => {
     installDom();
     writePendingLandingTransition({
       transitionId: 'transition-1',
-      eventId: 'event-1',
       sourceCardId: 'test-rhythm-a',
       targetRoute: '/en/test/rhythm-a',
       targetType: 'test',
@@ -87,7 +86,6 @@ describe('landing transition store', () => {
 
     writePendingLandingTransition({
       transitionId: 'transition-1',
-      eventId: 'event-1',
       sourceCardId: 'test-rhythm-a',
       targetRoute: '/en/test/rhythm-a',
       targetType: 'test',
@@ -98,7 +96,6 @@ describe('landing transition store', () => {
     writeLandingIngress({
       variant: 'rhythm-a',
       preAnswerChoice: 'A',
-      transitionId: 'transition-1',
       createdAtMs: 1,
       landingIngressFlag: true
     });

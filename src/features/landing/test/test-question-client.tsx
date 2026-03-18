@@ -6,7 +6,7 @@ import {useTranslations} from 'next-intl';
 import {useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {useTelemetryBootstrap, trackAttemptStart, trackFinalSubmit, createCorrelationId} from '@/features/landing/telemetry/runtime';
+import {trackAttemptStart, trackFinalSubmit} from '@/features/landing/telemetry/runtime';
 import {
   completePendingLandingTransition,
   terminatePendingLandingTransition
@@ -33,7 +33,6 @@ interface QuestionRuntimeState {
   ready: boolean;
   instructionVisible: boolean;
   landingIngressFlag: boolean;
-  transitionId: string;
   currentQuestionIndex: number;
   answers: Record<string, 'A' | 'B'>;
 }
@@ -48,14 +47,12 @@ function buildInitialRuntimeState(): QuestionRuntimeState {
     ready: false,
     instructionVisible: true,
     landingIngressFlag: false,
-    transitionId: '',
     currentQuestionIndex: 1,
     answers: {}
   };
 }
 
 export function resolveQuestionBootstrapState(input: {
-  fallbackTransitionId: string;
   instructionSeen: boolean;
   landingIngress: LandingIngressRecord | null;
   pendingTransition: PendingLandingTransition | null;
@@ -68,15 +65,12 @@ export function resolveQuestionBootstrapState(input: {
       ? input.pendingTransition
       : null;
   const landingIngressFlag = input.landingIngress !== null;
-  const transitionId =
-    matchingPendingTransition?.transitionId ?? input.landingIngress?.transitionId ?? input.fallbackTransitionId;
 
   return {
     runtimeState: {
       ready: true,
       instructionVisible: !input.instructionSeen,
       landingIngressFlag,
-      transitionId,
       currentQuestionIndex: landingIngressFlag ? 2 : 1,
       answers: input.landingIngress ? {q1: input.landingIngress.preAnswerChoice} : {}
     },
@@ -87,7 +81,6 @@ export function resolveQuestionBootstrapState(input: {
 export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
   const t = useTranslations('test');
   const pathname = usePathname();
-  useTelemetryBootstrap();
 
   const questions = useMemo(() => buildLandingTestQuestionBank(locale, variant), [locale, variant]);
   const [runtimeState, setRuntimeState] = useState<QuestionRuntimeState>(buildInitialRuntimeState);
@@ -111,9 +104,7 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     const pendingTransition = readPendingLandingTransition();
     if (pendingTransition && (pendingTransition.targetType !== 'test' || pendingTransition.variant !== variant)) {
       terminatePendingLandingTransition({
-        locale,
-        route: pathname,
-        eventType: 'transition_fail',
+        signal: 'transition_fail',
         resultReason: 'DESTINATION_LOAD_ERROR'
       });
     }
@@ -122,7 +113,6 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     const landingIngress = readLandingIngress(variant);
     const instructionSeen = hasSeenInstruction(variant);
     const bootstrapState = resolveQuestionBootstrapState({
-      fallbackTransitionId: createCorrelationId(`attempt-${variant}`),
       instructionSeen,
       landingIngress,
       pendingTransition: nextPendingTransition,
@@ -146,8 +136,6 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     const expectedTransitionId = pendingTransitionToCompleteRef.current;
     const frame = window.requestAnimationFrame(() => {
       const completed = completePendingLandingTransition({
-        locale,
-        route: pathname,
         targetType: 'test'
       });
 
@@ -170,7 +158,6 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     trackAttemptStart({
       locale,
       route: pathname,
-      transitionId: runtimeState.transitionId,
       variant,
       questionIndex: runtimeState.currentQuestionIndex,
       dwellMsAccumulated: 0,
@@ -191,7 +178,6 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     runtimeState.instructionVisible,
     runtimeState.landingIngressFlag,
     runtimeState.ready,
-    runtimeState.transitionId,
     variant
   ]);
 
@@ -270,13 +256,11 @@ export function TestQuestionClient({locale, variant}: TestQuestionClientProps) {
     trackFinalSubmit({
       locale,
       route: pathname,
-      transitionId: runtimeState.transitionId,
       variant,
       questionIndex: totalQuestions,
       dwellMsAccumulated,
       landingIngressFlag: runtimeState.landingIngressFlag,
-      finalResponses,
-      finalQ1Response
+      finalResponses
     });
     setSubmitted(true);
   };

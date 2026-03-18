@@ -6,7 +6,8 @@ import {
   beginLandingTransition,
   terminatePendingLandingTransition
 } from '../../src/features/landing/transition/runtime';
-import {readPendingLandingTransition} from '../../src/features/landing/transition/store';
+import {LANDING_TRANSITION_SIGNAL_EVENT} from '../../src/features/landing/transition/signals';
+import {readLandingIngress, readPendingLandingTransition} from '../../src/features/landing/transition/store';
 
 const TELEMETRY_CONSENT_STORAGE_KEY = 'vibetest-telemetry-consent';
 
@@ -54,11 +55,18 @@ describe('landing transition runtime', () => {
     uninstallDom();
   });
 
-  it('emits start=1 and terminal=1 for cancel paths and clears pending state', () => {
+  it('emits internal start=1 and terminal=1 for cancel paths and clears pending state', () => {
+    const signals: Array<Record<string, unknown>> = [];
+    window.addEventListener(LANDING_TRANSITION_SIGNAL_EVENT, ((event: Event) => {
+      if (event instanceof window.CustomEvent) {
+        signals.push(event.detail as Record<string, unknown>);
+      }
+    }) as EventListener);
+
     const pending = beginLandingTransition({
       locale: 'en',
       route: '/en',
-      sourceCardId: 'test-rhythm-a',
+      sourceCardId: 'blog-build-metrics',
       targetType: 'blog',
       targetRoute: '/en/blog',
       blogArticleId: 'build-metrics'
@@ -68,52 +76,56 @@ describe('landing transition runtime', () => {
     expect(readPendingLandingTransition()?.transitionId).toBe(pending?.transitionId);
 
     const terminal = terminatePendingLandingTransition({
-      locale: 'en',
-      route: '/en',
-      eventType: 'transition_cancel',
+      signal: 'transition_cancel',
       resultReason: 'USER_CANCEL'
     });
 
     expect(terminal?.transitionId).toBe(pending?.transitionId);
     expect(readPendingLandingTransition()).toBeNull();
-    expect(fetch).toHaveBeenCalledTimes(2);
-
-    const [startCall, terminalCall] = vi.mocked(fetch).mock.calls;
-    const startPayload = JSON.parse(String(startCall?.[1]?.body ?? '{}'));
-    const terminalPayload = JSON.parse(String(terminalCall?.[1]?.body ?? '{}'));
-
-    expect(startPayload.event_type).toBe('transition_start');
-    expect(terminalPayload.event_type).toBe('transition_cancel');
-    expect(terminalPayload.transition_id).toBe(startPayload.transition_id);
-    expect(terminalPayload.result_reason).toBe('USER_CANCEL');
+    expect(fetch).not.toHaveBeenCalled();
+    expect(signals.map((signal) => signal.signal)).toEqual(['transition_start', 'transition_cancel']);
+    expect(signals[0]?.sourceCardId).toBe('blog-build-metrics');
+    expect(signals[1]?.transitionId).toBe(signals[0]?.transitionId);
+    expect(signals[1]?.resultReason).toBe('USER_CANCEL');
 
     const secondTerminal = terminatePendingLandingTransition({
-      locale: 'en',
-      route: '/en',
-      eventType: 'transition_cancel',
+      signal: 'transition_cancel',
       resultReason: 'USER_CANCEL'
     });
     expect(secondTerminal).toBeNull();
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(signals).toHaveLength(2);
   });
 
-  it('fails duplicate-locale target routes immediately without leaking pending transition state', () => {
+  it('keeps card_answered public telemetry while duplicate-locale test ingress fails closed internally', () => {
+    const signals: Array<Record<string, unknown>> = [];
+    window.addEventListener(LANDING_TRANSITION_SIGNAL_EVENT, ((event: Event) => {
+      if (event instanceof window.CustomEvent) {
+        signals.push(event.detail as Record<string, unknown>);
+      }
+    }) as EventListener);
+
     const pending = beginLandingTransition({
       locale: 'en',
       route: '/en',
-      sourceCardId: 'blog-build-metrics',
-      targetType: 'blog',
-      targetRoute: '/en/en/blog',
-      blogArticleId: 'build-metrics'
+      sourceCardId: 'test-rhythm-a',
+      targetType: 'test',
+      targetRoute: '/en/en/test/rhythm-a',
+      variant: 'rhythm-a',
+      preAnswerChoice: 'A'
     });
 
     expect(pending).toBeNull();
     expect(readPendingLandingTransition()).toBeNull();
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(readLandingIngress('rhythm-a')).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(signals.map((signal) => signal.signal)).toEqual(['transition_start', 'transition_fail']);
+    expect(signals[1]?.resultReason).toBe('DUPLICATE_LOCALE');
 
-    const [, failCall] = vi.mocked(fetch).mock.calls;
-    const failPayload = JSON.parse(String(failCall?.[1]?.body ?? '{}'));
-    expect(failPayload.event_type).toBe('transition_fail');
-    expect(failPayload.result_reason).toBe('DUPLICATE_LOCALE');
+    const [cardAnsweredCall] = vi.mocked(fetch).mock.calls;
+    const cardAnsweredPayload = JSON.parse(String(cardAnsweredCall?.[1]?.body ?? '{}'));
+    expect(cardAnsweredPayload.event_type).toBe('card_answered');
+    expect(cardAnsweredPayload.source_card_id).toBe('test-rhythm-a');
+    expect(cardAnsweredPayload.target_route).toBe('/en/en/test/rhythm-a');
+    expect(cardAnsweredPayload.landing_ingress_flag).toBe(true);
   });
 });

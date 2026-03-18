@@ -25,6 +25,7 @@ function readJson(relativePath) {
 }
 
 const requiredFiles = [
+  'src/features/landing/lib/correlation-id.ts',
   'src/features/landing/telemetry/runtime.ts',
   'src/features/landing/telemetry/validation.ts',
   'src/app/api/telemetry/route.ts',
@@ -54,24 +55,41 @@ for (const relativePath of requiredFiles) {
 
 if (fileExists('src/features/landing/telemetry/runtime.ts')) {
   const runtimeFile = read('src/features/landing/telemetry/runtime.ts');
+  const correlationIdFile = fileExists('src/features/landing/lib/correlation-id.ts')
+    ? read('src/features/landing/lib/correlation-id.ts')
+    : '';
 
   if (!/UNKNOWN/u.test(runtimeFile) || !/OPTED_OUT/u.test(runtimeFile) || !/OPTED_IN/u.test(runtimeFile)) {
     fail('Telemetry runtime must encode the consent state machine.');
   }
 
-  if (!/randomUUID/u.test(runtimeFile) || !/getRandomValues/u.test(runtimeFile)) {
-    fail('Telemetry runtime must prefer randomUUID -> getRandomValues for anonymous IDs.');
+  if (!/randomUUID/u.test(correlationIdFile) || !/getRandomValues/u.test(correlationIdFile)) {
+    fail('Correlation ID utilities must prefer randomUUID -> getRandomValues for anonymous IDs.');
   }
 
-  if (!/trackLandingView/u.test(runtimeFile) || !/trackTransitionStart/u.test(runtimeFile) || !/trackFinalSubmit/u.test(runtimeFile)) {
-    fail('Telemetry runtime must expose V1 event helpers.');
+  if (
+    !/trackLandingView/u.test(runtimeFile) ||
+    !/trackCardAnswered/u.test(runtimeFile) ||
+    !/trackAttemptStart/u.test(runtimeFile) ||
+    !/trackFinalSubmit/u.test(runtimeFile)
+  ) {
+    fail('Telemetry runtime must expose landing_view, card_answered, attempt_start, and final_submit helpers.');
+  }
+
+  if (/trackTransitionStart/u.test(runtimeFile) || /trackTransitionTerminal/u.test(runtimeFile)) {
+    fail('Telemetry runtime must not expose transition_* network helpers.');
   }
 }
 
 if (fileExists('src/features/landing/telemetry/validation.ts')) {
   const validationFile = read('src/features/landing/telemetry/validation.ts');
-  if (!/Forbidden telemetry field/u.test(validationFile) || !/final_responses/u.test(validationFile)) {
-    fail('Telemetry validation must reject forbidden fields and require final_responses completeness.');
+  if (
+    !/Forbidden telemetry field/u.test(validationFile) ||
+    !/Legacy telemetry field/u.test(validationFile) ||
+    !/card_answered/u.test(validationFile) ||
+    !/final_responses/u.test(validationFile)
+  ) {
+    fail('Telemetry validation must reject forbidden/legacy fields, validate card_answered, and require final_responses completeness.');
   }
 }
 

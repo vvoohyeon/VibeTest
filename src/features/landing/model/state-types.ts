@@ -21,8 +21,8 @@ export const transitionTerminalResults = ['complete', 'fail', 'cancel'] as const
 export type TransitionTerminalResult = (typeof transitionTerminalResults)[number];
 
 export interface TransitionCorrelation {
+  signal: 'transition_start' | 'transition_complete' | 'transition_fail' | 'transition_cancel';
   transitionId: string;
-  eventId: string;
   sourceCardId: string;
   targetRoute: string;
   resultReason?: string;

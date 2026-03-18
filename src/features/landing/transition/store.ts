@@ -8,7 +8,6 @@ export type LandingTransitionResultReason =
 
 export interface PendingLandingTransition {
   transitionId: string;
-  eventId: string;
   sourceCardId: string;
   targetRoute: string;
   targetType: 'test' | 'blog';
@@ -21,7 +20,6 @@ export interface PendingLandingTransition {
 export interface LandingIngressRecord {
   variant: string;
   preAnswerChoice: 'A' | 'B';
-  transitionId: string;
   createdAtMs: number;
   landingIngressFlag: true;
 }

@@ -269,15 +269,9 @@ The current global telemetry minimum baseline MUST be aligned to the active land
 The product-wide minimum required events are:
 
 - `landing_view` — Landing phase
+- `card_answered` — Landing phase, ingress path only. Fires when the user selects an A/B answer on a landing test card. MUST NOT fire on direct-entry paths.
 - `attempt_start` — Test Flow phase
-- `question_answered` — Test Flow phase; per-question, fires on every answer
 - `final_submit` — Test Flow phase
-- `result_viewed` — Result Flow phase; fires when the mandatory result content block (`derived_type`) first enters the user's viewport (Intersection Observer; disconnects after first fire)
-
-#### Domain-specific minimum extension
-Landing defines the following domain-specific events. These are not part of the product-wide global minimum:
-
-- `card_answered` — Landing phase, ingress path only. Fires when the user selects an A/B answer on a landing test card. MUST NOT fire on direct-entry paths. See Landing Requirements §12.1, §12.2 for required fields.
 
 #### Internal system signals (not telemetry)
 The following signals drive internal state-machine transitions (transition integrity, rollback boundary control, GNB swap timing). They are explicitly excluded from telemetry transmission and MUST NOT appear in any analytics payload:
@@ -290,6 +284,8 @@ The following signals drive internal state-machine transitions (transition integ
 #### Reserved future subsets
 The following events are RESERVED for future phase-specific adoption and MUST NOT be treated as part of the current global minimum baseline:
 
+- `question_answered`
+- `result_viewed`
 - `instruction_view`
 - `instruction_start_click`
 - `share_clicked`
@@ -299,10 +295,12 @@ The following events are RESERVED for future phase-specific adoption and MUST NO
 If a lower-trust global document and an active landing/test SSOT differ, the active SSOT takes precedence for current implementation and QA gating.
 
 - **Payload requirements (non-PII):**
-  - MUST include `sessionId` and `testVariantId` on every event.
-  - For `question_answered`, MUST include `questionIndex` (1-based, consistent and documented) and `totalQuestions`.
-  - `questionIndex` MUST NOT vary by locale/language and MUST be computed from the active variant’s question order.
-  - For abandonment analytics, reporting MUST derive the “last answered question index” as the maximum observed `questionIndex` per session.
+  - Every public telemetry event MUST include `event_id`, `ts_ms`, `locale`, `route`, and `consent_state`.
+  - `session_id` is transport-patched when consent/session are available; queued pre-sync events may originate with `session_id=null` before transport patching.
+  - `card_answered` MUST include `source_card_id`, `target_route`, and `landing_ingress_flag=true`.
+  - `attempt_start` and `final_submit` MUST include `variant`, `question_index_1based`, `dwell_ms_accumulated`, and `landing_ingress_flag`.
+  - `final_submit` MUST include `final_responses` using semantic `A|B` codes only.
+  - `transition_id`, `result_reason`, and `final_q1_response` are reserved for internal transition logic and MUST NOT appear in public telemetry payloads.
 - **Confidence:** High
 
 ### REQ-F-017 — Tracking data retention
