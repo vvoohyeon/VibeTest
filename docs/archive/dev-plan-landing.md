@@ -1,4 +1,4 @@
-# [개선된 구현 계획 문서 제목]
+# 랜딩페이지 구현 계획
 
 ## 0. 문서 목적 및 기준 문서
 - 목적: `docs/req-landing-final.md`의 요구사항을 구현 가능한 실행 계획으로 재구성하고, 구현 순서/책임 경계/검증/릴리스 판정을 단일 문서로 고정한다.
@@ -61,7 +61,7 @@
 | underfilled 마지막 row | 6.2, 14.3 |
 | Desktop hover-out collapse | 8.2, 14.3 |
 | Mobile title baseline | 8.5, 14.3 |
-| terminal 이벤트 시점/상호배타/필수필드 | 8.6, 12.1, 12.2, 13.3, 13.6, 14.3 |
+| card_answered/attempt_start 발화 시점·필수필드 | 12.1, 12.2, 13.3, 14.3 |
 | fail/cancel cleanup set | 13.3, 13.6, 14.3 |
 | missing-slot(tags empty) | 6.7, 13.1, 14.3 |
 | `final_submit` payload schema | 12.2, 12.3, 13.7, 14.3 |
@@ -91,8 +91,13 @@
 
 ### 2.5 이번 확정 반영(2026-03-06)
 1. Blog fallback: `/{locale}/blog`로 이동 후 첫 번째 유효 article 사용.
-2. `result_reason` 코드 체계: 고정 enum.
+2. result_reason 코드 체계: 내부 시스템 신호 전용 enum으로 재분류. 텔레메트리 payload 불포함.
 3. destination-ready: 라우트 진입 + 목적지 필수 컨텍스트 준비 완료 동시 만족.
+
+### 2.6 이번 확정 반영(2026-03-18)
+1. `transition_start` → `card_answered`: 텔레메트리 이벤트명을 사용자 행위 중심으로 변경.
+2. `transition_complete`/`transition_fail`/`transition_cancel` 텔레메트리 제거: 내부 시스템 신호로만 유지.
+3. `attempt_start` 발화 시점 확정: ingress 경로 Q2 문항 제시, 직접 진입 Q1 문항 제시.
 
 ## 3. 요구사항 기반 핵심 아키텍처 결정
 ### 3.1 전역 불변식
@@ -269,18 +274,14 @@
 - 최소 이벤트셋만 수집.
 - `OPTED_IN`에서만 네트워크 전송.
 - `UNKNOWN/OPTED_OUT`는 전송 금지(유예 큐 저장 가능).
-- transition correlation: `start=1`, terminal 1회(`complete|fail|cancel`).
-- `transition_complete`는 destination-ready 이후만 허용.
+- V1 텔레메트리 이벤트: `landing_view`, `card_answered`(ingress 경로 전용), `attempt_start`, `final_submit`.
+- `attempt_start` 발화 시점: ingress 경로 Q2 제시, 직접 진입 Q1 제시.
+- `transition_complete`/`transition_fail`/`transition_cancel`은 내부 시스템 신호. 텔레메트리 전송 제외.
+- transition correlation(`start=1`, terminal=1) 규칙은 내부 시스템 로직으로만 유지.
+- `result_reason` enum은 내부 시스템 신호 전용. 텔레메트리 payload 불포함.
 - 필수 공통 필드: `event_id`, `session_id`, `ts_ms`, `locale`, `route`, `consent_state`.
-- 전환 필수 필드: `transition_id`, `source_card_id`, `target_route`, `result_reason`.
-- `result_reason` 고정 enum:
-1. `USER_CANCEL`.
-2. `DUPLICATE_LOCALE`.
-3. `DESTINATION_TIMEOUT`.
-4. `DESTINATION_LOAD_ERROR`.
-5. `BLOG_FALLBACK_EMPTY`.
-6. `UNKNOWN`.
-- `transition_cancel`은 `USER_CANCEL`만 허용.
+- `card_answered` 추가 필수 필드: `source_card_id`, `target_route`, `landing_ingress_flag(=true)`.
+- `attempt_start` 추가 필수 필드: `landing_ingress_flag`, `question_index_1based`.
 - payload 금지: 원문 질문/답변, 자유입력 텍스트, PII/지문성 식별자.
 - `final_submit` 필수: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`, `final_q1_response`.
 - fixture + adapter 강제:
@@ -384,9 +385,13 @@
 
 ### 6.2 텔레메트리 계약
 - V1 최소 이벤트셋만 수집한다.
-- correlation 규칙(`start=1`, terminal 1회)과 필수 필드를 강제한다.
-- `result_reason`은 고정 enum만 허용한다.
+- V1 이벤트: `landing_view`, `card_answered`(ingress 경로 전용), `attempt_start`, `final_submit`.
+- `transition_start`/`transition_complete`/`transition_fail`/`transition_cancel`은 텔레메트리 제외. 내부 시스템 신호로만 유지한다. `card_answered`는 위 신호와 독립적인 사용자 행위 이벤트다.
+- `attempt_start` 발화 시점: ingress 경로 Q2 제시, 직접 진입 Q1 제시.
 - payload 금지 필드 위반은 즉시 릴리스 차단이다.
+- 전체 제품 글로벌 최소 이벤트 중 V1 미수집 항목(단계별 발화):
+  1. `question_answered`: Test Flow 단계. 문항 응답 시 반복 발화. `questionIndex`(1-based), `totalQuestions` 필수.
+  2. `result_viewed`: Result Flow 단계. 결과 페이지의 필수 콘텐츠(`derived_type` 블록)가 뷰포트에 진입한 시점에 1회 발화(Intersection Observer, 발화 즉시 disconnect).
 
 ### 6.3 동의/익명 ID 계약
 - `UNKNOWN -> OPTED_IN | OPTED_OUT` 상태기계 고정.
@@ -443,7 +448,7 @@
 | 12 Underfilled Row | 시작측 정렬 유지, 폭 확장 0 |
 | 13 Hover-out Independence | 최신 경계 판정, single timer+token, source/target 분리 |
 | 14 Mobile Baseline | title baseline 0, y-anchor 0, queue-close, terminal 선행조건 |
-| 15 Terminal Correlation | `start=1`, terminal 1회, complete ready 이후, reason 필수 |
+| 15 Card-to-Attempt Field Integrity | `card_answered` 필수 필드 포함, `attempt_start` `question_index_1based` ingress=2/직접=1, `landing_ingress_flag` 일관성 |
 | 16 Rollback Closure | fail/cancel 3케이스 cleanup set 누수 0 |
 | 17 Return Restoration | 저장시점/1회복원/즉시consume/중복0 |
 | 18 Final Payload | 필수필드 누락 0, raw text/PII 0 |
@@ -478,7 +483,7 @@
 | handoff source/target 분리 | target까지 0ms 적용 | source 전용 0ms 규칙 강제 | #13 |
 | mobile lifecycle atomicity | OPENING↔CLOSING 역전 | 단방향 lifecycle + queue-close/closing-ignore | #6,#14 |
 | hydration determinism | SSR/CSR 분기, warning 발생 | 초기 렌더 금지 API 차단 + 로그 게이트 + SSR `html lang` smoke | #1 |
-| telemetry terminal correlation | terminal 누락/중복 | `start=1`/terminal 1회 강제 | #15 |
+| telemetry card_answered/attempt_start field integrity | 필수 필드 누락, `question_index` 오류, `landing_ingress_flag` 불일치 | `card_answered`·`attempt_start` 필수 필드 강제 + `question_index` 발화 시점 단언 | #15 |
 | rollback cleanup closure | state/lock/flag/body lock 누수 | cleanup set 전체 원자 정리 | #16 |
 | return restoration | 중복 복원, stale scroll | 저장/복원/consume 시점 고정 | #17 |
 | traceability closure | 매핑 공백/stale reference | 매핑 스크립트 필수화 | #19 |

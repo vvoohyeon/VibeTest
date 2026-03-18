@@ -64,7 +64,10 @@
 
 ### 2.1 Core Entities
 
-- **Attempt**: 랜딩 카드 A/B 선택 시점에 시작되는 시도 단위. telemetry `attempt_start`와 대응한다. Active run의 시작과 같지 않다.
+- **Attempt**: 랜딩 카드 A/B 선택 시점에 시작되는 시도 단위(도메인 개념).
+  telemetry `attempt_start` 이벤트 발화 시점과 동일하지 않다.
+  `attempt_start`는 test runtime이 실제로 시작되는 시점(Q1 또는 Q2 제시)에 발화한다.
+  ingress 경로에서는 `card_answered`가 시도 의도 기록을 담당한다.
 - **Staged Entry**: landing ingress 전용의 임시 진입 상태. provisional Q1 pre-answer, ingress flag, unconsumed entry marker를 포함한다. A/B 선택 시점으로부터 7분 후 만료된다. 상세 계약은 §2.5 참조.
 - **Test Variant**: 사용자가 실행하는 테스트 단위. identifier, scoring schema, axis model, question set, result content 지원 범위를 가진다.
 - **Session / Run Context**: instruction → question runtime → result까지 이어지는 실행 문맥.
@@ -871,22 +874,27 @@ cleanup은 해당 variant 범위에만 영향을 준다.
 이번 단계에서 telemetry는 **hook 자리(skeleton)만 확보**한다. 이벤트 계약, payload schema, correlation 계약은 포함하지 않는다.
 
 skeleton으로 확보해야 할 hook 위치:
-1. 랜딩 카드 A/B 선택 시점 (`attempt_start` 대응) + 블로그카드 Read more CTA 선택 시점
-2. instruction 완료 후 test runtime 진입 시점 (Start 버튼 클릭 → question runtime 전환 = runtime entry commit)
-3. question 답변 시점 (문항별)
-4. test 완료 확정 시점 (result screen entry commit)
-5. result 페이지 진입 시점
+1. 랜딩 카드 A/B 선택 시점 (`card_answered` 대응, ingress 경로 전용)
+   + 블로그 카드 Read more CTA 선택 시점
+2. instruction 완료 후 test runtime 진입 시점 (`attempt_start` 대응)
+   (Start 버튼 클릭 → question runtime 전환 = runtime entry commit)
+3. question 답변 시점 (`question_answered` 대응, 문항별)
+   ingress 경로: Q2부터 발화. Q1은 landing 단계 `card_answered`로 기록됨.
+   direct 경로: Q1부터 발화.
+4. test 완료 확정 시점 (`final_submit` 대응, result screen entry commit)
+5. result 필수 콘텐츠(`derived_type` 블록) 뷰포트 진입 시점
+   (`result_viewed` 대응, Intersection Observer 1회 발화 후 disconnect)
 6. user-visible error render 시점
 
 ### 8.2 다음 Phase 구현 의무 (MANDATORY)
 
 > **⚠️ 다음 Phase 구현 착수 전에 아래 항목을 완료해야 한다. 생략하고 그 다음 단계로 진행하는 것을 금지한다.**
 
-1. 최소 이벤트셋 계약: `question_answered`, `final_submit`, `result_viewed`, `attempt_start`
-2. Transition correlation 계약: `start=1`, `terminal=1` 상호배타 (`req-landing-final.md §12.2` 기준)
-3. Consent gate 연결: `OPTED_IN` 기준 전송 게이트를 question/result flow에 연결
-4. Payload 경계 계약: 원문 질문/답변 텍스트, PII 배제, `questionIndex` 1-based 고정
-5. Result 페이지 케이스 3 분기 완성: history 구현 후 local storage 매칭 로직 추가
+1. 최소 이벤트셋 계약:
+- Landing phase 완료 이벤트 (이번 단계 재구현 불필요, 계약 계승 확인 의무):`landing_view`, `card_answered`(ingress 경로 전용)
+- 이번 단계 구현 의무: `attempt_start`, `question_answered`, `final_submit`, `result_viewed`
+- `attempt_start.question_index_1based`: ingress=2, direct=1. 경로별 비대칭은 의도된 설계이며 문서화된 계약이다.
+- `question_answered` 발화 범위: ingress 경로에서는 Q2부터 발화한다. Q1 응답은 landing 단계 `card_answered`에서 기록되며, 세션당 `question_answered` 총 카운트는 경로에 따라 N-1(ingress) 또는 N(direct)이다. 이탈 분석 시 이 비대칭을 고려해야 한다.
 
 > **이 항목들이 완성되지 않은 상태에서 share, history, admin 구현을 시작하면 telemetry 데이터 신뢰성을 보장할 수 없다.**
 

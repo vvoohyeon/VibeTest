@@ -268,14 +268,19 @@ The current global telemetry minimum baseline MUST be aligned to the active land
 #### Current global minimum
 The product-wide minimum required events are:
 
-- `landing_view`
-- `attempt_start`
-- `question_answered`
-- `final_submit`
-- `result_viewed`
+- `landing_view` — Landing phase
+- `attempt_start` — Test Flow phase
+- `question_answered` — Test Flow phase; per-question, fires on every answer
+- `final_submit` — Test Flow phase
+- `result_viewed` — Result Flow phase; fires when the mandatory result content block (`derived_type`) first enters the user's viewport (Intersection Observer; disconnects after first fire)
 
 #### Domain-specific minimum extension
-Landing MAY define additional minimum events for transition integrity. These landing-specific events are not part of the product-wide global minimum:
+Landing defines the following domain-specific events. These are not part of the product-wide global minimum:
+
+- `card_answered` — Landing phase, ingress path only. Fires when the user selects an A/B answer on a landing test card. MUST NOT fire on direct-entry paths. See Landing Requirements §12.1, §12.2 for required fields.
+
+#### Internal system signals (not telemetry)
+The following signals drive internal state-machine transitions (transition integrity, rollback boundary control, GNB swap timing). They are explicitly excluded from telemetry transmission and MUST NOT appear in any analytics payload:
 
 - `transition_start`
 - `transition_complete`

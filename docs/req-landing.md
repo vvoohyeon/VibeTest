@@ -719,22 +719,27 @@
 - 목적: 랜딩→진입 안정성 + 테스트 시도/제출 최소 지표.
 - 클라이언트 텔레메트리 네트워크 전송은 `consent_state=OPTED_IN`에서만 허용한다.
 - `OPTED_OUT/UNKNOWN`에서는 클라이언트 이벤트를 로컬 큐에 보관할 수 있으나 네트워크 전송은 금지한다.
-- V1 필수 이벤트: `landing_view` 1회, `transition_start` 1회, `transition_complete|transition_fail|transition_cancel` 중 1회(상호배타), `attempt_start` 1회, `final_submit` 1회.
+- V1 필수 이벤트:
+  - `landing_view`: 1회.
+  - `card_answered`: 1회. 랜딩 카드 A/B 선택 시점에 발화하며, 랜딩 ingress 경로에서만 발생한다. 직접 진입 경로에서는 발화하지 않는다.
+  - `attempt_start`: 1회. ingress 경로에서는 Q2 문항 제시 시점에, 직접 진입 경로에서는 Q1 문항 제시 시점에 발화한다.
+  - `final_submit`: 1회.
+- `transition_start`, `transition_complete`, `transition_fail`, `transition_cancel`은 내부 시스템 신호로만 유지하며 텔레메트리 전송 대상에서 제외한다. `card_answered`는 사용자 행위 기반 이벤트이며 위 내부 신호와 독립적으로 동작한다.
 - 기본 미수집: `scroll`, `hover`, `expanded/tap 토글`, `tilt/조명 상호작용`, `unavailable hover/tap 시도`.
 
-### 12.2 Transition Correlation & Required Fields
-**Rule**: 전환 이벤트는 상관키 일관성과 중복 방지 규칙을 준수해야 한다.
-- `TRANSITIONING` 상태에서 중복 start를 금지한다.
-- `transition_id` 기준 이벤트 수는 `start=1`, `terminal(complete|fail|cancel)=1`로 고정한다.
-- 시작된 전환은 반드시 `complete|fail|cancel` 중 하나로 종료되어야 하며 terminal 중복을 금지한다.
-- `transition_complete`는 destination ready(목적지 라우트 진입 완료 + 목적지 컨텍스트 확정) 이후에만 허용한다.
-- `event_id`와 `transition_id` 매칭은 필수다.
+### 12.2 Required Fields per Telemetry Event
+**Rule**: 텔레메트리 이벤트별 필수 필드는 아래와 같이 고정한다.
+- 공통 필수 필드(모든 전송 이벤트): `event_id`, `session_id`, `ts_ms(UTC)`, `locale`, `route`, `consent_state`.
+- `card_answered` 추가 필수 필드: `source_card_id`, `target_route`, `landing_ingress_flag`.
+  - `source_card_id`는 선택이 발생한 카드의 식별자다.
+  - `target_route`는 진입 예정 테스트 variant 경로다.
+  - `landing_ingress_flag`는 `true`로 고정한다.
+- `attempt_start` 추가 필수 필드: `landing_ingress_flag`, `question_index_1based`.
+  - ingress 경로: `landing_ingress_flag=true`, `question_index_1based=2`.
+  - 직접 진입 경로: `landing_ingress_flag=false`, `question_index_1based=1`.
+- `final_submit` 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`, `final_responses`, `final_q1_response`.
 - 상관키 생성 실패 시 세션 카운터 기반 대체키를 허용한다.
-- 공통 필수 필드(전송 이벤트 기준): `event_id`, `session_id`, `ts_ms(UTC)`, `locale`, `route`, `consent_state`.
-- 전환 필수 필드: `transition_id`, `source_card_id`, `target_route`, `result_reason(실패/취소 시)`.
-- `transition_fail`/`transition_cancel`은 `result_reason` 필수다.
-- 조기 return/중단 여부와 무관하게 시작된 전환은 terminal 이벤트로 반드시 종료되어야 한다.
-- 테스트 필수 필드: `variant`, `question_index_1based`, `dwell_ms_accumulated`, `landing_ingress_flag`.
+- `transition_id`, `result_reason` 필드는 내부 시스템 로직 전용이며 텔레메트리 payload에 포함하지 않는다.
 
 ### 12.3 Payload Boundaries
 **Rule**: 텔레메트리 payload는 의미 코드 중심으로 제한한다.
@@ -807,6 +812,7 @@
 - 실패/취소 시 pre-answer 및 pending 상태를 롤백해야 한다.
 - 실패/취소 cleanup set은 pre-answer, ingress flag, pending transition/state, interaction lock, body lock, queued close 상태를 모두 포함해야 하며 부분 정리를 금지한다.
 - fail/cancel/rollback 계약은 모바일 CTA 우선순위 보완 여부와 무관하게 항상 동일하게 유지해야 한다.
+- `transition_complete`, `transition_fail`, `transition_cancel`은 내부 시스템 신호로 rollback 경계 및 GNB 교체 시점을 결정한다. 텔레메트리 전송 대상이 아니다.
 
 ### 13.4 Test Q1 Pre-answer & Instruction Start Rule
 **Rule**: Q1 pre-answer와 시작 문항 결정은 ingress flag 기준으로만 판단한다.
@@ -895,7 +901,7 @@
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 available 카드 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
-15. Transition Terminal Correlation: 각 `transition_id`에서 `start=1`, `terminal=1` 상호배타, `transition_complete` destination-ready 이후 발생, fail/cancel `result_reason` 필수 PASS (Section 12.2, 13.3).
+15. Card-to-Attempt Field Integrity: `card_answered` payload의 `source_card_id`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS (Section 12.1, 12.2).
 16. Rollback Cleanup Closure: fail/cancel 4케이스에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
 18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses`, `final_q1_response` 포함) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).
