@@ -1,25 +1,26 @@
 # Test Flow 구현 계획
 
 > **기준 문서**: `docs/req-test.md` (이하 요구사항)  
-> **구성**: Phase 전체 요약 → Phase 1 세부 계획 → Phase 2 예비 요약  
+> **구성**: Phase 전체 요약 → Phase 1 세부 계획 → Phase 3 예비 요약  
 > **원칙**: 이 문서만으로 구현 착수 가능 수준. 구현 방식 결정은 구현자 재량이며, 요구사항이 명시한 계약과 검증 기준을 충족하는 한 어떤 접근도 허용.
 
 ---
 
-## Part 1 — 전체 Phase 요약 (10 Phases)
+## Part 1 — 전체 Phase 요약 (11 Phases)
 
 | Phase | 핵심 목표 | 주요 산출물 | 전제 Phase |
 |---|---|---|---|
 | **1** | Domain Foundation | 타입 정의, schema-driven 도출 모델, pure 함수 | — |
-| **2** | Storage · Session Lifecycle · Data Volatility | storage 추상 레이어, active run 판정, 5개 상태 플래그, 3가지 휘발 트리거 | 1 |
-| **3** | Entry Path · Staged Entry · Invalid Variant Recovery | 3-경로 분류기, staged entry lifecycle, 에러 복구 페이지 | 1, 2 |
-| **4** | Instruction Gate · Runtime Entry Commit | instruction overlay (비-라우트), `instructionSeen` lifecycle, commit 도메인 이벤트 | 1, 2, 3 |
-| **5** | Question Runtime Core | 응답 루프, tail reset, result-entry eligibility 즉시 반영 | 1, 2, 3, 4 |
-| **6** | Derivation · Loading Screen | scoreStats/derivedType 계산, 5초 최소 로딩 AND 조건, back-from-loading | 1, 2, 5 |
-| **7** | Result URL Payload · Validation | URL 구조, base64 인코딩, payload 검증 실패 경로 | 1 |
-| **8** | Result Page · Content Fallback | 케이스 매트릭스(1/2/4), mandatory/optional 섹션, content fallback | 6, 7 |
-| **9** | Error States · Terminal Exclusivity · Cleanup Set | commit-failure / derivation-failure taxonomy, §7.1 전이 테이블, §7.3 cleanup 원자성 | 4, 5, 6 |
-| **10** | Telemetry Skeleton · Release Gate | §8.1 hook 6개, traceability closure (blocker 1~25 매핑) | 전체 |
+| **2** | Data Source & Sync Layer | variant-registry 인터페이스, cross-sheet 검증, lazy validation + 캐싱 | 1 |
+| **3** | Storage · Session Lifecycle · Data Volatility | storage 추상 레이어, active run 판정, 5개 상태 플래그, 3가지 휘발 트리거 | 1, 2 |
+| **4** | Entry Path · Staged Entry · Invalid Variant Recovery | 3-경로 분류기, staged entry lifecycle, 에러 복구 페이지 | 1, 2, 3 |
+| **5** | Instruction Gate · Runtime Entry Commit | instruction overlay (비-라우트), `instructionSeen` lifecycle, commit 도메인 이벤트 | 1, 2, 3, 4 |
+| **6** | Question Runtime Core | 응답 루프, tail reset, result-entry eligibility 즉시 반영 | 1, 2, 3, 4, 5 |
+| **7** | Derivation · Loading Screen | scoreStats/derivedType 계산, 5초 최소 로딩 AND 조건, back-from-loading | 1, 2, 3, 6 |
+| **8** | Result URL Payload · Validation | URL 구조, base64 인코딩, payload 검증 실패 경로 | 1 |
+| **9** | Result Page · Content Fallback | 케이스 매트릭스(1/2/4), mandatory/optional 섹션, content fallback | 7, 8 |
+| **10** | Error States · Terminal Exclusivity · Cleanup Set | commit-failure / derivation-failure taxonomy, §8.1 전이 테이블, §8.3 cleanup 원자성 | 5, 6, 7 |
+| **11** | Telemetry Skeleton · Release Gate | §9.1 hook 6개, traceability closure (blocker 1~30 매핑) | 전체 |
 
 ---
 
@@ -28,7 +29,7 @@
 ### 개요
 
 **목적**: 이후 모든 런타임 로직의 타입 전제를 확립한다.  
-**포함 요구사항 섹션**: §2.1, §2.2, §2.8, §2.11, §5.2  
+**포함 요구사항 섹션**: §3.1, §3.2, §3.8, §3.11, §6.2  
 **출력 형태**: 코드 산출물은 타입 정의와 pure 함수만. 부수효과(storage, 라우팅, UI 렌더링) 없음.  
 **완료 조건**: 아래 태스크 전부 + 릴리스 블로커 #7, #11, #12 자동 단언 매핑 완료.
 
@@ -38,7 +39,7 @@
 
 #### T1-1 — Core Entity 타입 정의
 
-**목적**: §2.1, §2.8에서 명시된 core entity를 코드 상 명확한 타입으로 고정한다.
+**목적**: §3.1, §3.8에서 명시된 core entity를 코드 상 명확한 타입으로 고정한다.
 
 **구현 범위**:
 
@@ -104,7 +105,7 @@ DerivedType = string  // 길이 = axisCount, 각 위치 = schema.axes 순서 매
 
 ScoringSchema = {
   variantId: VariantId
-  scoringSchemaId: string         // URL에 노출하지 않음 (§4.1 불변식)
+  scoringSchemaId: string         // URL에 노출하지 않음 (§5.1 불변식)
   axisCount: AxisCount
   axes: AxisSpec[]                // ordered, 길이 = axisCount, scoring axes만
   supportedSections: SectionId[]
@@ -134,7 +135,7 @@ ResultPayload = {
 
 #### T1-2 — Variant Resolution 계약 (pure 함수)
 
-**목적**: §2.2에서 명시된 "variant 입력 검증 → 성공/실패 분기" 경계를 pure 함수로 확립한다.
+**목적**: §3.2에서 명시된 "variant 입력 검증 → 성공/실패 분기" 경계를 pure 함수로 확립한다.
 
 **구현 범위**:
 
@@ -153,13 +154,13 @@ type ValidationResult<T> =
 - `input`이 등록된 VariantId에 없으면 `ok: false`.
 - 성공 시 `ok: true; value: VariantId`.
 - 이 함수는 session/run context를 생성하거나 부수효과를 일으키지 않는다.
-- Phase 3 에서 이 결과를 소비해 경로 분기를 수행한다 (`ok: false` → §5.1 에러 복구 페이지).
+- Phase 4 에서 이 결과를 소비해 경로 분기를 수행한다 (`ok: false` → §6.1 에러 복구 페이지).
 
 ---
 
 #### T1-3 — Question Model 검증 (pure 함수)
 
-**목적**: §2.8에서 명시된 불변식을 검증하는 pure 함수를 확립한다.
+**목적**: §3.8에서 명시된 불변식을 검증하는 pure 함수를 확립한다.
 
 **불변식 체크리스트 (question 단위)**:
 
@@ -187,7 +188,7 @@ validateQuestionModel(
 
 #### T1-4 — Blocking Data Error 검증 (pure 함수)
 
-**목적**: §5.2의 blocking data error 조건을 variant 로드 시점에 검증하는 pure 함수를 확립한다.
+**목적**: §6.2의 blocking data error 조건을 variant 로드 시점에 검증하는 pure 함수를 확립한다.
 
 **차단 조건 (하나라도 해당 시 `BlockingDataError` 반환)**:
 
@@ -267,7 +268,7 @@ function checkQualifierFields(
 
 #### T1-5 — Derivation Model (pure 함수)
 
-**목적**: §2.11의 schema-driven derivation 계약을 pure 함수로 구현한다. UI, 라우팅, storage 의존 없음.
+**목적**: §3.11의 schema-driven derivation 계약을 pure 함수로 구현한다. UI, 라우팅, storage 의존 없음.
 
 **구현 범위**:
 
@@ -332,7 +333,7 @@ schema.axes = [
 
 #### T1-6 — Type Segment 인코딩/파싱 (pure 함수)
 
-**목적**: §4.1의 `type` segment 인코딩과 파싱 계약을 pure 함수로 확립한다. Phase 7 URL 인코딩/디코딩 구현의 전제.
+**목적**: §5.1의 `type` segment 인코딩과 파싱 계약을 pure 함수로 확립한다. Phase 8 URL 인코딩/디코딩 구현의 전제.
 
 **구현 범위**:
 
@@ -406,17 +407,17 @@ function buildTypeSegment(derivedType, responses, schema) {
 
 ---
 
-#### T1-7 — Payload Schema 타입 정의 (Phase 7 전제 확립)
+#### T1-7 — Payload Schema 타입 정의 (Phase 8 전제 확립)
 
-**목적**: §4.1 Self-contained Payload 구조의 타입을 Phase 1에서 선언한다. 인코딩/디코딩 구현은 Phase 7에서 수행. Phase 1에서 타입만 선언해두면 Phase 6, 7, 8에서 일관된 타입 참조 가능.
+**목적**: §5.1 Self-contained Payload 구조의 타입을 Phase 1에서 선언한다. 인코딩/디코딩 구현은 Phase 8에서 수행. Phase 1에서 타입만 선언해두면 Phase 7, 7, 8에서 일관된 타입 참조 가능.
 
 ```
 ResultPayload       {
   scoreStats: ScoreStats
-  shared: boolean    // §4.1: 공유 여부를 payload 내부에 boolean으로 포함
+  shared: boolean    // §5.1: 공유 여부를 payload 내부에 boolean으로 포함
 }
 
-// URL 구조 (§1.3 Locked Decisions, §4.1)
+// URL 구조 (§1.3 Locked Decisions, §5.1)
 // /result/{variant}/{type}?{base64Payload}
 // scoringSchemaId는 URL 어느 위치에도 포함하지 않음
 // variant 하나로 schema를 유일하게 식별
@@ -487,40 +488,81 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 
 ---
 
-## Part 3 — Phase 2 예비 요약
+## Part 3 — Phase 2 예비 요약 (Data Source & Sync Layer)
 
-> Phase 1 완료 전에 이 섹션을 확인한다. Phase 2는 Phase 1의 순수 함수 위에 "상태가 저장되는 레이어"를 쌓는 첫 번째 Phase다.
+> Phase 1 완료 전에 이 섹션을 확인한다. Phase 2는 Phase 1의 순수 함수 위에 "외부 데이터 소스 계약"을 추가하는 Phase다. 이 Phase가 완료되어야 Phase 3(Storage/Session)이 variant-registry 인터페이스를 신뢰할 수 있다.
 
 ### 목적
 
-Phase 2는 아래 세 관심사를 **하나의 레이어**에서 함께 확립한다. 이 셋을 분리해 구현하면 Phase 3 이후 경로 분기 로직이 불완전한 storage 계약에 의존하게 되어 테스트 불가능한 상태가 생긴다.
+Phase 2는 아래 세 관심사를 **하나의 레이어**에서 함께 확립한다.
 
-1. **Active run 판정** (§2.7): 30분 inactivity timeout, 재진입 시점 평가, 백그라운드 타이머 불필요
-2. **5개 상태 플래그 분리** (§7.2): `derivation_in_progress`, `derivation_computed`, `min_loading_duration_elapsed`, `result_entry_committed`, `result_persisted`를 단일 플래그로 뭉개지 않음
-3. **3가지 응답 데이터 휘발 트리거** (§5.8): result screen entry commit 완료 / inactivity timeout 판정 / 처음부터 다시 하기 commit success — 각각 `instructionSeen` 포함/제외 범위가 다름
-
-### 핵심 설계 결정 (Phase 2 착수 전 확정 필요)
-
-**storage 추상 레이어 선택**:
-Phase 2는 storage key 네이밍, store 구조, key 목록을 별도 구현/설계 문서에서 정의하는 것이 요구사항의 원칙 (§5.8, §7.3 구현 세부사항 위임 구절). Phase 2 착수 시 이 설계 문서 또는 ADR을 먼저 작성 권장.
-
-**variant-scoped 격리**:
-모든 storage 조작은 해당 variant 범위에만 영향을 준다. 다른 variant 데이터를 건드리지 않는다 (§5.8 삭제 원칙). Phase 2에서 이 격리 경계를 명확히 구조화하지 않으면 Phase 9의 cleanup set 원자성 검증이 불가능해진다.
+1. **variant-registry 인터페이스 정의**: `variant-registry.generated.json`의 구조를 코드 상 타입으로 고정한다. production / local dev 환경 모두 동일 인터페이스를 참조한다.
+2. **Cross-sheet 검증 함수**: 3개 Sheet(Questions / Results / Landing Card Metadata)의 데이터 일관성을 검증하는 pure 함수. GitHub Action과 runtime 2차 방어선에서 재사용 가능한 구조.
+3. **Lazy validation + 캐싱**: `validateVariantDataIntegrity()`를 variant 첫 진입 시 실행하고 결과를 캐싱하는 인프라. Phase 1의 `validateVariant` 결과와 조합해 variant 진입 분기를 완성한다.
 
 ### 주요 산출물 (예비)
 
 | 산출물 | 내용 |
 |---|---|
-| `getActiveRun(variantId)` | storage에서 해당 variant의 run 조회 → 30분 경과 여부 판정 → timeout 시 §5.8 휘발 즉시 실행 후 `null` 반환 |
+| `VariantRegistry` 타입 | `variant-registry.generated.json`의 스키마. `VariantSchema[]`, `LandingCardMeta[]`(`unavailable` 플래그 포함) 포함 |
+| `loadVariantRegistry()` | 환경별 registry 파일 로딩 인터페이스. production과 dev fixture가 동일 시그니처 |
+| `validateCrossSheetIntegrity(registry)` | 3개 Sheet cross-sheet 검증 pure 함수. GitHub Action 스크립트와 runtime 2차 방어선 모두에서 사용 |
+| `getLazyValidatedVariant(variantId)` | 캐싱 포함 lazy validation. 첫 호출 시 `validateVariantDataIntegrity()` 실행 → 이후 캐시 반환 |
+| GitHub Action 스크립트 골격 | Sheets 읽기 → cross-sheet 검증 → 성공 시 registry 파일 생성 → 커밋 트리거. sync_script.js 인터페이스 확정 |
+
+### 핵심 설계 결정 (Phase 2 착수 전 확정 필요)
+
+- **Google Sheets API 인증 방식**: Service Account vs OAuth. GitHub Action 시크릿 구성 방법.
+- **`variant-registry.generated.json` 버전 관리 방식**: `.gitignore` 제외 vs versioned file vs 별도 아티팩트 저장소.
+
+> 위 두 항목은 운영 환경 설정에 의존하므로 Phase 2 착수 시 먼저 결정 필요. 결정 내용은 별도 ADR 또는 ops 문서에 기록한다.
+
+### Phase 2가 Phase 1에 주는 설계 제약
+
+Phase 1의 `VariantSchema` 타입이 `variant-registry.generated.json` 스키마의 기반 타입이 된다. Phase 1에서 `VariantSchema`를 불완전하게 정의하면 Phase 2 registry 타입과 불일치가 발생한다. Phase 1 DoD 항목 중 "storage, UI, 라우팅 의존 없음" 조건은 Phase 2에서 registry 로딩 레이어를 깔끔하게 추가할 수 있는 전제를 확보한다.
+
+### Phase 2 완료 후 Phase 3이 안전하게 전제할 수 있는 것
+
+- variant-registry 인터페이스가 확정되어 있음. Phase 3의 storage 레이어가 `loadVariantRegistry()`를 통해 variant 목록에 접근할 수 있음.
+- `getLazyValidatedVariant(variantId)` 결과를 소비해 Phase 3의 진입 경로 분류기(Direct Cold / Direct Resume / Landing Ingress)가 "variant 유효성 검증"을 신뢰할 수 있음.
+- dev/test 환경에서는 fixture 파일로 전체 Phase 3 구현 및 테스트가 가능함. Google Sheets 실연동 없이 Phase 3 착수 가능.
+
+---
+
+## Part 4 — Phase 3 예비 요약
+
+> Phase 1 완료 전에 이 섹션을 확인한다. Phase 3은 Phase 1, 2의 기반 위에 "상태가 저장되는 레이어"를 쌓는 Phase다.
+
+### 목적
+
+Phase 3는 아래 세 관심사를 **하나의 레이어**에서 함께 확립한다. 이 셋을 분리해 구현하면 Phase 4 이후 경로 분기 로직이 불완전한 storage 계약에 의존하게 되어 테스트 불가능한 상태가 생긴다. Phase 3 착수 전 Phase 2의 registry 인터페이스 확정을 전제한다.
+
+1. **Active run 판정** (§3.7): 30분 inactivity timeout, 재진입 시점 평가, 백그라운드 타이머 불필요
+2. **5개 상태 플래그 분리** (§8.2): `derivation_in_progress`, `derivation_computed`, `min_loading_duration_elapsed`, `result_entry_committed`, `result_persisted`를 단일 플래그로 뭉개지 않음
+3. **3가지 응답 데이터 휘발 트리거** (§6.8): result screen entry commit 완료 / inactivity timeout 판정 / 처음부터 다시 하기 commit success — 각각 `instructionSeen` 포함/제외 범위가 다름
+
+### 핵심 설계 결정 (Phase 3 착수 전 확정 필요)
+
+**storage 추상 레이어 선택**:
+Phase 3는 storage key 네이밍, store 구조, key 목록을 별도 구현/설계 문서에서 정의하는 것이 요구사항의 원칙 (§6.8, §8.3 구현 세부사항 위임 구절). Phase 3 착수 시 이 설계 문서 또는 ADR을 먼저 작성 권장.
+
+**variant-scoped 격리**:
+모든 storage 조작은 해당 variant 범위에만 영향을 준다. 다른 variant 데이터를 건드리지 않는다 (§6.8 삭제 원칙). Phase 3에서 이 격리 경계를 명확히 구조화하지 않으면 Phase 10의 cleanup set 원자성 검증이 불가능해진다.
+
+### 주요 산출물 (예비)
+
+| 산출물 | 내용 |
+|---|---|
+| `getActiveRun(variantId)` | storage에서 해당 variant의 run 조회 → 30분 경과 여부 판정 → timeout 시 §6.8 휘발 즉시 실행 후 `null` 반환 |
 | `StateFlags` 읽기/쓰기 인터페이스 | 5개 플래그를 개별 접근. 단일 플래그 혼용 금지를 구조적으로 강제 |
 | `volatilizeRunData(variantId, trigger)` | 3가지 트리거별로 `instructionSeen` 포함/제외 범위를 switch-case로 명확히 분기. 원자적 삭제 보장 |
 | timeout fixture 테스트 | 30분 경과 fixture → timeout 처리 + Cold Start 검증. 29분 59초 fixture → active run 유효 검증 |
 
-### Phase 2가 Phase 1에 주는 설계 제약
+### Phase 3이 Phase 1, 2에 주는 설계 제약
 
-Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1에서 `VariantId`를 `string`으로 느슨하게 정의하면 Phase 2에서 격리 경계가 흐려진다. Phase 1 구현 시 `VariantId`를 brand type 또는 nominal type으로 강하게 정의해두면 Phase 2 storage 격리 구현이 타입 수준에서 강제된다.
+Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1에서 `VariantId`를 `string`으로 느슨하게 정의하면 Phase 3에서 격리 경계가 흐려진다. Phase 1 구현 시 `VariantId`를 brand type 또는 nominal type으로 강하게 정의해두면 Phase 3 storage 격리 구현이 타입 수준에서 강제된다.
 
-### Phase 2 완료 후 Phase 3이 안전하게 전제할 수 있는 것
+### Phase 3 완료 후 Phase 4이 안전하게 전제할 수 있는 것
 
 - `validateVariant` 실패 → session 생성 없이 에러 복구 페이지 이동 가능 (storage 레이어 준비됨)
 - staged entry 복구 조건 검사 시 active run 유무를 storage에서 신뢰할 수 있음
