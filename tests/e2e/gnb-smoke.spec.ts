@@ -179,10 +179,15 @@ test.describe('Phase 3 gnb shell smoke', () => {
       .toBe('dark');
     await expect.poll(() => page.evaluate(() => window.localStorage.getItem('vibetest-theme'))).toBe('dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(1);
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.getElementById('theme-switch-style')?.textContent ?? '')
+      )
+      .toContain('feGaussianBlur');
     await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
     await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
 
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(3000);
     await expect(page.locator('#theme-switch-style')).toHaveCount(0);
   });
 
