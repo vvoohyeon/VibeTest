@@ -4,6 +4,8 @@ import {localeOptions, type AppLocale} from '../../src/config/site';
 import {seedTelemetryConsent} from './helpers/consent';
 import {buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
+const THEME_STORAGE_KEY = 'vivetest-theme';
+
 async function installViewTransitionStub(page: Page) {
   await page.addInitScript(() => {
     Object.defineProperty(Document.prototype, 'startViewTransition', {
@@ -39,12 +41,78 @@ async function expectLocalePickerState(page: Page, scope: 'desktop' | 'mobile', 
   }
 }
 
+function getThemeControls(page: Page, scope: 'desktop' | 'mobile') {
+  const controls = page.getByTestId(`${scope}-gnb-theme-controls`);
+
+  return {
+    controls,
+    lightButton: page.getByTestId(`${scope}-gnb-theme-light`),
+    darkButton: page.getByTestId(`${scope}-gnb-theme-dark`),
+    alternateButton: controls.locator('button:not([disabled])'),
+    currentButton: controls.locator('button[disabled]')
+  };
+}
+
+async function expectThemeButtonsState(
+  page: Page,
+  scope: 'desktop' | 'mobile',
+  resolvedTheme: 'light' | 'dark'
+) {
+  const {controls, lightButton, darkButton, alternateButton, currentButton} = getThemeControls(page, scope);
+  const alternateTheme = resolvedTheme === 'light' ? 'dark' : 'light';
+
+  await expect(controls.locator('button').nth(0)).toHaveAttribute('data-theme-option', alternateTheme);
+  await expect(controls.locator('button').nth(1)).toHaveAttribute('data-theme-option', resolvedTheme);
+  await expect(alternateButton).toHaveAttribute('data-theme-option', alternateTheme);
+  await expect(currentButton).toHaveAttribute('data-theme-option', resolvedTheme);
+  await expect(alternateButton).toBeEnabled();
+  await expect(currentButton).toBeDisabled();
+  await expect(lightButton).toHaveAttribute('aria-pressed', resolvedTheme === 'light' ? 'true' : 'false');
+  await expect(darkButton).toHaveAttribute('aria-pressed', resolvedTheme === 'dark' ? 'true' : 'false');
+}
+
+async function expectDesktopCurrentThemeButtonAlignment(page: Page) {
+  const trigger = page.getByTestId('gnb-settings-trigger');
+  const panel = page.getByTestId('gnb-settings-panel');
+  const {alternateButton, currentButton} = getThemeControls(page, 'desktop');
+
+  const [triggerBox, panelBox, currentButtonBox, alternateButtonBox] = await Promise.all([
+    trigger.boundingBox(),
+    panel.boundingBox(),
+    currentButton.boundingBox(),
+    alternateButton.boundingBox()
+  ]);
+
+  expect(triggerBox).not.toBeNull();
+  expect(panelBox).not.toBeNull();
+  expect(currentButtonBox).not.toBeNull();
+  expect(alternateButtonBox).not.toBeNull();
+
+  expect(Math.abs((panelBox?.y ?? 0) - (triggerBox?.y ?? 0))).toBeLessThanOrEqual(1);
+  expect(Math.abs((currentButtonBox?.x ?? 0) - (triggerBox?.x ?? 0))).toBeLessThanOrEqual(1);
+  expect(Math.abs((currentButtonBox?.y ?? 0) - (triggerBox?.y ?? 0))).toBeLessThanOrEqual(1);
+  expect(Math.abs((currentButtonBox?.width ?? 0) - (triggerBox?.width ?? 0))).toBeLessThanOrEqual(1);
+  expect(Math.abs((currentButtonBox?.height ?? 0) - (triggerBox?.height ?? 0))).toBeLessThanOrEqual(1);
+  expect((alternateButtonBox?.x ?? 0) + (alternateButtonBox?.width ?? 0)).toBeLessThan(
+    (currentButtonBox?.x ?? 0) + 1
+  );
+}
+
+async function seedManualTheme(page: Page, theme: 'light' | 'dark') {
+  await page.addInitScript(
+    ([storageKey, nextTheme]) => {
+      window.localStorage.setItem(storageKey, nextTheme);
+    },
+    [THEME_STORAGE_KEY, theme] as const
+  );
+}
+
 test.describe('Phase 3 gnb shell smoke', () => {
   test.beforeEach(async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_OUT');
   });
 
-  test('@smoke assertion:B3-desktop-settings desktop settings open-close and gap contract', async ({page}) => {
+  test('@smoke assertion:B3-desktop-settings desktop settings open-close and overlay contract', async ({page}) => {
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
 
@@ -54,14 +122,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await trigger.hover();
     await expect(panel).toBeVisible({timeout: 200});
     await expectLocalePickerState(page, 'desktop', 'en');
-
-    const triggerBox = await trigger.boundingBox();
-    const panelBox = await panel.boundingBox();
-    expect(triggerBox).not.toBeNull();
-    expect(panelBox).not.toBeNull();
-
-    const hoverGap = Math.abs((panelBox?.y ?? 0) - ((triggerBox?.y ?? 0) + (triggerBox?.height ?? 0)));
-    expect(hoverGap).toBeLessThanOrEqual(1);
+    await expectDesktopCurrentThemeButtonAlignment(page);
 
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
@@ -156,10 +217,8 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
-    await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
-    await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
-    await expect(page.getByTestId('desktop-gnb-theme-light')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByTestId('desktop-gnb-theme-dark')).toHaveAttribute('aria-pressed', 'true');
+    await expectThemeButtonsState(page, 'desktop', 'dark');
+    await expectDesktopCurrentThemeButtonAlignment(page);
   });
 
   test('@smoke desktop settings restores the stored manual theme without a blank selected state', async ({page}) => {
@@ -177,25 +236,21 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
-    await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
-    await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
-    await expect(page.getByTestId('desktop-gnb-theme-light')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByTestId('desktop-gnb-theme-dark')).toHaveAttribute('aria-pressed', 'true');
+    await expectThemeButtonsState(page, 'desktop', 'dark');
+    await expectDesktopCurrentThemeButtonAlignment(page);
   });
 
   test('@smoke desktop theme switch applies blur transition styles and cleans them up', async ({page}) => {
     await installViewTransitionStub(page);
+    await seedManualTheme(page, 'light');
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+    await expectThemeButtonsState(page, 'desktop', 'light');
 
-    const lightButton = page.getByTestId('desktop-gnb-theme-light');
-    const darkButton = page.getByTestId('desktop-gnb-theme-dark');
-
-    await expect(lightButton).toBeDisabled();
-    await expect(darkButton).toBeEnabled();
+    const {darkButton} = getThemeControls(page, 'desktop');
 
     await darkButton.click();
 
@@ -205,14 +260,14 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect.poll(() => page.evaluate(() => window.localStorage.getItem('vivetest-theme'))).toBe('dark');
     await expect(page.getByTestId('gnb-settings-trigger')).toHaveAttribute('data-current-theme', 'dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(1);
-    await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
-    await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
+    await expectThemeButtonsState(page, 'desktop', 'dark');
 
     await expect(page.locator('#theme-switch-style')).toHaveCount(0, {timeout: 3000});
   });
 
   test('@smoke reduced-motion theme switch falls back without injecting transition styles', async ({page}) => {
     await installViewTransitionStub(page);
+    await seedManualTheme(page, 'light');
     await page.addInitScript(() => {
       const originalMatchMedia = window.matchMedia.bind(window);
       window.matchMedia = (query: string) => {
@@ -238,15 +293,17 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
 
-    await page.getByTestId('desktop-gnb-theme-dark').click();
+    await getThemeControls(page, 'desktop').darkButton.click();
 
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
       .toBe('dark');
+    await expectThemeButtonsState(page, 'desktop', 'dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(0);
   });
 
   test('@smoke unsupported theme transition falls back without injecting transition styles', async ({page}) => {
+    await seedManualTheme(page, 'light');
     await page.addInitScript(() => {
       Object.defineProperty(Document.prototype, 'startViewTransition', {
         configurable: true,
@@ -260,11 +317,12 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
 
-    await page.getByTestId('desktop-gnb-theme-dark').click();
+    await getThemeControls(page, 'desktop').darkButton.click();
 
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
       .toBe('dark');
+    await expectThemeButtonsState(page, 'desktop', 'dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(0);
   });
 
@@ -281,7 +339,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
     const localeControls = page.getByTestId('desktop-gnb-locale-controls');
-    const darkButton = page.getByTestId('desktop-gnb-theme-dark');
+    const {alternateButton, currentButton} = getThemeControls(page, 'desktop');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
 
     await page.keyboard.press('Tab');
@@ -305,13 +363,15 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.keyboard.press('Space');
     await expect(panel).toBeVisible();
+    await expect(currentButton).toBeDisabled();
+
+    await page.keyboard.press('Tab');
+    await expect(alternateButton).toBeFocused();
 
     for (const label of getAlternateLocaleLabels('en')) {
       await page.keyboard.press('Tab');
       await expect(localeControls.getByRole('button', {name: label})).toBeFocused();
     }
-    await page.keyboard.press('Tab');
-    await expect(darkButton).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(firstCardTrigger).toBeFocused();
     await expect(panel).toBeHidden({timeout: 150});
@@ -378,7 +438,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
     const localeControls = page.getByTestId('desktop-gnb-locale-controls');
-    const darkButton = page.getByTestId('desktop-gnb-theme-dark');
+    const {alternateButton, currentButton} = getThemeControls(page, 'desktop');
     const sink = page.getByTestId('destination-focus-sink');
 
     await page.keyboard.press('Tab');
@@ -390,12 +450,15 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.keyboard.press('Space');
     await expect(panel).toBeVisible();
     await expectLocalePickerState(page, 'desktop', 'en');
+    await expect(currentButton).toBeDisabled();
+
+    await page.keyboard.press('Tab');
+    await expect(alternateButton).toBeFocused();
+
     for (const label of getAlternateLocaleLabels('en')) {
       await page.keyboard.press('Tab');
       await expect(localeControls.getByRole('button', {name: label})).toBeFocused();
     }
-    await page.keyboard.press('Tab');
-    await expect(darkButton).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(sink).toBeFocused();
     await expect(panel).toBeHidden({timeout: 150});
@@ -453,7 +516,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const panelHistory = panel.getByRole('link', {name: 'History'});
     const panelBlog = panel.getByRole('link', {name: 'Blog'});
     const localeControls = page.getByTestId('mobile-gnb-locale-controls');
-    const darkButton = page.getByTestId('mobile-gnb-theme-dark');
+    const {alternateButton, currentButton} = getThemeControls(page, 'mobile');
 
     await page.keyboard.press('Tab');
     await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
@@ -474,12 +537,15 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.keyboard.press('Tab');
     await expect(panelBlog).toBeFocused();
     await expectLocalePickerState(page, 'mobile', 'en');
+    await expect(currentButton).toBeDisabled();
+
+    await page.keyboard.press('Tab');
+    await expect(alternateButton).toBeFocused();
+
     for (const label of getAlternateLocaleLabels('en')) {
       await page.keyboard.press('Tab');
       await expect(localeControls.getByRole('button', {name: label})).toBeFocused();
     }
-    await page.keyboard.press('Tab');
-    await expect(darkButton).toBeFocused();
 
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden({timeout: 1000});

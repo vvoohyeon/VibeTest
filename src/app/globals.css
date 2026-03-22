@@ -1649,6 +1649,8 @@ span.landing-grid-card-primary-cta {
 }
 
 .gnb-settings-root {
+  --gnb-settings-trigger-size: 40px;
+  --gnb-settings-trigger-icon-size: 18px;
   position: relative;
   display: flex;
   align-items: stretch;
@@ -1673,8 +1675,8 @@ span.landing-grid-card-primary-cta {
 }
 
 .gnb-settings-trigger {
-  min-width: 40px;
-  min-height: 40px;
+  min-width: var(--gnb-settings-trigger-size);
+  min-height: var(--gnb-settings-trigger-size);
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -1682,8 +1684,8 @@ span.landing-grid-card-primary-cta {
 }
 
 .gnb-settings-trigger-icon {
-  width: 18px;
-  height: 18px;
+  width: var(--gnb-settings-trigger-icon-size);
+  height: var(--gnb-settings-trigger-icon-size);
   flex: 0 0 auto;
 }
 
@@ -1711,12 +1713,10 @@ span.landing-grid-card-primary-cta {
 
 .gnb-settings-panel {
   position: absolute;
-  top: 100%;
+  top: 0;
   right: 0;
+  z-index: 1;
   width: min(360px, calc(100vw - 24px));
-  display: grid;
-  gap: 10px;
-  padding: 12px;
   border: 1px solid var(--surface-divider);
   border-radius: 12px;
   background: var(--panel-solid);
@@ -1727,9 +1727,47 @@ span.landing-grid-card-primary-cta {
   display: none;
 }
 
+.gnb-settings-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.gnb-settings-controls-desktop {
+  padding-bottom: 12px;
+}
+
+.gnb-settings-controls-desktop .gnb-settings-row-theme {
+  min-height: var(--gnb-settings-trigger-size);
+  padding-left: 12px;
+}
+
+.gnb-settings-controls-desktop .gnb-settings-row-locale {
+  padding-inline: 12px;
+}
+
+.gnb-settings-controls-desktop .gnb-chip-theme {
+  min-width: var(--gnb-settings-trigger-size);
+  min-height: var(--gnb-settings-trigger-size);
+}
+
+.gnb-settings-controls-desktop .gnb-chip-icon {
+  width: var(--gnb-settings-trigger-icon-size);
+  height: var(--gnb-settings-trigger-icon-size);
+}
+
 .gnb-settings-row {
   display: grid;
   gap: 8px;
+}
+
+.gnb-settings-row-theme {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.gnb-settings-row-theme > .gnb-settings-label {
+  align-self: center;
 }
 
 .gnb-settings-row-header {
@@ -1737,6 +1775,12 @@ span.landing-grid-card-primary-cta {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+}
+
+.gnb-settings-theme-actions {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .gnb-settings-label {

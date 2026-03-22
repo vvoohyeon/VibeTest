@@ -29,6 +29,10 @@ export function SettingsControls({
 }: SettingsControlsProps) {
   const currentLocaleOption = localeOptions.find(({code}) => code === locale);
   const alternateLocaleOptions = localeOptions.filter(({code}) => code !== locale);
+  const orderedThemeOptions =
+    resolvedTheme === 'light'
+      ? (['dark', 'light'] as const)
+      : (['light', 'dark'] as const);
 
   const handleThemeClick =
     (theme: 'light' | 'dark') => (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -36,8 +40,35 @@ export function SettingsControls({
     };
 
   return (
-    <>
-      <div className="gnb-settings-row" data-testid={`${scope}-gnb-locale-controls`}>
+    <div className={`gnb-settings-controls gnb-settings-controls-${scope}`}>
+      <div className="gnb-settings-row gnb-settings-row-theme" data-testid={`${scope}-gnb-theme-controls`}>
+        <span className="gnb-settings-label">{labels.theme}</span>
+        <div className="gnb-settings-theme-actions">
+          {orderedThemeOptions.map((theme) => {
+            const isCurrentTheme = resolvedTheme === theme;
+            const themeLabel = theme === 'light' ? labels.light : labels.dark;
+
+            return (
+              <button
+                key={theme}
+                type="button"
+                className="gnb-chip gnb-chip-theme"
+                aria-pressed={isCurrentTheme}
+                aria-label={themeLabel}
+                title={themeLabel}
+                data-testid={`${scope}-gnb-theme-${theme}`}
+                data-theme-option={theme}
+                disabled={isCurrentTheme}
+                onClick={handleThemeClick(theme)}
+              >
+                <ThemeModeIcon theme={theme} className="gnb-chip-icon" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="gnb-settings-row gnb-settings-row-locale" data-testid={`${scope}-gnb-locale-controls`}>
         <div className="gnb-settings-row-header">
           <span className="gnb-settings-label">{labels.language}</span>
           <span className="gnb-settings-value" data-testid={`${scope}-gnb-current-locale`}>
@@ -57,38 +88,6 @@ export function SettingsControls({
           ))}
         </div>
       </div>
-
-      <div className="gnb-settings-row" data-testid={`${scope}-gnb-theme-controls`}>
-        <span className="gnb-settings-label">{labels.theme}</span>
-        <div className="gnb-chip-row">
-          <button
-            type="button"
-            className="gnb-chip gnb-chip-theme"
-            aria-pressed={resolvedTheme === 'light'}
-            aria-label={labels.light}
-            title={labels.light}
-            data-testid={`${scope}-gnb-theme-light`}
-            data-theme-option="light"
-            disabled={resolvedTheme === 'light'}
-            onClick={handleThemeClick('light')}
-          >
-            <ThemeModeIcon theme="light" className="gnb-chip-icon" />
-          </button>
-          <button
-            type="button"
-            className="gnb-chip gnb-chip-theme"
-            aria-pressed={resolvedTheme === 'dark'}
-            aria-label={labels.dark}
-            title={labels.dark}
-            data-testid={`${scope}-gnb-theme-dark`}
-            data-theme-option="dark"
-            disabled={resolvedTheme === 'dark'}
-            onClick={handleThemeClick('dark')}
-          >
-            <ThemeModeIcon theme="dark" className="gnb-chip-icon" />
-          </button>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
