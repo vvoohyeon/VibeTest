@@ -23,11 +23,11 @@ function ThemeChipIcon({theme}: {theme: 'light' | 'dark'}) {
     return (
       <svg
         aria-hidden="true"
-        className="gnb-chip-icon"
+        className="gnb-chip-icon gnb-chip-icon-light"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
@@ -47,12 +47,11 @@ function ThemeChipIcon({theme}: {theme: 'light' | 'dark'}) {
   return (
     <svg
       aria-hidden="true"
-      className="gnb-chip-icon"
+      className="gnb-chip-icon gnb-chip-icon-dark"
       viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="none"
+      fill="none"
     >
-      <path d="M14.85 3.8a8.7 8.7 0 1 0 5.35 15.71 9.35 9.35 0 0 1-3.61.72 9.48 9.48 0 0 1-9.47-9.47c0-2.9 1.3-5.54 3.34-7.32a8.65 8.65 0 0 0 4.39.36Z" />
+      <path d="M15.1 4.2a8.75 8.75 0 1 0 4.7 15.13A9.35 9.35 0 0 1 16.2 20 9.2 9.2 0 0 1 7 10.8c0-2.68 1.14-5.1 2.97-6.78a8.28 8.28 0 0 0 5.13.18Z" fill="currentColor" />
     </svg>
   );
 }
