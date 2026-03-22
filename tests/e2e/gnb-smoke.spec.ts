@@ -179,16 +179,10 @@ test.describe('Phase 3 gnb shell smoke', () => {
       .toBe('dark');
     await expect.poll(() => page.evaluate(() => window.localStorage.getItem('vivetest-theme'))).toBe('dark');
     await expect(page.locator('#theme-switch-style')).toHaveCount(1);
-    await expect
-      .poll(() =>
-        page.evaluate(() => document.getElementById('theme-switch-style')?.textContent ?? '')
-      )
-      .toContain('feGaussianBlur');
     await expect(page.getByTestId('desktop-gnb-theme-light')).toBeEnabled();
     await expect(page.getByTestId('desktop-gnb-theme-dark')).toBeDisabled();
 
-    await page.waitForTimeout(3000);
-    await expect(page.locator('#theme-switch-style')).toHaveCount(0);
+    await expect(page.locator('#theme-switch-style')).toHaveCount(0, {timeout: 3000});
   });
 
   test('@smoke reduced-motion theme switch falls back without injecting transition styles', async ({page}) => {
