@@ -62,24 +62,6 @@ function isVisibleFocusableElement(element: HTMLElement | null): element is HTML
   return style.display !== 'none' && style.visibility !== 'hidden';
 }
 
-function SettingsTriggerIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="gnb-settings-trigger-icon"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M10.38 3.48a1.9 1.9 0 0 1 3.24 0l.58.92c.28.44.8.69 1.32.62l1.08-.14a1.9 1.9 0 0 1 2.16 2.16l-.14 1.08c-.07.52.18 1.04.62 1.32l.92.58a1.9 1.9 0 0 1 0 3.24l-.92.58c-.44.28-.69.8-.62 1.32l.14 1.08a1.9 1.9 0 0 1-2.16 2.16l-1.08-.14a1.28 1.28 0 0 0-1.32.62l-.58.92a1.9 1.9 0 0 1-3.24 0l-.58-.92a1.28 1.28 0 0 0-1.32-.62l-1.08.14a1.9 1.9 0 0 1-2.16-2.16l.14-1.08a1.28 1.28 0 0 0-.62-1.32l-.92-.58a1.9 1.9 0 0 1 0-3.24l.92-.58c.44-.28.69-.8.62-1.32l-.14-1.08a1.9 1.9 0 0 1 2.16-2.16l1.08.14c.52.07 1.04-.18 1.32-.62z" />
-      <circle cx="12" cy="12" r="3.05" />
-    </svg>
-  );
-}
-
 export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
   const t = useTranslations('gnb');
   const router = useRouter();
@@ -653,11 +635,10 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
         <button
           type="button"
           className="gnb-settings-trigger"
-          aria-label={t('settingsAria')}
+          aria-label={t('settings')}
           aria-expanded={settingsOpen}
           aria-controls={settingsPanelId}
           tabIndex={desktopLandingTabIndex}
-          title={t('settingsAria')}
           onFocus={() => {
             if (!hoverOpenEnabled) {
               setSettingsOpen(true);
@@ -668,12 +649,12 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           }}
           data-testid="gnb-settings-trigger"
         >
-          <SettingsTriggerIcon />
+          {t('settings')}
         </button>
         <div
           id={settingsPanelId}
           role="dialog"
-          aria-label={t('settingsAria')}
+          aria-label={t('settings')}
           className="gnb-settings-panel"
           data-open={settingsOpen ? 'true' : 'false'}
           hidden={!settingsOpen}
