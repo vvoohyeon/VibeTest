@@ -29,9 +29,13 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     const trigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
+    const localeControls = page.getByTestId('desktop-gnb-locale-controls');
 
     await trigger.hover();
     await expect(panel).toBeVisible({timeout: 200});
+    await expect(localeControls.getByRole('button', {name: 'English'})).toBeVisible();
+    await expect(localeControls.getByRole('button', {name: '한국어'})).toBeVisible();
+    await expect(localeControls.getByRole('button', {name: '日本語'})).toBeVisible();
 
     const triggerBox = await trigger.boundingBox();
     const panelBox = await panel.boundingBox();
@@ -255,7 +259,8 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const blog = page.locator('.gnb-desktop .gnb-desktop-links a').nth(1);
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
-    const krButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'});
+    const koreanButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: '한국어'});
+    const japaneseButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: '日本語'});
     const darkButton = page.getByTestId('desktop-gnb-theme-dark');
     const firstCardTrigger = page.getByTestId('landing-grid-card-trigger').first();
 
@@ -282,7 +287,9 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expect(panel).toBeVisible();
 
     await page.keyboard.press('Tab');
-    await expect(krButton).toBeFocused();
+    await expect(koreanButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(japaneseButton).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(darkButton).toBeFocused();
     await page.keyboard.press('Tab');
@@ -350,7 +357,8 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     const settingsTrigger = page.getByTestId('gnb-settings-trigger');
     const panel = page.getByTestId('gnb-settings-panel');
-    const krButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'});
+    const koreanButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: '한국어'});
+    const japaneseButton = page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: '日本語'});
     const darkButton = page.getByTestId('desktop-gnb-theme-dark');
     const sink = page.getByTestId('destination-focus-sink');
 
@@ -363,7 +371,9 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.keyboard.press('Space');
     await expect(panel).toBeVisible();
     await page.keyboard.press('Tab');
-    await expect(krButton).toBeFocused();
+    await expect(koreanButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(japaneseButton).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(darkButton).toBeFocused();
     await page.keyboard.press('Tab');
@@ -422,7 +432,8 @@ test.describe('Phase 3 gnb shell smoke', () => {
     const panelHome = panel.getByRole('link', {name: 'Home'});
     const panelHistory = panel.getByRole('link', {name: 'History'});
     const panelBlog = panel.getByRole('link', {name: 'Blog'});
-    const krButton = page.getByTestId('mobile-gnb-locale-controls').getByRole('button', {name: 'KR'});
+    const koreanButton = page.getByTestId('mobile-gnb-locale-controls').getByRole('button', {name: '한국어'});
+    const japaneseButton = page.getByTestId('mobile-gnb-locale-controls').getByRole('button', {name: '日本語'});
 
     await page.keyboard.press('Tab');
     await expect(page.getByTestId('landing-grid-card-trigger').first()).toBeFocused();
@@ -443,7 +454,9 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await page.keyboard.press('Tab');
     await expect(panelBlog).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(krButton).toBeFocused();
+    await expect(koreanButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(japaneseButton).toBeFocused();
 
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden({timeout: 1000});

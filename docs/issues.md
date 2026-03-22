@@ -60,60 +60,63 @@ theme representative helper 안정화는 이미 반영되어 있고 대표 Playw
 
 # P2: Ingress bootstrap no longer requires transition correlation
 
+## 요약
 
-### 요약
-
-landingIngress가 남아 있으면 Q2 시작은 허용한다.
-pendingTransition은 Q2 시작의 필수 조건이 아니라, internal transition_complete 정리용 보조 상태다.
-
+현재 구현에서 Test ingress bootstrap의 권위는 `landingIngress` 자체다.
+`pendingTransition`은 Q2 시작 여부를 결정하지 않으며, destination-ready 이후 internal `transition_complete`를 정리하는 보조 상태로만 남아 있다.
+즉 현재 코드베이스는 “transition correlation-less ingress bootstrap” 모델로 굳어져 있고, 남은 충돌은 주로 문서 표현과의 정합성 문제다.
 
 ## 현재 구현된 코드와 로직
 
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx:55) 의 `resolveQuestionBootstrapState()`는 `landingIngress` 존재 여부만으로 `landingIngressFlag`를 결정합니다.
-- 같은 함수에서 `currentQuestionIndex`는 `landingIngress !== null`이면 바로 `2`, 아니면 `1`이 됩니다.
-- 여기서 `pendingTransition`은 “Q2로 시작할지”를 결정하지 않고, 오직 `pendingTransitionToComplete`를 채워서 나중에 internal `transition_complete`를 닫는 데만 사용됩니다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx:104) 마운트 시점 로직은 `readPendingLandingTransition()`과 `readLandingIngress(variant)`를 각각 읽고, 둘을 합쳐 bootstrap state를 만듭니다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx:131) matching pending transition이 있으면 destination-ready 시점에 `completePendingLandingTransition()`을 호출해 pending transition만 정리합니다.
-- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx:152) instruction이 닫히거나 생략되어 실제 test runtime이 시작되면 `trackAttemptStart()`를 발화하고, 그 직후에만 `consumeLandingIngress(variant)`를 수행합니다.
-- 즉 현재 구현은 “pending transition이 이미 사라졌더라도 ingress record만 남아 있으면 Q2 시작을 허용”하는 구조입니다.
-- [transition/runtime.ts](/src/features/landing/transition/runtime.ts:49) 랜딩 test 카드 A/B 선택 시점에 ingress record를 저장합니다.
-- [transition/store.ts](/src/features/landing/transition/store.ts:20) 현재 `LandingIngressRecord`에는 `transitionId`가 없습니다. 저장되는 값은 `variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`뿐입니다.
-- 따라서 현재 구현에서는 ingress record 자체만으로는 “어떤 transition correlation에 묶여 있었는지”를 재검증할 수 없습니다.
-- [test-question-bootstrap.test.ts](/tests/unit/test-question-bootstrap.test.ts) 테스트도 이 동작을 고정하고 있습니다. 테스트 이름 그대로 “pending transition이 없어도 ingress가 있으면 Q2에서 시작”하는 것을 기대합니다.
+- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L55) 의 `resolveQuestionBootstrapState()`는 `landingIngress !== null`만으로 `landingIngressFlag`를 결정한다.
+- 같은 함수에서 [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L74) `currentQuestionIndex`는 ingress 존재 시 `2`, 부재 시 `1`로 바로 정해진다.
+- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L75) 는 ingress가 있으면 Q1 응답을 `answers.q1`로 즉시 채운다. 시작 문항 결정과 pre-answer bootstrap은 둘 다 ingress record만으로 수행된다.
+- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L61) 의 `pendingTransition` 분기는 target type/variant가 맞는지 확인한 뒤 [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L77) `pendingTransitionToComplete`에 `transitionId`를 넣는 역할만 한다.
+- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L104) 마운트 시 bootstrap은 `readPendingLandingTransition()`과 `readLandingIngress(variant)`를 각각 읽지만, 시작 문항 판정은 ingress 기준으로만 계산된다.
+- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L131) destination-ready 이후 `completePendingLandingTransition()`을 호출하는 effect는 pending transition cleanup 전용이다. 이 effect가 없어도 이미 계산된 Q2 bootstrap은 유지된다.
+- [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L152) 실제 runtime 시작 시점에는 `trackAttemptStart()`를 먼저 발화하고, [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L171) ingress가 있는 경우에만 `consumeLandingIngress(variant)`를 수행한다.
+- [transition/store.ts](/src/features/landing/transition/store.ts#L20) 기준으로 ingress record는 `sessionStorage`의 `vivetest-landing-ingress:{variant}` 키에 저장된다.
+- 저장 필드는 [transition/store.ts](/src/features/landing/transition/store.ts#L20) `variant`, `preAnswerChoice`, `createdAtMs`, `landingIngressFlag`뿐이다. `transitionId`나 correlation token은 저장되지 않는다.
+- [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L49) 의 `beginLandingTransition()`는 test ingress에서 ingress record를 쓰고, [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L57) 바로 `trackCardAnswered()`를 발화한다.
+- 이 순서는 [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L72) duplicate-locale 검증보다 앞선다. 따라서 duplicate-locale 실패에서는 public `card_answered`가 먼저 남을 수 있지만, 내부 rollback이 ingress/pending state를 즉시 제거한다.
+- correlation은 bootstrap 권위가 아니라 internal transition signal 정합성과 cleanup 경계에만 남아 있다. [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L65) 는 `transition_start`, [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L91) 는 `transition_complete`, [transition/runtime.ts](/src/features/landing/transition/runtime.ts#L110) 는 `transition_fail|cancel` 신호를 보낸다.
+- destination mismatch는 ingress 권위가 아니라 pending transition 쪽에서 fail-close 된다. [test-question-client.tsx](/src/features/landing/test/test-question-client.tsx#L105) 는 target type/variant mismatch를 `DESTINATION_LOAD_ERROR`로 정리하고, [blog-destination-client.tsx](/src/features/landing/blog/blog-destination-client.tsx#L40) 도 blog target이 아니면 동일하게 fail-close 한다.
+- landing 재진입에서 stale pending transition은 [landing-runtime.tsx](/src/features/landing/landing-runtime.tsx#L67) `USER_CANCEL`로 정리된다.
+- transition timeout monitor는 [transition-runtime-monitor.tsx](/src/features/landing/transition/transition-runtime-monitor.tsx#L9) `LANDING_TRANSITION_TIMEOUT_MS = 1600` 기준으로 pending transition만 감시한다. ingress 자체의 freshness나 만료는 여기서 판정하지 않는다.
+- ingress record의 [transition/store.ts](/src/features/landing/transition/store.ts#L23) `createdAtMs`는 현재 bootstrap/read/consume 경로 어디에서도 freshness 판정에 사용되지 않는다. 현재 구현에서는 저장만 되고 해석되지 않는 메타데이터다.
 
+## 현재 테스트/QA가 고정한 동작
 
-## 요구사항 문서에서 기술된 바
+- [test-question-bootstrap.test.ts](/tests/unit/test-question-bootstrap.test.ts#L6) 는 pending transition이 없어도 ingress만 있으면 Q2에서 시작해야 한다는 동작을 직접 고정한다.
+- 같은 테스트의 [test-question-bootstrap.test.ts](/tests/unit/test-question-bootstrap.test.ts#L26) 는 pending transition completion이 ingress 기반 시작 문항 계산과 분리되어야 함을 고정한다.
+- [landing-transition-store.test.ts](/tests/unit/landing-transition-store.test.ts#L73) 는 rollback이 pending transition, ingress flag, return scroll, body lock을 함께 정리해야 한다는 cleanup bundle을 고정한다.
+- [landing-transition-runtime.test.ts](/tests/unit/landing-transition-runtime.test.ts#L91) 는 duplicate-locale test ingress가 internal fail-close로 종료되더라도 public `card_answered`는 이미 발화될 수 있음을 고정한다.
+- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L113) 는 ingress 경로에서 Q2 bootstrap, `card_answered -> attempt_start -> final_submit`, internal `transition_start -> transition_complete` 순서를 함께 검증한다.
+- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L265) 는 ingress consume 이후 같은 test route 재진입 시 instruction 재표시 없이 Q1 fallback이 일어나야 함을 고정한다.
+- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L739) 와 [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L766) 는 timeout / destination-load-error / landing remount cancel 경로에서 stale pending transition cleanup을 검증한다.
+- [check-phase10-transition-contracts.mjs](/scripts/qa/check-phase10-transition-contracts.mjs#L47) 는 transition runtime이 ingress 저장과 `card_answered` 발화를 유지해야 함을 정적 게이트로 강제한다.
+- 같은 스크립트의 [check-phase10-transition-contracts.mjs](/scripts/qa/check-phase10-transition-contracts.mjs#L63) 는 question client가 ingress read/consume 분리를 유지해야 함을, [check-phase10-transition-contracts.mjs](/scripts/qa/check-phase10-transition-contracts.mjs#L71) 는 fallback/runtime `transitionId` 상태에 의존하면 안 됨을 정적 게이트로 고정한다.
 
-- [req-landing.md](/docs/req-landing.md:819) 13.4는 랜딩 Test 카드 A/B 선택 시 다음을 요구합니다.
-- Q1 pre-answer 저장
-- `variant + session` 단위 ingress flag 기록
-- `/test/[variant]` 진입
-- 그리고 ingress flag가 있으면 instructionSeen 여부와 무관하게 Q2부터 시작해야 한다고 명시합니다.
-- 같은 13.4는 동일 variant 재진입에서도 ingress flag가 있으면 즉시 시작 + Q2 진입이 가능하다고 적고 있습니다.
-- [req-landing.md](/docs/req-landing.md:844) 13.6은 pre-answer lifecycle 규칙으로 `read`와 `consume` 분리를 요구하고, `consume`은 instruction Start 직후 또는 그와 동등한 내부 `test_start` 시점에만 허용합니다.
-- 그런데 같은 13.6에는 “`transition correlation + landing ingress flag` 없는 유입에 pre-answer 적용 금지”라는 문구가 남아 있습니다.
-- 이 문구를 문자 그대로 읽으면, ingress flag만 있고 transition correlation이 사라진 상태에서는 Q2 시작을 허용하면 안 되는 것으로 해석될 수 있습니다.
-- [req-landing.md](/docs/req-landing.md:898) 14.3 QA matrix는 ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, `start=1 -> terminal=1` 상호배타를 release-blocking으로 둡니다.
-- [req-landing.md](/docs/req-landing.md:907) 같은 QA matrix는 `card_answered`와 `attempt_start`의 cross-phase integrity도 요구합니다.
-- [requirements.md](/docs/requirements.md:271) 전역 요구사항은 `card_answered`, `attempt_start`, `final_submit`를 현재 global minimum으로 두고 있지만, “orphan ingress를 허용할지” 자체를 별도로 해석해 주지는 않습니다.
-- [req-test.md](/docs/req-test.md:152) 다음 Phase 문서는 landing ingress를 staged entry 관점에서 설명하면서 `card_answered`는 landing phase 이벤트이고, test flow는 그 결과를 이어받는다고 적고 있습니다.
-- [req-test.md](/docs/req-test.md:1124) 또한 ingress 경로에서는 `card_answered -> attempt_start(question_index_1based=2)` 정합성을 요구합니다.
+## 요구사항 문서와의 차이
 
+- [req-landing.md](/docs/req-landing.md#L819) 13.4는 “Q1 pre-answer와 시작 문항 결정은 ingress flag 기준으로만 판단한다”고 적고, [req-landing.md](/docs/req-landing.md#L826) ingress flag 존재 시 instructionSeen 여부와 무관하게 Q2 시작을 요구한다. 이 부분은 현재 구현과 직접 맞물린다.
+- 반면 [req-landing.md](/docs/req-landing.md#L844) 13.6은 pre-answer lifecycle 규칙 안에 [req-landing.md](/docs/req-landing.md#L850) “`transition correlation + landing ingress flag` 없는 유입에 pre-answer 적용 금지” 문구를 남겨 두고 있다.
+- [req-test.md](/docs/req-test.md#L159) 는 `Ingress Flag`를 “시작 문항 판정의 유일한 근거”라고 정의하고, [req-test.md](/docs/req-test.md#L160) 는 `Validated Landing-origin Context`를 “랜딩 카드 선택과 ingress flag 저장이 하나의 원자적 동작으로 완료된 상태”로 정의한다. 현재 구현은 이 정의와 더 가깝다.
+- [req-test.md](/docs/req-test.md#L466) 는 validated landing-origin context가 확인된 경우에만 Q1 pre-answer를 적용한다고 적고, [req-test.md](/docs/req-test.md#L467) context가 없으면 storage에 pre-answer가 남아 있어도 무시하라고 적는다. 이 문구는 “correlation token 보존”보다 “ingress flag 기반 문맥 판정” 쪽에 무게가 실린다.
+- [req-landing.md](/docs/req-landing.md#L833) 와 [req-test.md](/docs/req-test.md#L153) 는 staged entry의 7분 만료를 다음 Phase 범위로 둔다. 현재 landing 구현은 `createdAtMs`를 저장하지만 ingress bootstrap 시 만료를 판정하지는 않는다.
+- [req-landing.md](/docs/req-landing.md#L898) 와 [req-landing.md](/docs/req-landing.md#L907) 는 ingress flag 기록, Q2 시작/표시, consume 시점, rollback 3케이스, `card_answered -> attempt_start` 정합성을 release-blocking으로 둔다. 이 QA 문구는 현재 구현/테스트와 일치하지만, 13.6의 correlation 문구와는 긴장이 있다.
 
-## 핵심 충돌 지점
+## 이번 분석으로 추가된 핵심 시사점
 
-- 현재 코드 해석:
-`landingIngress`만 남아 있으면 Q2 시작 허용
-- 문서 해석 1:
-13.4 기준으로 보면 현재 코드가 맞음
-- 문서 해석 2:
-13.6의 `transition correlation + landing ingress flag` 문구를 엄격히 적용하면 현재 코드는 완전히 맞다고 보기 어려움
-
-## 추가 질문
-
-1. ingress 기반 Q2 시작의 권위를 `landingIngress` 단독으로 볼지, 아니면 `transition correlation`까지 남아 있어야 한다고 볼지
-2. 현재 v4 방향을 유지한다면 [req-landing.md](/docs/req-landing.md) 13.6의 correlation 문구를 삭제/완화해야 하는지
-3. 반대로 문서를 유지한다면, ingress record에 correlation을 다시 저장하거나 orphan ingress 무효화 규칙을 추가해야 하는지
+- 현재 코드, unit test, e2e smoke, Phase 10 QA는 모두 “transition correlation이 없어도 ingress bootstrap은 성립한다”는 모델을 공통으로 고정하고 있다.
+- transition correlation은 현재 구현에서 bootstrap authority가 아니라 internal signal 정합성, source GNB overlay 유지, fail/cancel/timeout cleanup 경계를 위한 상태다.
+- duplicate-locale 실패처럼 public `card_answered`는 남지만 ingress/pending state는 즉시 사라지는 경로가 존재한다. 즉 public telemetry와 internal transition terminal의 종료 시점은 완전히 동일하지 않다.
+- `createdAtMs`가 현재 미사용이므로, staged entry freshness/expiry는 저장 포맷에 흔적만 있고 현재 landing bootstrap 계약에는 아직 연결되어 있지 않다.
+- 따라서 P2의 실질 이슈는 “ingress bootstrap 버그”보다 “문서 일부가 여전히 correlation-required 모델처럼 읽힌다”는 정합성 문제에 더 가깝다.
+- 후속 세션에서 바로 검토할 차이는 아래 3가지로 압축된다.
+  - [req-landing.md](/docs/req-landing.md#L850) correlation 문구를 현재 ingress-first bootstrap 모델에 맞게 해석하거나 정리할 필요가 있다.
+  - staged entry expiry는 다음 Phase 문서에 정의돼 있지만, 현재 landing bootstrap에서는 시행되지 않는다.
+  - duplicate-locale 실패에서 `card_answered`가 먼저 남는 현재 순서를 제품/분석 관점에서 의도된 것으로 볼지 확인이 필요하다.
 
 ---
 
@@ -121,115 +124,64 @@ pendingTransition은 Q2 시작의 필수 조건이 아니라, internal transitio
 
 ## 요약
 
-현재 구현은 session_id를 transport 시점에 보장하는 모델이다.
-이벤트는 pre-sync 상태에서 session_id=null로 생성·큐잉될 수 있고,
-실제 전송 직전에 session_id를 patch한다.
-requirements.md는 이 모델을 명시적으로 허용하지만,
-req-landing.md는 이를 같은 수준으로 풀어 쓰지 않아
-리뷰어가 “session_id가 처음부터 필수인지”를 다르게 해석할 여지가 있다.
-
+현재 구현은 `session_id`를 이벤트 생성 시점이 아니라 transport 시점에 보장하는 모델이다.
+이벤트 객체는 pre-sync 상태에서 `session_id=null`로 생성·큐잉될 수 있고, 전송 직전에 `session_id`를 patch한다.
+다만 이 보장은 validator나 서버가 아니라 client runtime 규약에 의해 성립하며, 활성 문서들 사이에서도 이 적용 시점이 동일한 수준으로 풀려 있지는 않다.
 
 ## 현재 구현된 코드와 로직
 
-- [types.ts](/src/features/landing/telemetry/types.ts#L11) 에서 공개 telemetry 공통 타입 `TelemetryBaseEvent`의 `session_id`는 `string | null`로 정의돼 있습니다.
-- 즉 타입 수준에서는 이벤트 객체가 생성되는 초기 시점에 `session_id=null`을 허용하고 있습니다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L146) 의 `createBaseEvent()`는 이벤트 생성 시 `session_id: runtimeState.sessionId`를 넣습니다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L44) 초기 런타임 상태에서 `runtimeState.sessionId`는 `null`입니다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L166) consent source가 아직 sync되지 않았으면 `runtimeState.sessionId`는 계속 `null`로 유지됩니다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L92) `canSendToNetwork()`는 아래 3조건이 모두 맞아야만 `true`입니다.
-  - consent sync 완료
-  - `consent_state === OPTED_IN`
-  - `runtimeState.sessionId !== null`
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L129) `enqueueOrSend()`는 전송 조건이 안 맞으면 이벤트를 바로 보내지 않고 큐에 넣습니다.
-- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L109) `flushQueue()`는 나중에 전송 가능 상태가 되면 큐에 있던 이벤트를 꺼내고,
-- [validation.ts](/src/features/landing/telemetry/validation.ts#L111) `patchTelemetryEventForTransport()`로 `session_id`와 `consent_state`를 transport 직전에 다시 덮어씁니다.
-- [validation.ts](/src/features/landing/telemetry/validation.ts#L11) `validateTelemetryEvent()`는 `event_id`, `ts_ms`, `route`, `consent_state`는 검사하지만, `session_id !== null`은 강제하지 않습니다.
-- 따라서 현재 구현은 아래 방식으로 동작합니다.
+- [types.ts](/src/features/landing/telemetry/types.ts#L11) 의 공개 telemetry 공통 타입 `TelemetryBaseEvent`는 `session_id: string | null`을 허용한다.
+- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L44) 초기 runtime state에서 `sessionId`는 `null`이고, [runtime.ts](/src/features/landing/telemetry/runtime.ts#L146) `createBaseEvent()`는 현재 runtime state의 `sessionId`를 그대로 event payload에 넣는다.
+- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L166) consent source가 아직 sync되지 않았으면 runtime `sessionId`는 계속 `null`로 유지된다.
+- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L92) `canSendToNetwork()`는 `synced && consent_state === OPTED_IN && sessionId !== null`일 때만 `true`가 된다.
+- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L129) `enqueueOrSend()`는 전송 조건이 안 맞으면 event를 runtime queue에 적재한다.
+- 이 queue는 [runtime.ts](/src/features/landing/telemetry/runtime.ts#L38) 메모리 배열 `runtimeState.queue`일 뿐이며, `localStorage`나 `sessionStorage`로 영속화되지 않는다. same-tab 런타임 동안만 유지되고, reload 후 durable queue로 복원되지는 않는다.
+- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L109) `flushQueue()`는 나중에 전송 가능 상태가 되면 queued event를 꺼내 [validation.ts](/src/features/landing/telemetry/validation.ts#L111) `patchTelemetryEventForTransport()`로 `session_id`와 `consent_state`를 덮어쓴 뒤 전송한다.
+- [runtime.ts](/src/features/landing/telemetry/runtime.ts#L172) `OPTED_IN` sync 시점에는 `resolveSessionId()`를 호출해 session ID를 확보하려고 시도한다.
+- 이 session ID는 [runtime.ts](/src/features/landing/telemetry/runtime.ts#L62) `localStorage`의 `vivetest-telemetry-session-id`를 우선 재사용하고, 없으면 [correlation-id.ts](/src/features/landing/lib/correlation-id.ts) 의 `createOpaqueId()`를 통해 `randomUUID -> getRandomValues` 순서로 생성한다.
+- 랜덤 소스를 끝내 사용할 수 없으면 `sessionId`는 계속 `null`이고, 이 경우 event 객체 생성은 가능하지만 네트워크 전송은 계속 막힌다.
+- event별 pre-sync 동작도 동일하지 않다.
+  - [runtime.ts](/src/features/landing/telemetry/runtime.ts#L245) `trackCardAnswered`, [runtime.ts](/src/features/landing/telemetry/runtime.ts#L258) `trackAttemptStart`, [runtime.ts](/src/features/landing/telemetry/runtime.ts#L274) `trackFinalSubmit`는 consent sync 이전에도 호출될 수 있고 queue로 들어갈 수 있다.
+  - 반면 [landing-runtime.tsx](/src/features/landing/landing-runtime.tsx#L79) `trackLandingView`는 `telemetrySnapshot.synced` 이후에만 발화된다. 따라서 `landing_view`는 다른 public event보다 더 늦은 시점에 생성된다.
+- [consent-source.ts](/src/features/landing/telemetry/consent-source.ts#L7) 는 consent의 SSOT를 메모리 snapshot에 두고, `localStorage`는 persistence layer로만 사용한다.
+- [consent-source.ts](/src/features/landing/telemetry/consent-source.ts#L58) invalid persisted consent는 `OPTED_OUT`로 안전하게 강등되며, [consent-source.ts](/src/features/landing/telemetry/consent-source.ts#L112) same-tab `setTelemetryConsentState()` 호출은 즉시 메모리 snapshot을 갱신한다.
+- [validation.ts](/src/features/landing/telemetry/validation.ts#L54) `validateTelemetryEvent()`는 forbidden/legacy fields와 이벤트별 필수 필드는 검사하지만 `session_id !== null`은 강제하지 않는다.
+- transport 직전에도 같은 validator를 다시 쓰지만, [validation.ts](/src/features/landing/telemetry/validation.ts#L111) validator 자체가 non-null session을 계약으로 들고 있지는 않다.
+- 서버 경계는 더 느슨하다. [src/app/api/telemetry/route.ts](/src/app/api/telemetry/route.ts#L3) 는 request body가 JSON으로 parse되는지만 보고 `204`를 반환한다. payload schema나 `session_id`는 서버에서 재검증하지 않는다.
 
-```text
-1. 이벤트 객체는 session_id=null 상태로 먼저 만들어질 수 있다.
-2. 전송 불가 상태이면 큐에 보관한다.
-3. 나중에 consent/session이 준비되면 transport 직전에 session_id를 patch한다.
-4. session_id를 끝내 만들 수 없으면 네트워크 전송은 하지 않는다.
-```
+## 현재 테스트/QA가 고정한 동작
 
-### 현재 테스트가 고정하고 있는 동작
+- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L55) 는 `UNKNOWN` 상태에서 생긴 event가 queue에 쌓였다가 `OPTED_IN` 전환 후 flush되는 것을 고정한다.
+- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L71) 는 `OPTED_OUT` 전환 시 queued event가 폐기되는 것을 고정한다.
+- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L95) 는 persisted consent가 없으면 `sessionId=null` 상태로 전송이 막히고 queue만 쌓인다는 점을 고정한다.
+- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L110) 는 invalid persisted consent를 안전하게 `OPTED_OUT`로 해석해야 함을 고정한다.
+- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L120) 는 랜덤 소스가 불가해 `sessionId`를 만들 수 없는 경우에도 `OPTED_IN` 이후 전송을 막고 queue만 유지함을 고정한다.
+- [landing-telemetry-validation.test.ts](/tests/unit/landing-telemetry-validation.test.ts#L5) 는 forbidden/legacy field와 `card_answered`/`final_submit` 필수 필드를 검증하지만, nullable `session_id` 자체를 직접 단언하지는 않는다.
+- [vercel-analytics-gate.test.ts](/tests/unit/vercel-analytics-gate.test.ts#L89) 와 [vercel-speed-insights-gate.test.ts](/tests/unit/vercel-speed-insights-gate.test.ts#L89) 는 same-tab consent 변경 시 Vercel Analytics / Speed Insights gate가 같은 consent source를 즉시 따른다는 점을 고정한다.
+- [check-phase11-telemetry-contracts.mjs](/scripts/qa/check-phase11-telemetry-contracts.mjs#L57) 는 telemetry runtime이 consent state machine과 helper surface를 유지해야 함을 정적 게이트로 검사한다.
+- 같은 스크립트의 [check-phase11-telemetry-contracts.mjs](/scripts/qa/check-phase11-telemetry-contracts.mjs#L85) 는 validation file이 forbidden/legacy fields, `card_answered`, `final_responses` 검사를 유지해야 함을 요구하지만, transport payload의 non-null `session_id`를 직접 검사하지는 않는다.
+- [transition-telemetry-smoke.spec.ts](/tests/e2e/transition-telemetry-smoke.spec.ts#L132) 는 실제 전송 payload를 캡처하지만, 현재 단언은 event ordering / required fields / forbidden fields에 집중되어 있고 `session_id`의 non-null을 직접 확인하지 않는다.
 
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L55) 는 `UNKNOWN` 상태에서 발생한 이벤트가 큐에 쌓였다가 `OPTED_IN` 전환 후 flush되는 것을 검증합니다.
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L95) 는 persisted consent가 없으면 `sessionId=null`인 채로 전송이 막히고 큐만 쌓이는 것을 검증합니다.
-- [landing-telemetry-runtime.test.ts](/tests/unit/landing-telemetry-runtime.test.ts#L120) 는 랜덤 소스가 없어 `sessionId`를 만들 수 없는 경우에도 `OPTED_IN` 이후 전송을 막고 큐만 유지하는 것을 검증합니다.
+## 요구사항 문서와의 차이
 
-### 현재 구현 요약
+- [req-landing.md](/docs/req-landing.md#L720) 는 `OPTED_IN`에서만 네트워크 전송 허용, [req-landing.md](/docs/req-landing.md#L721) `UNKNOWN/OPTED_OUT`에서는 로컬 큐 보관 가능이라고 적는다.
+- [req-landing.md](/docs/req-landing.md#L732) 는 “공통 필수 필드(모든 전송 이벤트)”에 `session_id`를 포함하고, [req-landing.md](/docs/req-landing.md#L770) 랜덤 소스 불가 환경에서는 `session_id`를 만들지 않는다고 적는다.
+- 이 서술은 “실제로 전송되는 event에는 session_id가 있어야 한다”는 해석과는 잘 맞지만, queued pre-sync event가 `session_id=null`로 시작할 수 있는지, queue가 durable한지, validator가 언제 non-null을 강제하는지까지는 적지 않는다.
+- [requirements.md](/docs/requirements.md#L297) 는 payload requirements에서 `session_id`를 공통 필수 필드 목록과 별도로 분리해 쓰고, [requirements.md](/docs/requirements.md#L299) “queued pre-sync events may originate with `session_id=null` before transport patching”을 명시한다.
+- 따라서 active docs 사이에서도 표현 밀도가 다르다. `requirements.md`는 현재 구현에 가깝고, `req-landing.md`는 transport-stage 필수성만 짧게 말하는 편이다.
+- [req-test.md](/docs/req-test.md) 에는 `session_id`에 대한 직접 규정이 없다. 현재 P3의 해석 충돌은 사실상 `req-landing.md`와 `requirements.md` 사이에 있다.
+- 또 하나의 차이는 보장 위치다. 활성 문서는 주로 payload semantics를 말하지만, 현재 구현에서 그 보장은 validator나 서버보다 client runtime에 집중돼 있다.
 
-현재 구현은 “모든 이벤트 객체가 처음부터 session_id를 가져야 한다”가 아니라,
-“실제 네트워크로 나가는 시점에는 session_id가 있어야 한다”는 모델에 가깝다.
+## 이번 분석으로 추가된 핵심 시사점
 
-## 요구사항 문서에서 기술된 바
-
-### req-landing.md
-
-- [req-landing.md](/docs/req-landing.md#L720) 12.1은 `OPTED_IN`에서만 네트워크 전송 허용, `UNKNOWN/OPTED_OUT`에서는 로컬 큐 보관 가능이라고 적고 있습니다.
-- [req-landing.md](/docs/req-landing.md#L732) 12.2는 “공통 필수 필드(모든 전송 이벤트)”에 `session_id`를 포함합니다.
-- [req-landing.md](/docs/req-landing.md#L766) 12.5는 익명 ID 정책을 설명하면서,
-- [req-landing.md](/docs/req-landing.md#L770) 랜덤 소스가 모두 불가한 환경에서는 `session_id`를 생성하지 않는다고 적습니다.
-- [req-landing.md](/docs/req-landing.md#L772) 그리고 그런 환경에서는 클라이언트 전송을 금지한다고 적습니다.
-
-이 문서만 보면 자연스러운 해석은 다음과 같습니다.
-
-```text
-네트워크로 실제 전송되는 이벤트에는 session_id가 반드시 있어야 한다.
-단, 전송 이전 로컬 큐 단계의 중간 이벤트 객체가 session_id=null일 수 있는지까지는 명시하지 않는다.
-```
-
-### requirements.md
-
-- [requirements.md](/docs/requirements.md#L294) 는 active landing/test SSOT가 우선이라고 적고 있습니다.
-- [requirements.md](/docs/requirements.md#L297) 전역 payload requirements는 공통 필수 필드에서 `session_id`를 분리해 적습니다.
-- [requirements.md](/docs/requirements.md#L299) 는 `session_id`가 consent/session이 준비되면 transport 단계에서 patch되며, pre-sync queued event는 `session_id=null`에서 시작할 수 있다고 명시합니다.
-
-이 문서는 해석이 훨씬 더 구체적입니다.
-
-```text
-이벤트 객체 생성 시점에는 session_id=null 허용
-실제 transport 시점에 session_id를 채워 넣는 구조 허용
-```
-
-### req-test.md
-
-- `req-test.md`에서는 `session_id`에 대한 직접 규정을 찾지 못했습니다.
-- 따라서 P3 쟁점에 대해서는 현재로서는 [req-landing.md](/docs/req-landing.md) 와 [requirements.md](/docs/requirements.md) 의 해석 차이가 핵심입니다.
-
-## 가장 중요한 핵심 충돌 지점
-
-req-landing은 “전송 이벤트에는 session_id가 필수”라고 말하고,
-requirements는 “pre-sync 이벤트는 session_id=null로 시작해도 된다”고 더 명시적으로 말한다.
-
-
-이 충돌을 조금 더 풀면:
-
-- 현재 구현은 [runtime.ts](/src/features/landing/telemetry/runtime.ts#L150), [runtime.ts](/src/features/landing/telemetry/runtime.ts#L129), [validation.ts](/src/features/landing/telemetry/validation.ts#L111) 기준으로 `requirements.md`의 모델을 따르고 있습니다.
-- 반면 [req-landing.md](/docs/req-landing.md#L732) 는 “전송 이벤트”라는 말을 쓰고 있어, 엄밀히 보면 구현과 직접 충돌한다고 단정할 정도는 아닐 수 있습니다.
-- 하지만 이 문서만 읽는 리뷰어는 “공개 telemetry 이벤트의 공통 필수 필드에 session_id가 있으니 validate 단계에서도 null이면 안 된다”고 해석할 여지가 있습니다.
-- 실제 코드에서는 [validation.ts](/src/features/landing/telemetry/validation.ts#L54) 가 `session_id`의 non-null을 강제하지 않기 때문에, 그 해석과는 다릅니다.
-
-즉 P3의 본질은 런타임 오동작보다는 아래 문제입니다.
-
-```text
-“session_id 필수”의 적용 시점이
-문서에서는 완전히 단일 문장으로 닫혀 있지 않고,
-구현은 transport 시점 필수 모델로 굳어져 있다.
-```
-
-## 추가 질문
-
-1. `session_id`의 필수성은 “이벤트 객체 생성 시점”부터 적용돼야 하는가, 아니면 “실제 네트워크 전송 시점”에만 적용되면 충분한가?
-
-2. 현재 구현처럼 `session_id=null`인 pre-sync 이벤트를 큐에 두고, transport 직전에 patch하는 모델이 제품/분석/개인정보 관점에서 허용 가능한가?
-
-3. [req-landing.md](/docs/req-landing.md) 12.2에 “모든 전송 이벤트”라고 적은 표현만으로 충분한가, 아니면 [requirements.md](/docs/requirements.md) 처럼 “queued pre-sync events may originate with session_id=null”을 명시적으로 추가해야 하는가?
-
-4. 검증 계층인 [validation.ts](/src/features/landing/telemetry/validation.ts) 가 현재처럼 `session_id !== null`을 강제하지 않는 것이 맞는가, 아니면 transport 직전 검증과 생성 시점 검증을 분리해야 하는가?
-
-5. 랜덤 소스가 불가한 환경에서 현재처럼 “큐 적재는 허용하지만 전송은 영구 차단”하는 정책이 맞는가, 아니면 이런 경우에는 아예 이벤트 객체 생성 자체를 막는 편이 더 명확한가?
-
-6. 외부 리뷰 기준에서 이 이슈를 “문서 정합성 문제”로 볼지, 아니면 “validation contract가 문서보다 느슨한 구현 문제”로 볼지 어느 쪽이 더 정확한가?
+- 현재 구현의 실제 보장 문장은 “모든 event 객체가 처음부터 `session_id`를 가져야 한다”가 아니라 “실제 네트워크로 나가는 시점에는 client runtime이 `session_id`가 없는 event를 보내지 않는다”에 가깝다.
+- 이 보장은 validator 단독 계약이 아니고, server contract도 아니다. 현재는 `canSendToNetwork()`와 transport patch 경로가 사실상의 enforcement point다.
+- queued pre-sync event는 durable queue가 아니라 메모리 queue이므로, reload 이후까지 보존되는 분석 버퍼로 이해하면 안 된다.
+- public event 중에서도 생성 시점은 다르다. `landing_view`는 sync 이후에만 생성되지만, `card_answered`/`attempt_start`/`final_submit`는 pre-sync 상태에서도 생성되어 queue에 들어갈 수 있다.
+- same-tab consent 변경은 custom telemetry뿐 아니라 Vercel Analytics / Speed Insights gate에도 즉시 전파된다. 현재 consent source는 “telemetry send 여부”와 “third-party script mount 여부”를 같은 메모리 snapshot으로 묶는다.
+- 현재 테스트와 QA는 consent state machine, queue flush/discard, forbidden fields, helper surface는 잘 고정하지만, “실제 전송 payload의 `session_id` non-null”은 직접 단언하지 않는다.
+- 따라서 P3의 실질 이슈는 단순한 문서 표현 차이만이 아니라, “`session_id` 필수성의 적용 시점”과 “그 보장을 누가 책임지는가”가 문서마다 다르게 읽힌다는 점이다.
+- 후속 세션에서 바로 검토할 차이는 아래 3가지로 압축된다.
+  - `req-landing.md`의 “모든 전송 이벤트” 표현만으로 transport-patch 모델을 충분히 설명하는지.
+  - `session_id` non-null 보장을 validator 또는 서버까지 끌어올릴 필요가 있는지.
+  - 현재 메모리 queue만으로도 제품/분석 관점에서 충분한지, 아니면 durable queue semantics가 필요한지.

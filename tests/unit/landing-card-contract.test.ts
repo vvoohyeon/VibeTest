@@ -3,6 +3,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
 
+import type {AppLocale} from '../../src/config/site';
 import {createLandingCatalog} from '../../src/features/landing/data/adapter';
 import type {
   LandingCardDesktopMotionRole,
@@ -21,7 +22,7 @@ function renderCardDocument({
 }: {
   card: ReturnType<typeof createLandingCatalog>[number];
   state: LandingCardVisualState;
-  locale?: 'en' | 'kr';
+  locale?: AppLocale;
   interactionMode?: LandingCardInteractionMode;
   desktopMotionRole?: LandingCardDesktopMotionRole;
   desktopShellPhase?: LandingCardDesktopShellPhase;
@@ -49,7 +50,7 @@ function renderDesktopExpandedCardDocument({
   interactionMode = 'hover'
 }: {
   card: ReturnType<typeof createLandingCatalog>[number];
-  locale?: 'en' | 'kr';
+  locale?: AppLocale;
   interactionMode?: LandingCardInteractionMode;
 }): Document {
   return renderCardDocument({

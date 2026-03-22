@@ -5,7 +5,9 @@ import type {Root} from 'react-dom/client';
 import {createRoot} from 'react-dom/client';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 
+import type {AppLocale} from '../../src/config/site';
 import enMessages from '../../src/messages/en.json';
+import jaMessages from '../../src/messages/ja.json';
 import krMessages from '../../src/messages/kr.json';
 import {TelemetryConsentBanner} from '../../src/features/landing/shell/telemetry-consent-banner';
 import {
@@ -16,10 +18,15 @@ import {
 } from '../../src/features/landing/telemetry/consent-source';
 
 let root: Root | null = null;
+const testMessagesByLocale = {
+  en: enMessages,
+  kr: krMessages,
+  ja: jaMessages
+} as const;
 
 function IntlProviderHarness(props: {
-  locale: 'en' | 'kr';
-  messages: typeof enMessages | typeof krMessages;
+  locale: AppLocale;
+  messages: typeof enMessages | typeof krMessages | typeof jaMessages;
   children?: React.ReactNode;
 }) {
   const providerProps: React.ComponentProps<typeof NextIntlClientProvider> = {
@@ -78,18 +85,16 @@ function uninstallDom() {
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 }
 
-async function renderBanner(locale: 'en' | 'kr') {
+async function renderBanner(locale: AppLocale) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-
-  const messages = locale === 'kr' ? krMessages : enMessages;
 
   const tree = React.createElement(
     IntlProviderHarness,
     {
       locale,
-      messages
+      messages: testMessagesByLocale[locale]
     },
     React.createElement(TelemetryConsentBanner)
   );
@@ -151,6 +156,21 @@ describe('TelemetryConsentBanner', () => {
     expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('모두 허용');
     expect(document.querySelector('[data-testid="telemetry-consent-deny"]')?.textContent).toBe('거부');
     expect(document.querySelector('[data-testid="telemetry-consent-preferences"]')?.textContent).toBe('설정');
+  });
+
+  it('renders the Japanese banner when consent is synced as UNKNOWN', async () => {
+    window.localStorage.removeItem(TELEMETRY_CONSENT_STORAGE_KEY);
+    syncTelemetryConsentSource();
+    await renderBanner('ja');
+
+    const banner = queryBanner();
+    expect(banner).not.toBeNull();
+    expect(banner?.textContent).toContain(
+      'サービスを正しく動作させ、利用状況を把握するために、Cookie および類似技術を使用します。'
+    );
+    expect(document.querySelector('[data-testid="telemetry-consent-accept"]')?.textContent).toBe('すべて許可');
+    expect(document.querySelector('[data-testid="telemetry-consent-deny"]')?.textContent).toBe('拒否');
+    expect(document.querySelector('[data-testid="telemetry-consent-preferences"]')?.textContent).toBe('設定');
   });
 
   it('hides itself immediately after accepting consent', async () => {

@@ -6,13 +6,7 @@ import type {ReactNode} from 'react';
 import {isLocale, locales} from '@/config/site';
 import {TransitionRuntimeMonitor} from '@/features/landing/transition/transition-runtime-monitor';
 import {LocaleHtmlLangSync} from '@/i18n/locale-html-lang-sync';
-import en from '@/messages/en.json';
-import kr from '@/messages/kr.json';
-
-const messagesByLocale = {
-  en,
-  kr
-};
+import {messagesByLocale} from '@/i18n/messages';
 
 export const dynamicParams = false;
 

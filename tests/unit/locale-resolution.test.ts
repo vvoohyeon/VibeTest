@@ -29,6 +29,12 @@ describe('locale resolution helpers', () => {
 
     expect(
       resolveLocaleFromCookieOrHeader({
+        acceptLanguage: 'ja-JP,ja;q=0.9,en-US;q=0.8'
+      })
+    ).toBe('ja');
+
+    expect(
+      resolveLocaleFromCookieOrHeader({
         acceptLanguage: 'fr-FR,fr;q=0.9,de;q=0.8'
       })
     ).toBe('en');
@@ -37,8 +43,10 @@ describe('locale resolution helpers', () => {
   it('detects locale prefixes and duplicates correctly', () => {
     expect(parseLocalePrefix('/en/blog')).toBe('en');
     expect(parseLocalePrefix('/kr')).toBe('kr');
+    expect(parseLocalePrefix('/ja/history')).toBe('ja');
     expect(parseLocalePrefix('/blog')).toBeNull();
     expect(hasDuplicateLocalePrefix('/en/en/blog')).toBe(true);
+    expect(hasDuplicateLocalePrefix('/ja/ja/blog')).toBe(true);
     expect(hasDuplicateLocalePrefix('/en/blog')).toBe(false);
   });
 
@@ -65,5 +73,6 @@ describe('locale resolution helpers', () => {
   it('prefixes locale to locale-free paths', () => {
     expect(withLocalePrefix('/', 'en')).toBe('/en');
     expect(withLocalePrefix('/blog', 'kr')).toBe('/kr/blog');
+    expect(withLocalePrefix('/history', 'ja')).toBe('/ja/history');
   });
 });

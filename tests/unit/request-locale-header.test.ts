@@ -15,6 +15,7 @@ describe('request locale header contract', () => {
   it('resolves only localized pathnames into request header values', () => {
     expect(getRequestLocaleHeaderValueFromPathname('/en')).toBe('en');
     expect(getRequestLocaleHeaderValueFromPathname('/kr/blog')).toBe('kr');
+    expect(getRequestLocaleHeaderValueFromPathname('/ja/history')).toBe('ja');
     expect(getRequestLocaleHeaderValueFromPathname('/blog')).toBeNull();
     expect(getRequestLocaleHeaderValueFromPathname('/_not-found')).toBeNull();
   });
@@ -22,6 +23,7 @@ describe('request locale header contract', () => {
   it('falls back to the default locale for missing or invalid header values', () => {
     expect(resolveRequestLocaleHeaderValue('en')).toBe('en');
     expect(resolveRequestLocaleHeaderValue('kr')).toBe('kr');
+    expect(resolveRequestLocaleHeaderValue('ja')).toBe('ja');
     expect(resolveRequestLocaleHeaderValue('ko')).toBe('en');
     expect(resolveRequestLocaleHeaderValue(undefined)).toBe('en');
   });

@@ -20,11 +20,11 @@ describe('proxy policy', () => {
     expect(
       resolveProxyDecision({
         pathname: '/blog',
-        acceptLanguage: 'ko-KR,ko;q=0.9'
+        acceptLanguage: 'ja-JP,ja;q=0.9'
       })
     ).toEqual({
       action: 'redirect',
-      pathname: '/kr/blog'
+      pathname: '/ja/blog'
     });
 
     expect(
@@ -41,7 +41,7 @@ describe('proxy policy', () => {
   it('rewrites duplicate locale prefixes but leaves non-app paths to Next not-found handling', () => {
     expect(
       resolveProxyDecision({
-        pathname: '/en/en/blog'
+        pathname: '/ja/ja/blog'
       })
     ).toEqual({
       action: 'rewrite',
@@ -71,6 +71,12 @@ describe('proxy policy', () => {
     expect(
       resolveProxyDecision({
         pathname: '/en/blog'
+      })
+    ).toEqual({action: 'next'});
+
+    expect(
+      resolveProxyDecision({
+        pathname: '/ja'
       })
     ).toEqual({action: 'next'});
 

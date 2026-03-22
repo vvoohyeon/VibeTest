@@ -18,6 +18,10 @@ function normalizeLocaleToken(token: string): AppLocale | null {
     return 'en';
   }
 
+  if (lowered === 'ja' || lowered.startsWith('ja-')) {
+    return 'ja';
+  }
+
   return null;
 }
 

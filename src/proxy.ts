@@ -46,5 +46,5 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // Next는 matcher를 정적 리터럴로만 인식하므로 앱 소유 경로 목록을 여기서 직접 고정한다.
-  matcher: ['/', '/blog', '/history', '/test/:variant', '/en', '/en/:path*', '/kr', '/kr/:path*']
+  matcher: ['/', '/blog', '/history', '/test/:variant', '/en', '/en/:path*', '/kr', '/kr/:path*', '/ja', '/ja/:path*']
 };

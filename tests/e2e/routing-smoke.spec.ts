@@ -8,6 +8,8 @@ import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
 const PREVIEW_LOG_PATH = path.join(process.cwd(), '.next/qa/preview-smoke.log');
 const PREVIEW_404_ALLOWLIST = /Error: Internal: NoFallbackError(?:\n\s+at .+)+/gu;
 const isPreviewServerMode = process.env.PLAYWRIGHT_SERVER_MODE === 'preview';
+const SUPPORTED_LOCALE_PATTERN = '(?:en|kr|ja)';
+const DUPLICATE_LOCALE_PATTERN = new RegExp(`^/${SUPPORTED_LOCALE_PATTERN}/${SUPPORTED_LOCALE_PATTERN}(/|$)`, 'u');
 
 function hasHydrationWarning(text: string): boolean {
   return /hydration|did not match|server html|client html|hydrating/u.test(text);
@@ -42,20 +44,20 @@ function collectUnexpectedPreviewErrors(log: string): string[] {
 test.describe('Phase 1 routing smoke', () => {
   test('@smoke assertion:B2-locale-prefix root + allowlist redirect keeps single locale prefix', async ({page}) => {
     await page.goto('/');
-    await expect(page).toHaveURL(/\/(en|kr)$/u);
-    expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
+    await expect(page).toHaveURL(new RegExp(`/${SUPPORTED_LOCALE_PATTERN}$`, 'u'));
+    expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
 
     await page.goto('/blog');
-    await expect(page).toHaveURL(/\/(en|kr)\/blog$/u);
-    expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
+    await expect(page).toHaveURL(new RegExp(`/${SUPPORTED_LOCALE_PATTERN}/blog$`, 'u'));
+    expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
 
     await page.goto('/history');
-    await expect(page).toHaveURL(/\/(en|kr)\/history$/u);
-    expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
+    await expect(page).toHaveURL(new RegExp(`/${SUPPORTED_LOCALE_PATTERN}/history$`, 'u'));
+    expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
 
     await page.goto(`/test/${PRIMARY_AVAILABLE_TEST_VARIANT}`);
-    await expect(page).toHaveURL(new RegExp(`/(en|kr)/test/${PRIMARY_AVAILABLE_TEST_VARIANT}$`, 'u'));
-    expect(new URL(page.url()).pathname).not.toMatch(/^\/(en|kr)\/(en|kr)(\/|$)/u);
+    await expect(page).toHaveURL(new RegExp(`/${SUPPORTED_LOCALE_PATTERN}/test/${PRIMARY_AVAILABLE_TEST_VARIANT}$`, 'u'));
+    expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
   });
 
   test('@smoke non-allowlisted paths outside the route contract fall through to segment 404 while duplicate locale paths stay global 404', async ({
@@ -66,7 +68,7 @@ test.describe('Phase 1 routing smoke', () => {
     expect(unmatchedResponse?.status()).toBe(404);
     await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
 
-    const duplicateLocaleResponse = await page.goto('/en/en/blog');
+    const duplicateLocaleResponse = await page.goto('/ja/ja/blog');
     expect(duplicateLocaleResponse?.status()).toBe(404);
     await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
 
@@ -89,7 +91,8 @@ test.describe('Phase 1 routing smoke', () => {
     const localizedResponses = [
       {pathname: '/en', locale: 'en'},
       {pathname: '/kr', locale: 'kr'},
-      {pathname: '/kr/blog', locale: 'kr'}
+      {pathname: '/ja', locale: 'ja'},
+      {pathname: '/ja/blog', locale: 'ja'}
     ] as const;
 
     for (const {pathname, locale} of localizedResponses) {
@@ -106,10 +109,10 @@ test.describe('Phase 1 routing smoke', () => {
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
-    await page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: 'KR'}).click();
+    await page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: '日本語'}).click();
 
-    await expect(page).toHaveURL(/\/kr$/u);
-    await expect(page.locator('html')).toHaveAttribute('lang', 'kr');
+    await expect(page).toHaveURL(/\/ja$/u);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
   });
 
   test('@smoke assertion:B1-hydration hydration warnings remain zero on core localized routes', async ({page}) => {

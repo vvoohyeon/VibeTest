@@ -51,7 +51,7 @@ describe('landing fixture and adapter contract', () => {
     expect(catalogKr.some((card) => card.type === 'blog' && card.availability === 'unavailable')).toBe(false);
   });
 
-  it('falls back to default-locale and default values for missing localized text and tags', () => {
+  it('falls back to default-locale and default values for Japanese requests without localized text and tags', () => {
     const fallbackInput: Array<Partial<RawLandingCard>> = [
       {
         id: 'fallback-test',
@@ -87,7 +87,7 @@ describe('landing fixture and adapter contract', () => {
       } as Partial<RawLandingCard>
     ];
 
-    const [fallbackCard] = normalizeLandingCards(fallbackInput, 'kr');
+    const [fallbackCard] = normalizeLandingCards(fallbackInput, 'ja');
 
     expect(fallbackCard.title).toBe('English fallback title');
     expect(fallbackCard.subtitle).toBe('Default subtitle');

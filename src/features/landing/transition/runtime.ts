@@ -1,6 +1,6 @@
 'use client';
 
-import type {AppLocale} from '@/config/site';
+import {localeSegmentPatternSource, type AppLocale} from '@/config/site';
 import {createCorrelationId} from '@/features/landing/lib/correlation-id';
 import {trackCardAnswered} from '@/features/landing/telemetry/runtime';
 import {emitLandingTransitionSignal} from '@/features/landing/transition/signals';
@@ -15,7 +15,10 @@ import {
   writePendingLandingTransition
 } from '@/features/landing/transition/store';
 
-const DUPLICATE_LOCALE_PATH_PATTERN = /\/(en|kr)\/(en|kr)(\/|$)/u;
+const DUPLICATE_LOCALE_PATH_PATTERN = new RegExp(
+  `/(${localeSegmentPatternSource})/(${localeSegmentPatternSource})(/|$)`,
+  'u'
+);
 
 interface BeginLandingTransitionInput {
   locale: AppLocale;

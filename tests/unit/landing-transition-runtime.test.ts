@@ -105,11 +105,11 @@ describe('landing transition runtime', () => {
     }) as EventListener);
 
     const pending = beginLandingTransition({
-      locale: 'en',
-      route: '/en',
+      locale: 'ja',
+      route: '/ja',
       sourceCardId: 'test-rhythm-a',
       targetType: 'test',
-      targetRoute: '/en/en/test/rhythm-a',
+      targetRoute: '/ja/ja/test/rhythm-a',
       variant: 'rhythm-a',
       preAnswerChoice: 'A'
     });
@@ -125,7 +125,7 @@ describe('landing transition runtime', () => {
     const cardAnsweredPayload = JSON.parse(String(cardAnsweredCall?.[1]?.body ?? '{}'));
     expect(cardAnsweredPayload.event_type).toBe('card_answered');
     expect(cardAnsweredPayload.source_card_id).toBe('test-rhythm-a');
-    expect(cardAnsweredPayload.target_route).toBe('/en/en/test/rhythm-a');
+    expect(cardAnsweredPayload.target_route).toBe('/ja/ja/test/rhythm-a');
     expect(cardAnsweredPayload.landing_ingress_flag).toBe(true);
   });
 });

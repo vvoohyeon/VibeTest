@@ -1,6 +1,6 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 
-import {locales, type AppLocale} from '@/config/site';
+import {localeOptions, type AppLocale} from '@/config/site';
 
 interface SettingsControlLabels {
   language: string;
@@ -75,16 +75,16 @@ export function SettingsControls({
       <div className="gnb-settings-row" data-testid={`${scope}-gnb-locale-controls`}>
         <span className="gnb-settings-label">{labels.language}</span>
         <div className="gnb-chip-row">
-          {locales.map((localeOption) => (
+          {localeOptions.map(({code, label}) => (
             <button
-              key={localeOption}
+              key={code}
               type="button"
               className="gnb-chip"
-              aria-pressed={locale === localeOption}
-              onClick={() => onLocaleChange(localeOption)}
-              disabled={locale === localeOption}
+              aria-pressed={locale === code}
+              onClick={() => onLocaleChange(code)}
+              disabled={locale === code}
             >
-              {localeOption.toUpperCase()}
+              {label}
             </button>
           ))}
         </div>

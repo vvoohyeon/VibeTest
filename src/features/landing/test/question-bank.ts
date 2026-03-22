@@ -8,8 +8,12 @@ export interface LandingTestQuestion {
   choiceB: string;
 }
 
+function usesKoreanFallbackCopy(locale: AppLocale): boolean {
+  return locale === 'kr';
+}
+
 function buildLocalizedFallbackQuestions(locale: AppLocale): LandingTestQuestion[] {
-  if (locale === 'kr') {
+  if (usesKoreanFallbackCopy(locale)) {
     return [
       {
         id: 'q2',
@@ -58,6 +62,7 @@ export function buildLandingTestQuestionBank(locale: AppLocale, variant: string)
   const matchingCard = createLandingCatalog(locale).find(
     (card) => card.type === 'test' && card.availability === 'available' && card.sourceParam === variant
   );
+  const useKoreanFallbackCopy = usesKoreanFallbackCopy(locale);
 
   const q1: LandingTestQuestion = matchingCard && matchingCard.type === 'test'
     ? {
@@ -66,7 +71,7 @@ export function buildLandingTestQuestionBank(locale: AppLocale, variant: string)
         choiceA: matchingCard.test.answerChoiceA,
         choiceB: matchingCard.test.answerChoiceB
       }
-    : locale === 'kr'
+    : useKoreanFallbackCopy
       ? {
           id: 'q1',
           prompt: '지금 가장 집중하기 좋은 시작 방식은 무엇인가요?',
