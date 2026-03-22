@@ -20,28 +20,28 @@ describe('proxy policy', () => {
     expect(
       resolveProxyDecision({
         pathname: '/blog',
-        acceptLanguage: 'ja-JP,ja;q=0.9'
+        acceptLanguage: 'zh-CN,zh;q=0.9'
       })
     ).toEqual({
       action: 'redirect',
-      pathname: '/ja/blog'
+      pathname: '/zs/blog'
     });
 
     expect(
       resolveProxyDecision({
         pathname: '/test/alpha',
-        acceptLanguage: 'ko-KR,ko;q=0.9'
+        acceptLanguage: 'zh-TW,zh;q=0.9'
       })
     ).toEqual({
       action: 'redirect',
-      pathname: '/kr/test/alpha'
+      pathname: '/zt/test/alpha'
     });
   });
 
   it('rewrites duplicate locale prefixes but leaves non-app paths to Next not-found handling', () => {
     expect(
       resolveProxyDecision({
-        pathname: '/ja/ja/blog'
+        pathname: '/zs/zt/blog'
       })
     ).toEqual({
       action: 'rewrite',
@@ -70,13 +70,13 @@ describe('proxy policy', () => {
 
     expect(
       resolveProxyDecision({
-        pathname: '/en/blog'
+        pathname: '/zs/blog'
       })
     ).toEqual({action: 'next'});
 
     expect(
       resolveProxyDecision({
-        pathname: '/ja'
+        pathname: '/ru'
       })
     ).toEqual({action: 'next'});
 

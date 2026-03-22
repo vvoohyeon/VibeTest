@@ -16,6 +16,7 @@ import {
 
 import type {AppLocale} from '@/config/site';
 import {SettingsControls} from '@/features/landing/gnb/components/settings-controls';
+import {ThemeModeIcon} from '@/features/landing/gnb/components/theme-mode-icon';
 import {
   DESKTOP_SETTINGS_HOVER_CLOSE_DELAY_MS,
   MOBILE_MENU_CLOSE_DURATION_MS,
@@ -636,8 +637,10 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           type="button"
           className="gnb-settings-trigger"
           aria-label={t('settings')}
+          title={t('settings')}
           aria-expanded={settingsOpen}
           aria-controls={settingsPanelId}
+          data-current-theme={resolvedTheme}
           tabIndex={desktopLandingTabIndex}
           onFocus={() => {
             if (!hoverOpenEnabled) {
@@ -649,7 +652,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           }}
           data-testid="gnb-settings-trigger"
         >
-          {t('settings')}
+          <ThemeModeIcon theme={resolvedTheme} className="gnb-settings-trigger-icon" />
         </button>
         <div
           id={settingsPanelId}

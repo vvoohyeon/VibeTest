@@ -1,0 +1,65 @@
+{
+  "gnb": {
+    "home": "Accueil",
+    "history": "Historique",
+    "blog": "Blog",
+    "settings": "Paramètres",
+    "language": "Langue",
+    "theme": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "menu": "Menu",
+    "menuAria": "Ouvrir le menu",
+    "closeMenuAria": "Fermer le menu",
+    "close": "Fermer",
+    "back": "Retour",
+    "backAria": "Revenir en arrière",
+    "timerPlaceholder": "00:00"
+  },
+  "landing": {
+    "heroTitle": "Trouvez votre rythme de travail d'un seul élan",
+    "heroBody": "Les tests disponibles et les notes du blog d'ingénierie sont réunis dans un seul catalogue. Développez une carte, choisissez une action et avancez avec une transition claire.",
+    "comingSoon": "Bientôt disponible",
+    "closeExpandedAria": "Fermer la carte développée",
+    "close": "Fermer",
+    "metaEstimated": "Durée estimée",
+    "metaShares": "Partages",
+    "metaAttempts": "Tentatives totales",
+    "metaReadTime": "Temps de lecture",
+    "metaViews": "Vues",
+    "readMore": "Lire la suite"
+  },
+  "test": {
+    "progress": "Question {current} sur {total}",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "submit": "Envoyer",
+    "resultLabel": "Résultat final",
+    "resultBody": "Le résultat est calculé à partir de vos réponses finales, y compris toute mise à jour du choix de la question 1.",
+    "goHome": "Retour à l'accueil",
+    "goHistory": "Ouvrir l'historique",
+    "instructionTitle": "Avant de commencer",
+    "instructionBody": "Lisez chaque question et choisissez une réponse. Vous pouvez revenir aux questions précédentes et modifier vos réponses avant l'envoi final.",
+    "start": "Commencer"
+  },
+  "blog": {
+    "selected": "Article sélectionné",
+    "allArticles": "Tous les articles"
+  },
+  "history": {
+    "title": "Historique local des résultats",
+    "body": "Chaque exécution terminée est enregistrée comme une entrée indépendante (de la plus récente à la plus ancienne, 50 maximum).",
+    "clearAll": "Tout effacer",
+    "goHome": "Aller à l'accueil",
+    "open": "Ouvrir",
+    "delete": "Supprimer"
+  },
+  "consent": {
+    "regionLabel": "Consentement aux cookies",
+    "message": "Nous utilisons des cookies et des technologies similaires pour aider le service à fonctionner correctement et pour comprendre comment il est utilisé. Vous pouvez choisir d'autoriser ou non les cookies optionnels et modifier votre choix à tout moment.",
+    "accept": "Tout accepter",
+    "deny": "Refuser",
+    "preferences": "Préférences",
+    "preferencesTitle": "Le panneau de préférences arrive bientôt"
+  }
+}

@@ -5,7 +5,6 @@ import type {Root} from 'react-dom/client';
 import {createRoot} from 'react-dom/client';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 
-import type {AppLocale} from '../../src/config/site';
 import enMessages from '../../src/messages/en.json';
 import jaMessages from '../../src/messages/ja.json';
 import krMessages from '../../src/messages/kr.json';
@@ -24,9 +23,11 @@ const testMessagesByLocale = {
   ja: jaMessages
 } as const;
 
+type BannerTestLocale = keyof typeof testMessagesByLocale;
+
 function IntlProviderHarness(props: {
-  locale: AppLocale;
-  messages: typeof enMessages | typeof krMessages | typeof jaMessages;
+  locale: BannerTestLocale;
+  messages: (typeof testMessagesByLocale)[BannerTestLocale];
   children?: React.ReactNode;
 }) {
   const providerProps: React.ComponentProps<typeof NextIntlClientProvider> = {
@@ -85,7 +86,7 @@ function uninstallDom() {
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 }
 
-async function renderBanner(locale: AppLocale) {
+async function renderBanner(locale: BannerTestLocale) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);

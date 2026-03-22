@@ -3,6 +3,10 @@ import {defaultLocale, isLocale, locales, type AppLocale} from '@/config/site';
 const allowlistPattern = [/^\/blog\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/?$/u] as const;
 export const globalUnmatchedPath = '/_not-found';
 
+function matchesLocaleFamily(token: string, family: string): boolean {
+  return token === family || token.startsWith(`${family}-`);
+}
+
 function normalizeLocaleToken(token: string): AppLocale | null {
   const lowered = token.toLowerCase();
 
@@ -20,6 +24,60 @@ function normalizeLocaleToken(token: string): AppLocale | null {
 
   if (lowered === 'ja' || lowered.startsWith('ja-')) {
     return 'ja';
+  }
+
+  if (
+    lowered === 'zh-hant' ||
+    lowered === 'zh-tw' ||
+    lowered === 'zh-hk' ||
+    lowered === 'zh-mo' ||
+    lowered.startsWith('zh-hant-') ||
+    lowered.startsWith('zh-tw-') ||
+    lowered.startsWith('zh-hk-') ||
+    lowered.startsWith('zh-mo-')
+  ) {
+    return 'zt';
+  }
+
+  if (
+    lowered === 'zh' ||
+    lowered === 'zh-hans' ||
+    lowered === 'zh-cn' ||
+    lowered === 'zh-sg' ||
+    lowered.startsWith('zh-hans-') ||
+    lowered.startsWith('zh-cn-') ||
+    lowered.startsWith('zh-sg-') ||
+    lowered.startsWith('zh-')
+  ) {
+    return 'zs';
+  }
+
+  if (matchesLocaleFamily(lowered, 'es')) {
+    return 'es';
+  }
+
+  if (matchesLocaleFamily(lowered, 'fr')) {
+    return 'fr';
+  }
+
+  if (matchesLocaleFamily(lowered, 'pt')) {
+    return 'pt';
+  }
+
+  if (matchesLocaleFamily(lowered, 'de')) {
+    return 'de';
+  }
+
+  if (matchesLocaleFamily(lowered, 'hi')) {
+    return 'hi';
+  }
+
+  if (matchesLocaleFamily(lowered, 'id')) {
+    return 'id';
+  }
+
+  if (matchesLocaleFamily(lowered, 'ru')) {
+    return 'ru';
   }
 
   return null;

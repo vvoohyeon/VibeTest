@@ -1,0 +1,65 @@
+{
+  "gnb": {
+    "home": "Beranda",
+    "history": "Riwayat",
+    "blog": "Blog",
+    "settings": "Pengaturan",
+    "language": "Bahasa",
+    "theme": "Tema",
+    "light": "Terang",
+    "dark": "Gelap",
+    "menu": "Menu",
+    "menuAria": "Buka menu",
+    "closeMenuAria": "Tutup menu",
+    "close": "Tutup",
+    "back": "Kembali",
+    "backAria": "Kembali",
+    "timerPlaceholder": "00:00"
+  },
+  "landing": {
+    "heroTitle": "Temukan ritme kerja Anda dalam satu alur",
+    "heroBody": "Tes yang tersedia dan catatan blog engineering ada dalam satu katalog. Buka kartu, pilih tindakan, lalu lanjutkan dengan transisi yang jelas.",
+    "comingSoon": "Segera hadir",
+    "closeExpandedAria": "Tutup kartu yang diperluas",
+    "close": "Tutup",
+    "metaEstimated": "Estimasi waktu",
+    "metaShares": "Dibagikan",
+    "metaAttempts": "Total percobaan",
+    "metaReadTime": "Waktu baca",
+    "metaViews": "Tampilan",
+    "readMore": "Baca selengkapnya"
+  },
+  "test": {
+    "progress": "Pertanyaan {current} dari {total}",
+    "prev": "Sebelumnya",
+    "next": "Berikutnya",
+    "submit": "Kirim",
+    "resultLabel": "Hasil akhir",
+    "resultBody": "Hasil dihitung dari jawaban akhir Anda, termasuk perubahan apa pun pada pilihan pertanyaan 1.",
+    "goHome": "Kembali ke beranda",
+    "goHistory": "Buka riwayat",
+    "instructionTitle": "Sebelum mulai",
+    "instructionBody": "Baca setiap pertanyaan dan pilih satu jawaban. Anda dapat kembali dan mengubah jawaban sebelumnya sebelum pengiriman akhir.",
+    "start": "Mulai"
+  },
+  "blog": {
+    "selected": "Artikel terpilih",
+    "allArticles": "Semua artikel"
+  },
+  "history": {
+    "title": "Riwayat hasil lokal",
+    "body": "Setiap sesi yang selesai disimpan sebagai entri terpisah (terbaru lebih dulu, maksimal 50).",
+    "clearAll": "Hapus semua",
+    "goHome": "Ke beranda",
+    "open": "Buka",
+    "delete": "Hapus"
+  },
+  "consent": {
+    "regionLabel": "Persetujuan cookie",
+    "message": "Kami menggunakan cookie dan teknologi serupa untuk membantu layanan berfungsi dengan baik dan untuk memahami bagaimana layanan digunakan. Anda dapat memilih apakah akan mengizinkan cookie opsional, dan Anda dapat mengubah pilihan kapan saja.",
+    "accept": "Terima semua",
+    "deny": "Tolak",
+    "preferences": "Preferensi",
+    "preferencesTitle": "Panel preferensi akan segera hadir"
+  }
+}

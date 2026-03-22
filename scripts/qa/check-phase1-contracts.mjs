@@ -74,7 +74,7 @@ for (const pageFile of appPageFiles) {
 
 const sourceFiles = walkFiles('src', (file) => /\.(ts|tsx)$/u.test(file));
 const routeBypassPattern = /\bas\s+(Route|never)\b/u;
-const duplicateLocalePattern = /\/(en|kr)\/(en|kr)(\/|["'`])/u;
+const duplicateLocalePattern = /\/(en|kr|zs|zt|ja|es|fr|pt|de|hi|id|ru)\/(en|kr|zs|zt|ja|es|fr|pt|de|hi|id|ru)(\/|["'`])/u;
 
 for (const sourceFile of sourceFiles) {
   const relative = toPosix(path.relative(rootDir, sourceFile));

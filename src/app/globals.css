@@ -1672,6 +1672,21 @@ span.landing-grid-card-primary-cta {
     color 140ms ease;
 }
 
+.gnb-settings-trigger {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gnb-settings-trigger-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
 .gnb-settings-trigger:hover,
 .gnb-menu-trigger:hover,
 .gnb-back-button:hover {
@@ -1698,7 +1713,7 @@ span.landing-grid-card-primary-cta {
   position: absolute;
   top: 100%;
   right: 0;
-  width: 244px;
+  width: min(360px, calc(100vw - 24px));
   display: grid;
   gap: 10px;
   padding: 12px;
@@ -1717,12 +1732,29 @@ span.landing-grid-card-primary-cta {
   gap: 8px;
 }
 
+.gnb-settings-row-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .gnb-settings-label {
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--muted-ink);
   text-transform: uppercase;
+}
+
+.gnb-settings-value {
+  min-width: 0;
+  margin-left: auto;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .gnb-chip-row {

@@ -42,7 +42,7 @@ Inside `src`:
 
 ## Entry Points And Route Structure
 
-Locale handling is front-loaded in [src/proxy.ts](/src/proxy.ts). It redirects locale-less app routes like `/`, `/blog`, `/history`, and `/test/:variant` to `/en/...` or `/kr/...`, and injects a request header used by SSR locale resolution.
+Locale handling is front-loaded in [src/proxy.ts](/src/proxy.ts). It redirects locale-less app routes like `/`, `/blog`, `/history`, and `/test/:variant` to the best-matched supported locale prefix, and injects a request header used by SSR locale resolution.
 
 Key route files:
 - Root shell: [src/app/layout.tsx](/src/app/layout.tsx)
@@ -53,7 +53,7 @@ Key route files:
 - Test question page: [src/app/[locale]/test/[variant]/page.tsx](/src/app/[locale]/test/[variant]/page.tsx)
 - Telemetry API: [src/app/api/telemetry/route.ts](/src/app/api/telemetry/route.ts)
 
-Supported locales are defined in [src/config/site.ts](/src/config/site.ts): `en` and `kr`.
+Supported locales are defined in [src/config/site.ts](/src/config/site.ts): `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, and `ru`.
 
 ## Main Modules And Data Flow
 

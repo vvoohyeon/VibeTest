@@ -1,6 +1,7 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 
 import {localeOptions, type AppLocale} from '@/config/site';
+import {ThemeModeIcon} from '@/features/landing/gnb/components/theme-mode-icon';
 
 interface SettingsControlLabels {
   language: string;
@@ -18,45 +19,6 @@ interface SettingsControlsProps {
   onThemeChange: (theme: 'light' | 'dark', sourceEl: HTMLElement | null) => void;
 }
 
-function ThemeChipIcon({theme}: {theme: 'light' | 'dark'}) {
-  if (theme === 'light') {
-    return (
-      <svg
-        aria-hidden="true"
-        className="gnb-chip-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="4.25" />
-        <path d="M12 2.75v2.5" />
-        <path d="M12 18.75v2.5" />
-        <path d="m4.93 4.93 1.77 1.77" />
-        <path d="m17.3 17.3 1.77 1.77" />
-        <path d="M2.75 12h2.5" />
-        <path d="M18.75 12h2.5" />
-        <path d="m4.93 19.07 1.77-1.77" />
-        <path d="m17.3 6.7 1.77-1.77" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      aria-hidden="true"
-      className="gnb-chip-icon"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="none"
-    >
-      <path d="M14.85 3.8a8.7 8.7 0 1 0 5.35 15.71 9.35 9.35 0 0 1-3.61.72 9.48 9.48 0 0 1-9.47-9.47c0-2.9 1.3-5.54 3.34-7.32a8.65 8.65 0 0 0 4.39.36Z" />
-    </svg>
-  );
-}
-
 export function SettingsControls({
   scope,
   locale,
@@ -65,6 +27,9 @@ export function SettingsControls({
   onLocaleChange,
   onThemeChange
 }: SettingsControlsProps) {
+  const currentLocaleOption = localeOptions.find(({code}) => code === locale);
+  const alternateLocaleOptions = localeOptions.filter(({code}) => code !== locale);
+
   const handleThemeClick =
     (theme: 'light' | 'dark') => (event: ReactMouseEvent<HTMLButtonElement>) => {
       onThemeChange(theme, event.currentTarget);
@@ -73,16 +38,19 @@ export function SettingsControls({
   return (
     <>
       <div className="gnb-settings-row" data-testid={`${scope}-gnb-locale-controls`}>
-        <span className="gnb-settings-label">{labels.language}</span>
+        <div className="gnb-settings-row-header">
+          <span className="gnb-settings-label">{labels.language}</span>
+          <span className="gnb-settings-value" data-testid={`${scope}-gnb-current-locale`}>
+            {currentLocaleOption?.label ?? locale}
+          </span>
+        </div>
         <div className="gnb-chip-row">
-          {localeOptions.map(({code, label}) => (
+          {alternateLocaleOptions.map(({code, label}) => (
             <button
               key={code}
               type="button"
               className="gnb-chip"
-              aria-pressed={locale === code}
               onClick={() => onLocaleChange(code)}
-              disabled={locale === code}
             >
               {label}
             </button>
@@ -104,7 +72,7 @@ export function SettingsControls({
             disabled={resolvedTheme === 'light'}
             onClick={handleThemeClick('light')}
           >
-            <ThemeChipIcon theme="light" />
+            <ThemeModeIcon theme="light" className="gnb-chip-icon" />
           </button>
           <button
             type="button"
@@ -117,7 +85,7 @@ export function SettingsControls({
             disabled={resolvedTheme === 'dark'}
             onClick={handleThemeClick('dark')}
           >
-            <ThemeChipIcon theme="dark" />
+            <ThemeModeIcon theme="dark" className="gnb-chip-icon" />
           </button>
         </div>
       </div>

@@ -3,12 +3,13 @@ import path from 'node:path';
 
 import {expect, test} from '@playwright/test';
 
+import {localeOptions, locales} from '../../src/config/site';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
 
 const PREVIEW_LOG_PATH = path.join(process.cwd(), '.next/qa/preview-smoke.log');
 const PREVIEW_404_ALLOWLIST = /Error: Internal: NoFallbackError(?:\n\s+at .+)+/gu;
 const isPreviewServerMode = process.env.PLAYWRIGHT_SERVER_MODE === 'preview';
-const SUPPORTED_LOCALE_PATTERN = '(?:en|kr|ja)';
+const SUPPORTED_LOCALE_PATTERN = `(?:${locales.join('|')})`;
 const DUPLICATE_LOCALE_PATTERN = new RegExp(`^/${SUPPORTED_LOCALE_PATTERN}/${SUPPORTED_LOCALE_PATTERN}(/|$)`, 'u');
 
 function hasHydrationWarning(text: string): boolean {
@@ -91,8 +92,10 @@ test.describe('Phase 1 routing smoke', () => {
     const localizedResponses = [
       {pathname: '/en', locale: 'en'},
       {pathname: '/kr', locale: 'kr'},
+      {pathname: '/zs', locale: 'zs'},
+      {pathname: '/zt/blog', locale: 'zt'},
       {pathname: '/ja', locale: 'ja'},
-      {pathname: '/ja/blog', locale: 'ja'}
+      {pathname: '/ru/blog', locale: 'ru'}
     ] as const;
 
     for (const {pathname, locale} of localizedResponses) {
@@ -109,10 +112,13 @@ test.describe('Phase 1 routing smoke', () => {
 
     await page.getByTestId('gnb-settings-trigger').hover();
     await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
-    await page.getByTestId('desktop-gnb-locale-controls').getByRole('button', {name: '日本語'}).click();
+    await page
+      .getByTestId('desktop-gnb-locale-controls')
+      .getByRole('button', {name: localeOptions.find(({code}) => code === 'ru')?.label ?? 'Русский'})
+      .click();
 
-    await expect(page).toHaveURL(/\/ja$/u);
-    await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
+    await expect(page).toHaveURL(/\/ru$/u);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
   });
 
   test('@smoke assertion:B1-hydration hydration warnings remain zero on core localized routes', async ({page}) => {

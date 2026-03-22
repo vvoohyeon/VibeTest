@@ -7,8 +7,8 @@ describe('buildLocalizedPath', () => {
   it('injects a single locale prefix from locale-free route objects', () => {
     expect(buildLocalizedPath(RouteBuilder.landing(), 'en')).toBe('/en');
     expect(buildLocalizedPath(RouteBuilder.blog(), 'kr')).toBe('/kr/blog');
-    expect(buildLocalizedPath(RouteBuilder.blog(), 'ja')).toBe('/ja/blog');
+    expect(buildLocalizedPath(RouteBuilder.blog(), 'zs')).toBe('/zs/blog');
     expect(buildLocalizedPath(RouteBuilder.history(), 'en')).toBe('/en/history');
-    expect(buildLocalizedPath(RouteBuilder.question('alpha'), 'kr')).toBe('/kr/test/alpha');
+    expect(buildLocalizedPath(RouteBuilder.question('alpha'), 'ru')).toBe('/ru/test/alpha');
   });
 });

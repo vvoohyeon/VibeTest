@@ -5,8 +5,35 @@ const localeMetadata = {
   kr: {
     label: '한국어'
   },
+  zs: {
+    label: '简体中文'
+  },
+  zt: {
+    label: '繁體中文'
+  },
   ja: {
     label: '日本語'
+  },
+  es: {
+    label: 'Español'
+  },
+  fr: {
+    label: 'Français'
+  },
+  pt: {
+    label: 'Português'
+  },
+  de: {
+    label: 'Deutsch'
+  },
+  hi: {
+    label: 'हिन्दी'
+  },
+  id: {
+    label: 'Indonesia'
+  },
+  ru: {
+    label: 'Русский'
   }
 } as const;
 

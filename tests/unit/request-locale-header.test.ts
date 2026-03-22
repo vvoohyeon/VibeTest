@@ -15,7 +15,10 @@ describe('request locale header contract', () => {
   it('resolves only localized pathnames into request header values', () => {
     expect(getRequestLocaleHeaderValueFromPathname('/en')).toBe('en');
     expect(getRequestLocaleHeaderValueFromPathname('/kr/blog')).toBe('kr');
+    expect(getRequestLocaleHeaderValueFromPathname('/zs')).toBe('zs');
+    expect(getRequestLocaleHeaderValueFromPathname('/zt/history')).toBe('zt');
     expect(getRequestLocaleHeaderValueFromPathname('/ja/history')).toBe('ja');
+    expect(getRequestLocaleHeaderValueFromPathname('/ru/blog')).toBe('ru');
     expect(getRequestLocaleHeaderValueFromPathname('/blog')).toBeNull();
     expect(getRequestLocaleHeaderValueFromPathname('/_not-found')).toBeNull();
   });
@@ -23,7 +26,10 @@ describe('request locale header contract', () => {
   it('falls back to the default locale for missing or invalid header values', () => {
     expect(resolveRequestLocaleHeaderValue('en')).toBe('en');
     expect(resolveRequestLocaleHeaderValue('kr')).toBe('kr');
+    expect(resolveRequestLocaleHeaderValue('zs')).toBe('zs');
+    expect(resolveRequestLocaleHeaderValue('zt')).toBe('zt');
     expect(resolveRequestLocaleHeaderValue('ja')).toBe('ja');
+    expect(resolveRequestLocaleHeaderValue('ru')).toBe('ru');
     expect(resolveRequestLocaleHeaderValue('ko')).toBe('en');
     expect(resolveRequestLocaleHeaderValue(undefined)).toBe('en');
   });

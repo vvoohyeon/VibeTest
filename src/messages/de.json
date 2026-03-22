@@ -1,0 +1,65 @@
+{
+  "gnb": {
+    "home": "Startseite",
+    "history": "Verlauf",
+    "blog": "Blog",
+    "settings": "Einstellungen",
+    "language": "Sprache",
+    "theme": "Thema",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "menu": "Menü",
+    "menuAria": "Menü öffnen",
+    "closeMenuAria": "Menü schließen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "backAria": "Zurückgehen",
+    "timerPlaceholder": "00:00"
+  },
+  "landing": {
+    "heroTitle": "Finde deinen Arbeitsrhythmus in einem Durchgang",
+    "heroBody": "Verfügbare Tests und Notizen aus dem Engineering-Blog finden sich in einem einzigen Katalog. Öffne eine Karte, wähle eine Aktion und gehe mit einer klaren Übergabe weiter.",
+    "comingSoon": "Demnächst",
+    "closeExpandedAria": "Erweiterte Karte schließen",
+    "close": "Schließen",
+    "metaEstimated": "Geschätzte Zeit",
+    "metaShares": "Freigaben",
+    "metaAttempts": "Gesamte Versuche",
+    "metaReadTime": "Lesezeit",
+    "metaViews": "Aufrufe",
+    "readMore": "Mehr lesen"
+  },
+  "test": {
+    "progress": "Frage {current} von {total}",
+    "prev": "Zurück",
+    "next": "Weiter",
+    "submit": "Absenden",
+    "resultLabel": "Endergebnis",
+    "resultBody": "Das Ergebnis wird aus deinen endgültigen Antworten berechnet, einschließlich einer aktualisierten Auswahl bei Frage 1.",
+    "goHome": "Zur Startseite",
+    "goHistory": "Verlauf öffnen",
+    "instructionTitle": "Bevor wir beginnen",
+    "instructionBody": "Lies jede Frage und wähle eine Antwort aus. Vor dem endgültigen Absenden kannst du zu früheren Fragen zurückkehren und deine Antworten ändern.",
+    "start": "Starten"
+  },
+  "blog": {
+    "selected": "Ausgewählter Artikel",
+    "allArticles": "Alle Artikel"
+  },
+  "history": {
+    "title": "Lokaler Ergebnisverlauf",
+    "body": "Jeder abgeschlossene Durchlauf wird als eigenständiger Eintrag gespeichert (neueste zuerst, maximal 50).",
+    "clearAll": "Alles löschen",
+    "goHome": "Zur Startseite",
+    "open": "Öffnen",
+    "delete": "Löschen"
+  },
+  "consent": {
+    "regionLabel": "Cookie-Einwilligung",
+    "message": "Wir verwenden Cookies und ähnliche Technologien, damit der Dienst ordnungsgemäß funktioniert und um zu verstehen, wie er genutzt wird. Du kannst wählen, ob optionale Cookies erlaubt werden, und diese Auswahl jederzeit ändern.",
+    "accept": "Alle akzeptieren",
+    "deny": "Ablehnen",
+    "preferences": "Präferenzen",
+    "preferencesTitle": "Der Präferenzen-Bereich kommt bald"
+  }
+}
