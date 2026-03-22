@@ -3,6 +3,10 @@ import {expect, type Locator, type Page, test} from '@playwright/test';
 import {seedTelemetryConsent} from './helpers/consent';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
+const AVAILABLE_TEST_CARD_SELECTOR =
+  '[data-testid="landing-grid-card"][data-card-availability="available"][data-card-id^="test-"]';
+const HOVER_OUT_SAMPLE_TIMES_MS = [0, 16, 32, 64, 100, 140, 180] as const;
+const LANDING_INTERACTION_RAMP_SETTLE_MS = 180;
 
 interface InteractiveMetrics {
   x: number;
@@ -11,6 +15,8 @@ interface InteractiveMetrics {
   height: number;
   top: number;
   backgroundColor: string;
+  backgroundAlpha: number;
+  backgroundImage: string;
   borderColor: string;
   boxShadow: string;
   transform: string;
@@ -77,6 +83,20 @@ async function setTheme(page: Page, theme: 'light' | 'dark') {
   );
 }
 
+async function waitForThemeApplied(page: Page, theme: 'light' | 'dark') {
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+    .toBe(theme);
+}
+
+async function waitForLandingInteractionRamp(page: Page) {
+  await page.waitForTimeout(LANDING_INTERACTION_RAMP_SETTLE_MS);
+}
+
+function getPrimaryAvailableTestCard(page: Page): Locator {
+  return page.locator(AVAILABLE_TEST_CARD_SELECTOR).first();
+}
+
 async function movePointerToCenter(page: Page, locator: Locator): Promise<void> {
   const box = await locator.boundingBox();
   if (!box) {
@@ -90,6 +110,28 @@ async function readInteractiveMetrics(locator: Locator): Promise<InteractiveMetr
   return locator.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
+    const parseBackgroundAlpha = (value: string): number => {
+      if (value === 'transparent') {
+        return 0;
+      }
+
+      const rgbaMatch = value.match(/rgba?\((.*)\)/u);
+      if (rgbaMatch) {
+        const parts = rgbaMatch[1].split(',');
+        if (parts.length === 4) {
+          return Number.parseFloat(parts[3]);
+        }
+
+        return 1;
+      }
+
+      const slashMatch = value.match(/\/\s*([0-9.]+)\s*\)$/u);
+      if (slashMatch) {
+        return Number.parseFloat(slashMatch[1]);
+      }
+
+      return 1;
+    };
 
     return {
       x: rect.x,
@@ -98,12 +140,53 @@ async function readInteractiveMetrics(locator: Locator): Promise<InteractiveMetr
       height: rect.height,
       top: rect.top,
       backgroundColor: style.backgroundColor,
+      backgroundAlpha: parseBackgroundAlpha(style.backgroundColor),
+      backgroundImage: style.backgroundImage,
       borderColor: style.borderColor,
       boxShadow: style.boxShadow,
       transform: style.transform,
       hovered: element.matches(':hover')
     };
   });
+}
+
+async function readHoverOutSamples(
+  page: Page,
+  interactiveLocator: Locator,
+  hoverExitLocator: Locator,
+  sampleTimesMs: readonly number[]
+): Promise<InteractiveMetrics[]> {
+  await movePointerToCenter(page, hoverExitLocator);
+
+  const samples: InteractiveMetrics[] = [];
+  let elapsedMs = 0;
+
+  for (const targetMs of sampleTimesMs) {
+    await page.waitForTimeout(targetMs - elapsedMs);
+    elapsedMs = targetMs;
+    samples.push(await readInteractiveMetrics(interactiveLocator));
+  }
+
+  return samples;
+}
+
+async function expandLandingCardViaTrigger(card: Locator) {
+  const trigger = card.getByTestId('landing-grid-card-trigger');
+
+  await expect
+    .poll(async () => {
+      await trigger.evaluate((element) => {
+        if (element instanceof HTMLElement) {
+          element.click();
+          return;
+        }
+
+        element.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+      });
+
+      return await card.getAttribute('data-card-state');
+    })
+    .toBe('expanded');
 }
 
 test.describe('Phase 7 state + capability smoke', () => {
@@ -393,30 +476,43 @@ test.describe('Phase 7 state + capability smoke', () => {
   });
 
   for (const theme of ['light', 'dark'] as const) {
-    test(`@smoke test answer choice hover feedback is visible and stable in ${theme} theme`, async ({page}) => {
+    test(`@smoke test answer choice hover keeps a continuous fill without a transparent handoff in ${theme} theme`, async ({
+      page
+    }) => {
       await setTheme(page, theme);
       await page.setViewportSize({width: 1440, height: 980});
       await page.goto('/en');
+      await waitForThemeApplied(page, theme);
+      await waitForLandingInteractionRamp(page);
 
-      const testCard = page.locator('[data-card-id="test-rhythm-a"]');
-      await movePointerToCenter(page, testCard.getByTestId('landing-grid-card-trigger'));
-      await expect(testCard).toHaveAttribute('data-card-state', 'expanded');
+      const testCard = getPrimaryAvailableTestCard(page);
+      await expandLandingCardViaTrigger(testCard);
       await expect(testCard).toHaveAttribute('data-desktop-motion-role', 'steady');
 
-      await movePointerToCenter(page, testCard.locator('[data-slot="cardTitleExpanded"]'));
-
+      const hoverExitTarget = testCard.locator('[data-slot="cardTitleExpanded"]');
+      await movePointerToCenter(page, hoverExitTarget);
       const answerChoice = testCard.locator('[data-slot="answerChoiceA"]');
       const beforeHover = await readInteractiveMetrics(answerChoice);
 
       expect(beforeHover.hovered).toBe(false);
+      expect(beforeHover.backgroundImage).toBe('none');
+      expect(beforeHover.backgroundAlpha).toBeGreaterThan(0);
 
       await answerChoice.hover();
       await page.waitForTimeout(180);
 
       const afterHover = await readInteractiveMetrics(answerChoice);
+      const hoverOutSamples = await readHoverOutSamples(
+        page,
+        answerChoice,
+        hoverExitTarget,
+        HOVER_OUT_SAMPLE_TIMES_MS
+      );
+      const settledHoverOut = hoverOutSamples.at(-1);
 
       expect(afterHover.hovered).toBe(true);
       expect(afterHover.transform).toBe('none');
+      expect(afterHover.backgroundImage).toBe('none');
       expect(afterHover.backgroundColor).not.toBe(beforeHover.backgroundColor);
       expect(afterHover.borderColor).not.toBe(beforeHover.borderColor);
       expect(afterHover.boxShadow).not.toBe(beforeHover.boxShadow);
@@ -424,6 +520,16 @@ test.describe('Phase 7 state + capability smoke', () => {
       expect(Math.abs(afterHover.y - beforeHover.y)).toBeLessThanOrEqual(1);
       expect(Math.abs(afterHover.width - beforeHover.width)).toBeLessThanOrEqual(1);
       expect(Math.abs(afterHover.height - beforeHover.height)).toBeLessThanOrEqual(1);
+
+      for (const sample of hoverOutSamples) {
+        expect(sample.backgroundImage).toBe('none');
+        expect(sample.backgroundAlpha).toBeGreaterThan(0);
+      }
+
+      expect(settledHoverOut).toBeDefined();
+      expect(settledHoverOut?.hovered).toBe(false);
+      expect(settledHoverOut?.backgroundColor).toBe(beforeHover.backgroundColor);
+      expect(settledHoverOut?.borderColor).toBe(beforeHover.borderColor);
     });
   }
 });

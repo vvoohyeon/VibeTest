@@ -29,10 +29,11 @@
   --interactive-accent-outline: color-mix(in srgb, var(--accent-solid) 36%, transparent);
   --interactive-accent-shadow: 0 10px 24px color-mix(in srgb, var(--accent-solid) 14%, transparent);
   --interactive-accent-shadow-hover: 0 14px 30px color-mix(in srgb, var(--accent-solid) 18%, transparent);
-  --landing-answer-hover-bg-top: color-mix(in srgb, var(--accent-solid) 13%, var(--panel-solid));
-  --landing-answer-hover-bg-bottom: color-mix(in srgb, var(--accent-solid) 8%, var(--panel-solid));
-  --landing-answer-hover-border: color-mix(in srgb, var(--accent-solid) 34%, var(--chip-border));
-  --landing-answer-hover-shadow:
+  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
+  --landing-answer-bg-hover: color-mix(in srgb, var(--accent-solid) 10%, var(--panel-solid));
+  --landing-answer-bg-pressed: var(--interactive-accent-bg);
+  --landing-answer-border-hover: color-mix(in srgb, var(--accent-solid) 34%, var(--chip-border));
+  --landing-answer-shadow-hover:
     0 10px 22px color-mix(in srgb, var(--accent-solid) 12%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
   --focus-ring-outer: color-mix(in srgb, var(--accent-solid) 72%, transparent);
@@ -69,10 +70,11 @@ html[data-theme='dark'] {
   --link-ink: #f2f6ff;
   --muted-ink: rgb(239 242 248 / 80%);
   --interactive-accent-shadow-hover: 0 16px 34px color-mix(in srgb, var(--accent-solid) 26%, transparent);
-  --landing-answer-hover-bg-top: color-mix(in srgb, var(--accent-solid) 20%, var(--panel-solid));
-  --landing-answer-hover-bg-bottom: color-mix(in srgb, var(--accent-solid) 14%, var(--panel-solid));
-  --landing-answer-hover-border: color-mix(in srgb, var(--accent-solid) 42%, var(--chip-border));
-  --landing-answer-hover-shadow:
+  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
+  --landing-answer-bg-hover: color-mix(in srgb, var(--accent-solid) 18%, var(--panel-solid));
+  --landing-answer-bg-pressed: var(--interactive-accent-bg);
+  --landing-answer-border-hover: color-mix(in srgb, var(--accent-solid) 42%, var(--chip-border));
+  --landing-answer-shadow-hover:
     0 12px 28px rgb(0 0 0 / 28%),
     inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 24%, transparent);
   --card-shadow: 0 16px 34px rgb(0 0 0 / 30%);
@@ -845,7 +847,9 @@ a {
 .landing-grid-card-answer-choice {
   border: 1px solid var(--interactive-neutral-border);
   border-radius: 12px;
-  background: var(--interactive-neutral-bg-soft);
+  /* Keep fill on the button itself so hover-out never exposes the expanded card surface. */
+  background-color: var(--landing-answer-bg-rest);
+  background-image: none;
   color: var(--interactive-neutral-ink);
   cursor: pointer;
   padding: 10px 12px;
@@ -866,15 +870,16 @@ a {
 }
 
 .landing-grid-card-answer-choice:hover:not(:disabled) {
-  border-color: var(--landing-answer-hover-border);
-  background:
-    linear-gradient(180deg, var(--landing-answer-hover-bg-top), var(--landing-answer-hover-bg-bottom));
-  box-shadow: var(--landing-answer-hover-shadow);
+  border-color: var(--landing-answer-border-hover);
+  background-color: var(--landing-answer-bg-hover);
+  background-image: none;
+  box-shadow: var(--landing-answer-shadow-hover);
 }
 
 .landing-grid-card-answer-choice:active:not(:disabled) {
   border-color: var(--interactive-accent-border);
-  background: var(--interactive-accent-bg);
+  background-color: var(--landing-answer-bg-pressed);
+  background-image: none;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
 }
 
