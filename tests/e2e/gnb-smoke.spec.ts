@@ -1,14 +1,15 @@
-import {expect, test, type Page} from '@playwright/test';
+import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {localeOptions, type AppLocale} from '../../src/config/site';
 import {seedTelemetryConsent} from './helpers/consent';
-import {buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_CARD_ID, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX = 12;
 const DESKTOP_SETTINGS_PANEL_EXTRA_RIGHT_PX = 15;
 const DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX = 0.5;
 const EN_COMBINED_SETTINGS_LABEL = 'Language⋅Theme';
+const HOVER_STYLE_SETTLE_MS = 180;
 
 async function installViewTransitionStub(page: Page) {
   await page.addInitScript(() => {
@@ -22,6 +23,18 @@ async function installViewTransitionStub(page: Page) {
         };
       }
     });
+  });
+}
+
+async function readInteractiveSurfaceStyles(locator: Locator) {
+  return locator.evaluate((element) => {
+    const styles = getComputedStyle(element);
+
+    return {
+      backgroundColor: styles.backgroundColor,
+      borderColor: styles.borderColor,
+      boxShadow: styles.boxShadow
+    };
   });
 }
 
@@ -307,6 +320,55 @@ test.describe('Phase 3 gnb shell smoke', () => {
     await expectThemeButtonsState(page, 'desktop', 'dark');
 
     await expect(page.locator('#theme-switch-style')).toHaveCount(0, {timeout: 3000});
+  });
+
+  test('@smoke desktop settings reuses the landing answer hover affordance for selectable locale and theme chips', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1280, height: 900});
+
+    for (const theme of ['light', 'dark'] as const) {
+      await seedManualTheme(page, theme);
+      await page.goto('/en');
+
+      const testCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
+      await testCard.getByTestId('landing-grid-card-trigger').click();
+
+      const answerChoice = testCard.locator('.landing-grid-card-answer-choice').first();
+      await expect(answerChoice).toBeVisible();
+      await answerChoice.hover();
+      await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
+      const landingAnswerHoverStyles = await readInteractiveSurfaceStyles(answerChoice);
+
+      await page.getByTestId('gnb-settings-trigger').hover();
+      await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+
+      const localeControls = page.getByTestId('desktop-gnb-locale-controls');
+      const selectableLocaleChip = localeControls.locator('button:not([disabled])').first();
+      const selectedLocaleChip = localeControls.locator('button[disabled]');
+      const {alternateButton, currentButton} = getThemeControls(page, 'desktop');
+
+      const [selectedLocaleBeforeHover, currentThemeBeforeHover] = await Promise.all([
+        readInteractiveSurfaceStyles(selectedLocaleChip),
+        readInteractiveSurfaceStyles(currentButton)
+      ]);
+
+      await selectableLocaleChip.hover();
+      await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
+      expect.soft(await readInteractiveSurfaceStyles(selectableLocaleChip)).toEqual(landingAnswerHoverStyles);
+
+      await alternateButton.hover();
+      await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
+      expect.soft(await readInteractiveSurfaceStyles(alternateButton)).toEqual(landingAnswerHoverStyles);
+
+      await selectedLocaleChip.hover();
+      await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
+      expect.soft(await readInteractiveSurfaceStyles(selectedLocaleChip)).toEqual(selectedLocaleBeforeHover);
+
+      await currentButton.hover();
+      await page.waitForTimeout(HOVER_STYLE_SETTLE_MS);
+      expect.soft(await readInteractiveSurfaceStyles(currentButton)).toEqual(currentThemeBeforeHover);
+    }
   });
 
   test('@smoke reduced-motion theme switch falls back without injecting transition styles', async ({page}) => {

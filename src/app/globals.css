@@ -29,16 +29,13 @@
   --interactive-accent-outline: color-mix(in srgb, var(--accent-solid) 36%, transparent);
   --interactive-accent-shadow: 0 10px 24px color-mix(in srgb, var(--accent-solid) 14%, transparent);
   --interactive-accent-shadow-hover: 0 14px 30px color-mix(in srgb, var(--accent-solid) 18%, transparent);
-  --interactive-emphasis-bg-hover: color-mix(in srgb, var(--accent-solid) 10%, var(--panel-solid));
-  --interactive-emphasis-border-hover: color-mix(in srgb, var(--accent-solid) 34%, var(--chip-border));
-  --interactive-emphasis-shadow-hover:
+  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
+  --landing-answer-bg-hover: color-mix(in srgb, var(--accent-solid) 10%, var(--panel-solid));
+  --landing-answer-bg-pressed: var(--interactive-accent-bg);
+  --landing-answer-border-hover: color-mix(in srgb, var(--accent-solid) 34%, var(--chip-border));
+  --landing-answer-shadow-hover:
     0 10px 22px color-mix(in srgb, var(--accent-solid) 12%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 16%, transparent);
-  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
-  --landing-answer-bg-hover: var(--interactive-emphasis-bg-hover);
-  --landing-answer-bg-pressed: var(--interactive-accent-bg);
-  --landing-answer-border-hover: var(--interactive-emphasis-border-hover);
-  --landing-answer-shadow-hover: var(--interactive-emphasis-shadow-hover);
   --focus-ring-outer: color-mix(in srgb, var(--accent-solid) 72%, transparent);
   --focus-ring-inner: rgb(255 255 255 / 78%);
   --card-shadow: 0 14px 30px rgb(11 15 22 / 10%);
@@ -73,16 +70,13 @@ html[data-theme='dark'] {
   --link-ink: #f2f6ff;
   --muted-ink: rgb(239 242 248 / 80%);
   --interactive-accent-shadow-hover: 0 16px 34px color-mix(in srgb, var(--accent-solid) 26%, transparent);
-  --interactive-emphasis-bg-hover: color-mix(in srgb, var(--accent-solid) 18%, var(--panel-solid));
-  --interactive-emphasis-border-hover: color-mix(in srgb, var(--accent-solid) 42%, var(--chip-border));
-  --interactive-emphasis-shadow-hover:
+  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
+  --landing-answer-bg-hover: color-mix(in srgb, var(--accent-solid) 18%, var(--panel-solid));
+  --landing-answer-bg-pressed: var(--interactive-accent-bg);
+  --landing-answer-border-hover: color-mix(in srgb, var(--accent-solid) 42%, var(--chip-border));
+  --landing-answer-shadow-hover:
     0 12px 28px rgb(0 0 0 / 28%),
     inset 0 0 0 1px color-mix(in srgb, var(--accent-solid) 24%, transparent);
-  --landing-answer-bg-rest: var(--interactive-neutral-bg-soft);
-  --landing-answer-bg-hover: var(--interactive-emphasis-bg-hover);
-  --landing-answer-bg-pressed: var(--interactive-accent-bg);
-  --landing-answer-border-hover: var(--interactive-emphasis-border-hover);
-  --landing-answer-shadow-hover: var(--interactive-emphasis-shadow-hover);
   --card-shadow: 0 16px 34px rgb(0 0 0 / 30%);
   --card-shadow-elevated: 0 20px 40px rgb(0 0 0 / 36%);
   --card-shadow-expanded-contact: 0 12px 20px rgb(0 0 0 / 26%);
@@ -890,10 +884,10 @@ a {
 }
 
 .landing-grid-card-answer-choice:hover:not(:disabled) {
-  border-color: var(--interactive-emphasis-border-hover);
-  background-color: var(--interactive-emphasis-bg-hover);
+  border-color: var(--landing-answer-border-hover);
+  background-color: var(--landing-answer-bg-hover);
   background-image: none;
-  box-shadow: var(--interactive-emphasis-shadow-hover);
+  box-shadow: var(--landing-answer-shadow-hover);
 }
 
 .landing-grid-card-answer-choice:active:not(:disabled) {
@@ -1885,9 +1879,9 @@ span.landing-grid-card-primary-cta {
 }
 
 .gnb-chip:hover:not(:disabled):not([aria-pressed='true']) {
-  border-color: var(--interactive-emphasis-border-hover);
-  background: var(--interactive-emphasis-bg-hover);
-  box-shadow: var(--interactive-emphasis-shadow-hover);
+  border-color: var(--landing-answer-border-hover);
+  background: var(--landing-answer-bg-hover);
+  box-shadow: var(--landing-answer-shadow-hover);
 }
 
 .gnb-chip[aria-pressed='true'] {
