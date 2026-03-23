@@ -9,6 +9,11 @@ const STAGE_SHADOW_BLEED_TOP_PX = 56;
 const STAGE_SHADOW_BLEED_BOTTOM_PX = 192;
 const STAGE_CAPTURE_BOTTOM_EXTRA_PX = 40;
 const HOVER_OUT_REPEAT_COUNT = 20;
+const SETTINGS_PANEL_EXTRA_TOP_PX = 12;
+const SETTINGS_PANEL_EXTRA_RIGHT_PX = 15;
+const SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX = 0.5;
+const SETTINGS_PANEL_CAPTURE_SIDE_BLEED_PX = 24;
+const SETTINGS_PANEL_CAPTURE_BOTTOM_BLEED_PX = 24;
 
 function buildStageClip(box: NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>) {
   return {
@@ -22,6 +27,30 @@ function buildStageClip(box: NonNullable<Awaited<ReturnType<Locator['boundingBox
         STAGE_CAPTURE_BOTTOM_EXTRA_PX
     )
   };
+}
+
+function buildSettingsPanelClip(box: NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>) {
+  return {
+    x: Math.max(0, Math.floor(box.x - SETTINGS_PANEL_CAPTURE_SIDE_BLEED_PX)),
+    y: Math.max(0, Math.floor(box.y)),
+    width: Math.ceil(box.width + SETTINGS_PANEL_CAPTURE_SIDE_BLEED_PX * 2),
+    height: Math.ceil(box.height + SETTINGS_PANEL_CAPTURE_BOTTOM_BLEED_PX)
+  };
+}
+
+async function openDesktopSettingsPanel(page: Page) {
+  const trigger = page.getByTestId('gnb-settings-trigger');
+  const panel = page.getByTestId('gnb-settings-panel');
+
+  await trigger.evaluate((element) => {
+    if (element instanceof HTMLElement) {
+      element.click();
+    }
+  });
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId('desktop-gnb-theme-controls')).toBeVisible();
+
+  return {trigger, panel};
 }
 
 async function installDesktopShellPhaseObserver(page: Page, cardId: string) {
@@ -273,5 +302,50 @@ test.describe('Safari hover-out ghosting regression', () => {
       card: page.locator('[data-card-id="blog-build-metrics"]'),
       snapshotName: 'steady-lower-row-expanded-shadow.png'
     });
+  });
+
+  test('@smoke desktop settings panel removes the top seam without shifting the current theme button', async ({
+    page
+  }) => {
+    const {trigger, panel} = await openDesktopSettingsPanel(page);
+    const currentButton = page.getByTestId('desktop-gnb-theme-controls').locator('button[disabled]');
+
+    const [triggerBox, panelBox, currentButtonBox] = await Promise.all([
+      trigger.boundingBox(),
+      panel.boundingBox(),
+      currentButton.boundingBox()
+    ]);
+
+    expect(triggerBox).not.toBeNull();
+    expect(panelBox).not.toBeNull();
+    expect(currentButtonBox).not.toBeNull();
+
+    expect(Math.abs((currentButtonBox?.x ?? 0) - (triggerBox?.x ?? 0))).toBeLessThanOrEqual(
+      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
+    );
+    expect(Math.abs((currentButtonBox?.y ?? 0) - (triggerBox?.y ?? 0))).toBeLessThanOrEqual(
+      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
+    );
+    expect(Math.abs((currentButtonBox?.width ?? 0) - (triggerBox?.width ?? 0))).toBeLessThanOrEqual(
+      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
+    );
+    expect(Math.abs((currentButtonBox?.height ?? 0) - (triggerBox?.height ?? 0))).toBeLessThanOrEqual(
+      SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX
+    );
+    expect(
+      Math.abs((currentButtonBox?.y ?? 0) - (panelBox?.y ?? 0) - SETTINGS_PANEL_EXTRA_TOP_PX)
+    ).toBeLessThanOrEqual(SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX);
+    expect(
+      Math.abs(
+        (panelBox?.x ?? 0) +
+          (panelBox?.width ?? 0) -
+          ((currentButtonBox?.x ?? 0) + (currentButtonBox?.width ?? 0) + SETTINGS_PANEL_EXTRA_RIGHT_PX)
+      )
+    ).toBeLessThanOrEqual(SETTINGS_PANEL_GEOMETRY_TOLERANCE_PX);
+
+    const screenshot = await page.screenshot({
+      clip: buildSettingsPanelClip(panelBox!)
+    });
+    expect(screenshot).toMatchSnapshot('settings-panel-top-seam-free.png');
   });
 });
