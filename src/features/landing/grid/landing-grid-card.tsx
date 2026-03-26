@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import type {
@@ -9,9 +11,11 @@ import type {
   PointerEventHandler,
   WheelEventHandler
 } from 'react';
+import {useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import type {LandingCard} from '@/features/landing/data';
+import {useLandingCardTitleSplit} from '@/features/landing/grid/landing-card-title-continuity';
 import {
   type LandingCardDesktopMotionRole,
   type LandingCardDesktopShellPhase,
@@ -160,6 +164,18 @@ function resolveThumbnailDataUri(token: string): string {
   const dataUri = createThumbnailDataUri(cacheKey);
   thumbnailDataUriCache.set(cacheKey, dataUri);
   return dataUri;
+}
+
+function resolveTransformOriginClassName(originX: '0%' | '50%' | '100%'): string {
+  switch (originX) {
+    case '0%':
+      return 'landing-grid-card-origin-start';
+    case '100%':
+      return 'landing-grid-card-origin-end';
+    case '50%':
+    default:
+      return 'landing-grid-card-origin-center';
+  }
 }
 
 interface NormalContentSlotsProps {
@@ -345,6 +361,24 @@ function ExpandedCardBodyContent({
   );
 }
 
+interface DesktopExpandedTitleProps {
+  line1Text: string;
+  overflowText: string;
+}
+
+function DesktopExpandedTitle({line1Text, overflowText}: DesktopExpandedTitleProps) {
+  return (
+    <>
+      <span className="landing-grid-card-expanded-title-line1" data-title-layer="line1">
+        {line1Text}
+      </span>
+      <span className="landing-grid-card-expanded-title-overflow" data-title-layer="overflow">
+        {overflowText}
+      </span>
+    </>
+  );
+}
+
 export function LandingGridCard({
   card,
   locale,
@@ -393,6 +427,14 @@ export function LandingGridCard({
   const showMobileExpandedBody = isMobileExpanded;
   const showMobileTransientShell = isMobileOpening || isMobileClosing;
   const resolvedSpacing = resolveSpacingContract(spacing);
+  const normalTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const desktopTitleSplit = useLandingCardTitleSplit({
+    enabled: !isMobileViewport,
+    freeze: !isMobileViewport && desktopStagePhase !== 'idle',
+    text: card.title,
+    titleRef: normalTitleRef
+  });
+  const transformOriginClassName = resolveTransformOriginClassName(desktopTransformOriginX);
 
   const handlePrimaryCtaClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
     if (onPrimaryCtaClick) {
@@ -402,7 +444,7 @@ export function LandingGridCard({
 
   return (
     <div
-      className="landing-grid-card"
+      className={`landing-grid-card ${transformOriginClassName}`}
       data-testid="landing-grid-card"
       data-card-id={card.id}
       data-card-seq={typeof sequence === 'number' ? sequence : undefined}
@@ -477,7 +519,7 @@ export function LandingGridCard({
       >
         <div className="landing-grid-card-content">
           {isMobileExpanded ? null : (
-            <h2 className="landing-grid-card-title" data-slot="cardTitle">
+            <h2 ref={normalTitleRef} className="landing-grid-card-title landing-grid-card-title-normal" data-slot="cardTitle">
               {card.title}
             </h2>
           )}
@@ -504,25 +546,30 @@ export function LandingGridCard({
         >
           {showDesktopExpandedShell ? (
             <div className="landing-grid-card-expanded-layer" data-slot="expandedLayer">
-              <div className="landing-grid-card-expanded-shell" data-slot="expandedShell">
-                <div
-                  className="landing-grid-card-expanded-shadow"
-                  data-slot="expandedShadowPlate"
-                  aria-hidden="true"
-                />
-                <div className="landing-grid-card-expanded-surface" data-slot="expandedSurface">
-                  <div className="landing-grid-card-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
-                    <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
-                      {card.title}
-                    </h2>
-                    <ExpandedCardBodyContent
-                      card={card}
-                      locale={locale}
-                      copy={copy}
-                      interactive={desktopStagePhase !== 'cleanup-pending'}
-                      onAnswerChoiceSelect={onAnswerChoiceSelect}
-                      onPrimaryCtaClick={handlePrimaryCtaClick}
-                    />
+              <div className="landing-grid-card-expanded-shell-frame">
+                <div className="landing-grid-card-expanded-shell" data-slot="expandedShell">
+                  <div
+                    className="landing-grid-card-expanded-shadow"
+                    data-slot="expandedShadowPlate"
+                    aria-hidden="true"
+                  />
+                  <div className="landing-grid-card-expanded-surface" data-slot="expandedSurface">
+                    <div className="landing-grid-card-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
+                      <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
+                        <DesktopExpandedTitle
+                          line1Text={desktopTitleSplit.line1Text}
+                          overflowText={desktopTitleSplit.overflowText}
+                        />
+                      </h2>
+                      <ExpandedCardBodyContent
+                        card={card}
+                        locale={locale}
+                        copy={copy}
+                        interactive={desktopStagePhase !== 'cleanup-pending'}
+                        onAnswerChoiceSelect={onAnswerChoiceSelect}
+                        onPrimaryCtaClick={handlePrimaryCtaClick}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

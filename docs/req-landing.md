@@ -259,8 +259,9 @@
 
 ### 6.6 Text & Clamp Contract
 **Rule**: 텍스트 정책은 아래와 같이 고정한다.
-- Desktop/Tablet Normal title: 최대 1줄까지만 표시하고 overflow 시 ellipsis(`...`)를 노출해야 한다.
-- Desktop/Tablet Expanded title: ellipsis 없이 전체 title을 표시해야 하며, Normal의 첫 줄은 전환 전/중/후 동일한 줄바꿈 기준으로 유지되어야 한다.
+- Desktop/Tablet Normal title: normal inline-size 기준의 wrap-based 1줄 clamp를 적용하고 overflow 시 ellipsis(`...`)를 노출해야 한다.
+- Desktop/Tablet Expanded title: ellipsis 없이 전체 title을 표시해야 하며, Expanded의 첫 줄은 widened expanded 폭이 아니라 **Normal title 폭 기준으로 계산한 첫 줄 split 결과**를 그대로 유지해야 한다.
+- Desktop/Tablet Expanded title의 나머지 텍스트는 첫 줄 아래에서만 reveal/collapse 되어야 하며, 첫 줄 continuity를 깨는 재래핑을 금지한다.
 - Mobile title: Normal/OPENING/OPEN/CLOSING 전 상태에서 전체 title을 표시해야 하며 ellipsis를 적용하면 안 된다.
 - Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
 - Normal subtitle overflow 처리 결과는 동일 카드의 형제 슬롯 기하(썸네일/태그 포함)의 inline-size를 변경하면 안 된다.
@@ -546,6 +547,8 @@
 - Desktop/Tablet Expanded 콘텐츠 scale은 reduced-motion을 제외한 모든 경로에서 `1.04`로 고정해야 한다.
 - `desktop-wide`, `desktop-medium` 레이아웃의 row 1+ 카드는 콘텐츠 scale을 키우지 않고, 카드 외곽의 **최종 가로폭만** `1.10x`가 되도록 확장해야 한다.
 - row 0 카드와 `two-column` 레이아웃 카드는 외곽 가로폭도 `1.04x`를 유지해야 한다.
+- row 1+ 예외는 `expanded shell frame`의 pre-transform width/offset으로 처리해야 하며, shadow/surface/body가 함께 넓어져야 한다.
+- widened lower-row 카드의 visible title/meta/CTA inset은 row 0 Expanded 기준과 `<=1px` 오차로 일치해야 하며, inner counter-scale 또는 surface/body 단독 width 조정을 금지한다.
 - Mobile은 기존 full-bleed 모바일 전개 규칙을 유지하며, 위 desktop/tablet width-only 예외를 적용하지 않는다.
 - 내부 콘텐츠만 확대하는 구현 금지
 - Expanded 전 구간(진입/유지/해제)에서 title/body/CTA/meta crop 0건

@@ -386,6 +386,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     const shell = page.getByTestId('landing-grid-shell');
     const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const lowerRowCard = page.locator('[data-card-id="blog-ops-handbook"]');
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
@@ -396,9 +397,13 @@ test.describe('Phase 7 state + capability smoke', () => {
     const shellScale = await firstCard.evaluate((element) =>
       getComputedStyle(element).getPropertyValue('--landing-card-shell-scale').trim()
     );
+    const lowerRowInlineScale = await lowerRowCard.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--landing-card-shell-inline-scale').trim()
+    );
     const normalizedMotionMs = motionToken.endsWith('ms') ? parseFloat(motionToken) : parseFloat(motionToken) * 1000;
     expect(normalizedMotionMs).toBe(180);
     expect(shellScale).toBe('1');
+    expect(lowerRowInlineScale).toBe('1');
 
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');

@@ -178,6 +178,57 @@ async function readDesktopExpandedOverlayMetrics(card: Locator) {
   });
 }
 
+async function hoverDesktopExpandedCard(card: Locator) {
+  await card.getByTestId('landing-grid-card-trigger').hover();
+  await expect(card).toHaveAttribute('data-card-state', 'expanded');
+  await expect(card).toHaveAttribute('data-desktop-motion-role', 'steady');
+}
+
+async function collapseDesktopExpandedCard(page: Page, card: Locator) {
+  await page.mouse.move(1, 1);
+  await expect(card).toHaveAttribute('data-card-state', 'normal');
+}
+
+async function readExpandedWidthContract(card: Locator) {
+  return card.evaluate((element) => {
+    const surface = element.querySelector<HTMLElement>('[data-slot="expandedSurface"]');
+    const title = element.querySelector<HTMLElement>('[data-slot="cardTitleExpanded"]');
+    const line1 = title?.querySelector<HTMLElement>('[data-title-layer="line1"]');
+    const overflow = title?.querySelector<HTMLElement>('[data-title-layer="overflow"]');
+    const detailBlock =
+      element.querySelector<HTMLElement>('[data-slot="meta"]') ??
+      element.querySelector<HTMLElement>('[data-slot="answerChoices"]');
+
+    if (!surface || !title || !line1 || !overflow || !detailBlock) {
+      throw new Error('Expected expanded width-contract nodes to be present.');
+    }
+
+    const rootRect = element.getBoundingClientRect();
+    const surfaceRect = surface.getBoundingClientRect();
+    const titleRect = title.getBoundingClientRect();
+    const detailRect = detailBlock.getBoundingClientRect();
+
+    return {
+      originX: getComputedStyle(element).getPropertyValue('--landing-card-origin-x').trim(),
+      shellScale: Number.parseFloat(getComputedStyle(element).getPropertyValue('--landing-card-shell-scale').trim()),
+      shellInlineScale: Number.parseFloat(
+        getComputedStyle(element).getPropertyValue('--landing-card-shell-inline-scale').trim()
+      ),
+      rootWidth: rootRect.width,
+      surfaceWidth: surfaceRect.width,
+      expandLeft: rootRect.left - surfaceRect.left,
+      expandRight: surfaceRect.right - rootRect.right,
+      titleLeftInset: titleRect.left - surfaceRect.left,
+      titleRightInset: surfaceRect.right - titleRect.right,
+      detailLeftInset: detailRect.left - surfaceRect.left,
+      detailRightInset: surfaceRect.right - detailRect.right,
+      line1Text: line1.textContent ?? '',
+      overflowText: overflow.textContent ?? '',
+      titleText: title.textContent ?? ''
+    };
+  });
+}
+
 test.describe('Phase 4 grid smoke', () => {
   test.beforeEach(async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_OUT');
@@ -383,6 +434,74 @@ test.describe('Phase 4 grid smoke', () => {
     expect(mainClamp).toBe('2');
   });
 
+  test('@smoke title clamp and expanded title continuity keep the first line stable on desktop and tablet while normal tag outline stays hidden', async ({
+    page
+  }) => {
+    const scenarios = [
+      {viewport: {width: 1440, height: 980}, columnMode: 'desktop-wide' as const},
+      {viewport: {width: 1023, height: 980}, columnMode: 'two-column' as const}
+    ];
+
+    for (const scenario of scenarios) {
+      await page.setViewportSize(scenario.viewport);
+      await page.goto('/en');
+
+      await expect(page.getByTestId('landing-grid-shell')).toHaveAttribute('data-grid-column-mode', scenario.columnMode);
+
+      const card = page.locator('[data-card-id="test-rhythm-b"]');
+      const normalTitle = card.locator('.landing-grid-card-content > [data-slot="cardTitle"]');
+      const normalClamp = await normalTitle.evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('-webkit-line-clamp').trim()
+      );
+      const normalFullText = (await normalTitle.textContent()) ?? '';
+      const tagBorderAlpha = await card.locator('.landing-grid-card-tag-chip').first().evaluate((element) => {
+        const color = getComputedStyle(element).borderTopColor;
+        if (color === 'transparent') {
+          return 0;
+        }
+
+        const rgbaMatch = color.match(/rgba?\((.*)\)/u);
+        if (!rgbaMatch) {
+          return 1;
+        }
+
+        const parts = rgbaMatch[1].split(',');
+        return parts.length === 4 ? Number.parseFloat(parts[3]) : 1;
+      });
+
+      expect(normalClamp).toBe('1');
+      expect(tagBorderAlpha).toBeLessThanOrEqual(0.05);
+
+      await hoverDesktopExpandedCard(card);
+
+      const expandedTitle = await card.evaluate((element) => {
+        const expandedTitleElement = element.querySelector<HTMLElement>('[data-slot="cardTitleExpanded"]');
+        const line1 = expandedTitleElement?.querySelector<HTMLElement>('[data-title-layer="line1"]');
+        const overflow = expandedTitleElement?.querySelector<HTMLElement>('[data-title-layer="overflow"]');
+
+        if (!expandedTitleElement || !line1 || !overflow) {
+          throw new Error('Expected expanded title continuity markers to be present.');
+        }
+
+        return {
+          fullText: expandedTitleElement.textContent ?? '',
+          line1Text: line1.textContent ?? '',
+          overflowText: overflow.textContent ?? '',
+          line1Height: line1.getBoundingClientRect().height,
+          line1LineHeight: Number.parseFloat(getComputedStyle(line1).lineHeight)
+        };
+      });
+
+      expect(expandedTitle.fullText).toBe(normalFullText);
+      expect(`${expandedTitle.line1Text}${expandedTitle.overflowText}`).toBe(normalFullText);
+      expect(expandedTitle.line1Text.length).toBeGreaterThan(0);
+      expect(expandedTitle.overflowText.length).toBeGreaterThan(0);
+      expect(expandedTitle.line1Height).toBeLessThanOrEqual(expandedTitle.line1LineHeight + 1);
+
+      await collapseDesktopExpandedCard(page, card);
+    }
+  });
+
   test('@smoke assertion:B4-inline-size subtitle overflow does not contaminate card or sibling slot inline sizes', async ({page}) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
@@ -415,6 +534,104 @@ test.describe('Phase 4 grid smoke', () => {
     const rowClientWidth = await row0.evaluate((element) => element.clientWidth);
     const rowScrollWidth = await row0.evaluate((element) => element.scrollWidth);
     expect(Math.abs(rowClientWidth - rowScrollWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('@smoke lower-row shell frame widening preserves inset and inward anchor across desktop wide, medium, and two-column layouts', async ({
+    page
+  }) => {
+    const scenarios = [
+      {
+        viewport: {width: 1440, height: 980},
+        columnMode: 'desktop-wide' as const,
+        cards: [
+          {id: 'test-rhythm-b', targetRatio: 1.04, anchor: 'center' as const},
+          {id: 'blog-ops-handbook', targetRatio: 1.1, anchor: 'center' as const},
+          {id: 'blog-build-metrics', targetRatio: 1.1, anchor: 'end' as const},
+          {id: 'blog-release-gate', targetRatio: 1.1, anchor: 'start' as const}
+        ]
+      },
+      {
+        viewport: {width: 1180, height: 980},
+        columnMode: 'desktop-medium' as const,
+        cards: [
+          {id: 'test-rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
+          {id: 'blog-ops-handbook', targetRatio: 1.1, anchor: 'start' as const},
+          {id: 'blog-build-metrics', targetRatio: 1.1, anchor: 'center' as const},
+          {id: 'blog-release-gate', targetRatio: 1.1, anchor: 'end' as const}
+        ]
+      },
+      {
+        viewport: {width: 1024, height: 980},
+        columnMode: 'two-column' as const,
+        cards: [
+          {id: 'test-rhythm-b', targetRatio: 1.04, anchor: 'end' as const},
+          {id: 'blog-build-metrics', targetRatio: 1.04, anchor: 'start' as const},
+          {id: 'blog-release-gate', targetRatio: 1.04, anchor: 'end' as const}
+        ]
+      }
+    ];
+
+    for (const scenario of scenarios) {
+      await page.setViewportSize(scenario.viewport);
+      await page.goto('/en');
+
+      const shell = page.getByTestId('landing-grid-shell');
+      await expect(shell).toHaveAttribute('data-grid-column-mode', scenario.columnMode);
+
+      const measurements: Array<
+        Awaited<ReturnType<typeof readExpandedWidthContract>> & {
+          id: string;
+          targetRatio: number;
+          anchor: 'start' | 'center' | 'end';
+        }
+      > = [];
+
+      for (const cardSpec of scenario.cards) {
+        const card = page.locator(`[data-card-id="${cardSpec.id}"]`);
+        await hoverDesktopExpandedCard(card);
+        const measurement = await readExpandedWidthContract(card);
+        measurements.push({...measurement, ...cardSpec});
+        await collapseDesktopExpandedCard(page, card);
+      }
+
+      const baselineMeasurement = measurements.find((measurement) => measurement.targetRatio === 1.04);
+      expect(baselineMeasurement).toBeDefined();
+
+      for (const measurement of measurements) {
+        const widthRatio = measurement.surfaceWidth / measurement.rootWidth;
+        expect(Math.abs(widthRatio - measurement.targetRatio)).toBeLessThanOrEqual(0.02);
+        expect(Math.abs(measurement.shellScale - 1.04)).toBeLessThanOrEqual(0.001);
+
+        if (measurement.targetRatio > 1.04) {
+          expect(Math.abs(measurement.shellInlineScale - 1.0576923077)).toBeLessThanOrEqual(0.001);
+        } else {
+          expect(Math.abs(measurement.shellInlineScale - 1)).toBeLessThanOrEqual(0.001);
+        }
+
+        switch (measurement.anchor) {
+          case 'start':
+            expect(Math.abs(measurement.expandLeft)).toBeLessThanOrEqual(1.5);
+            expect(measurement.expandRight).toBeGreaterThan(2);
+            break;
+          case 'center':
+            expect(measurement.expandLeft).toBeGreaterThan(2);
+            expect(measurement.expandRight).toBeGreaterThan(2);
+            expect(Math.abs(measurement.expandLeft - measurement.expandRight)).toBeLessThanOrEqual(1);
+            break;
+          case 'end':
+            expect(measurement.expandLeft).toBeGreaterThan(2);
+            expect(Math.abs(measurement.expandRight)).toBeLessThanOrEqual(1.5);
+            break;
+        }
+      }
+
+      for (const measurement of measurements.filter((item) => item.targetRatio > 1.04)) {
+        expect(Math.abs(measurement.titleLeftInset - (baselineMeasurement?.titleLeftInset ?? 0))).toBeLessThanOrEqual(1);
+        expect(Math.abs(measurement.titleRightInset - (baselineMeasurement?.titleRightInset ?? 0))).toBeLessThanOrEqual(1);
+        expect(Math.abs(measurement.detailLeftInset - (baselineMeasurement?.detailLeftInset ?? 0))).toBeLessThanOrEqual(1);
+        expect(Math.abs(measurement.detailRightInset - (baselineMeasurement?.detailRightInset ?? 0))).toBeLessThanOrEqual(1);
+      }
+    }
   });
 
   test('@smoke assertion:B10-spacing-model assertion:B11-row-consistency base-gap and comp-gap follow row-local compensation rule for row1 and row2+', async ({
