@@ -173,4 +173,24 @@ describe('landing card slot contract', () => {
       expect(value).not.toMatch(/[km]$/iu);
     }
   });
+
+  it('renders desktop expanded title continuity markers while preserving the full title text', () => {
+    const catalog = createLandingCatalog('en');
+    const card = catalog.find((candidate) => candidate.id === 'test-rhythm-b');
+
+    if (!card) {
+      throw new Error('Expected test-rhythm-b as a long-title card fixture');
+    }
+
+    const doc = renderDesktopExpandedCardDocument({card});
+    const expandedTitle = doc.querySelector('[data-slot="cardTitleExpanded"]');
+    const line1 = expandedTitle?.querySelector('[data-title-layer="line1"]');
+    const overflow = expandedTitle?.querySelector('[data-title-layer="overflow"]');
+
+    expect(expandedTitle).not.toBeNull();
+    expect(line1).not.toBeNull();
+    expect(overflow).not.toBeNull();
+    expect(expandedTitle?.textContent).toBe(card.title);
+    expect(doc.querySelector('[data-slot="cardTitle"]')?.textContent).toBe(card.title);
+  });
 });

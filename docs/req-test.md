@@ -998,6 +998,11 @@ skeleton으로 확보해야 할 hook 위치:
    - `result_viewed`: `derived_type` 블록 뷰포트 진입 시점, Intersection
      Observer 1회 발화 후 disconnect.
 
+2. `session_id` non-null 보장 계약:
+   - `attempt_start` 발화 시점부터 해당 세션의 모든 이벤트에서 `session_id`는 non-null이어야 한다.
+   - `attempt_start` 이전 이벤트(`landing_view`, `card_answered`)는 **transport-patch 모델**을 적용한다: consent/session 확보 이전에 큐잉된 이벤트는 `session_id=null`로 발화하며, transport 단계에서 session_id가 패치된다. 이 비대칭은 의도된 설계이며 cross-phase event integrity 분석 시 반드시 고려해야 한다.
+   - `validateTelemetryEvent()` 및 e2e smoke는 `attempt_start` 이후 이벤트에서 `session_id !== null`을 직접 단언해야 한다. 이 단언 누락은 blocker #18 미매핑으로 처리한다.
+
 > **이 항목들이 완성되지 않은 상태에서 share, history, admin 구현을 시작하면 telemetry 데이터 신뢰성을 보장할 수 없다.**
 
 ---

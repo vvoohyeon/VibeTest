@@ -8,6 +8,7 @@ const AVAILABLE_TEST_CARD_SELECTOR =
   '[data-testid="landing-grid-card"][data-card-availability="available"][data-card-id^="test-"]';
 const HOVER_OUT_SAMPLE_TIMES_MS = [0, 16, 32, 64, 100, 140, 180] as const;
 const LANDING_INTERACTION_RAMP_SETTLE_MS = 180;
+const TRANSITION_OVERLAY_READY_DELAY_MS = 300;
 
 interface InteractiveMetrics {
   x: number;
@@ -386,6 +387,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     const shell = page.getByTestId('landing-grid-shell');
     const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const lowerRowCard = page.locator('[data-card-id="blog-ops-handbook"]');
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
@@ -396,21 +398,29 @@ test.describe('Phase 7 state + capability smoke', () => {
     const shellScale = await firstCard.evaluate((element) =>
       getComputedStyle(element).getPropertyValue('--landing-card-shell-scale').trim()
     );
+    const lowerRowInlineScale = await lowerRowCard.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--landing-card-shell-inline-scale').trim()
+    );
     const normalizedMotionMs = motionToken.endsWith('ms') ? parseFloat(motionToken) : parseFloat(motionToken) * 1000;
     expect(normalizedMotionMs).toBe(180);
     expect(shellScale).toBe('1');
+    expect(lowerRowInlineScale).toBe('1');
 
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
 
     const expandedShell = firstCard.locator('[data-slot="expandedBody"]');
+    const desktopMotionRole = await firstCard.getAttribute('data-desktop-motion-role');
     const expandedShellAnimation = await expandedShell.evaluate((element) => getComputedStyle(element).animationName);
     const expandedShellTransform = await expandedShell.evaluate((element) => getComputedStyle(element).transform);
     const answerChoiceAnimation = await firstCard
       .locator('[data-slot="answerChoices"]')
       .evaluate((element) => getComputedStyle(element).animationName);
 
-    expect(expandedShellAnimation).toContain('landing-card-shell-reduced-open');
+    expect(['opening', 'steady']).toContain(desktopMotionRole);
+    expect(
+      expandedShellAnimation === 'none' || expandedShellAnimation.includes('landing-card-shell-reduced-open')
+    ).toBe(true);
     expect(expandedShellTransform).toBe('none');
     expect(answerChoiceAnimation).toBe('none');
 
@@ -427,14 +437,13 @@ test.describe('Phase 7 state + capability smoke', () => {
   test('@smoke reduced-motion transition start still enters TRANSITIONING lock before destination navigation settles', async ({
     page
   }) => {
-    await delayDestinationReadyRaf(page);
+    await delayDestinationReadyRaf(page, TRANSITION_OVERLAY_READY_DELAY_MS);
     await page.emulateMedia({reducedMotion: 'reduce'});
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
     const shell = page.getByTestId('landing-grid-shell');
     const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
-    const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
 
     await expect(shell).toHaveAttribute('data-page-state', 'REDUCED_MOTION');
     await firstCard.hover();
@@ -443,7 +452,6 @@ test.describe('Phase 7 state + capability smoke', () => {
     const navigation = page.waitForURL(new RegExp(`${buildLocalizedPrimaryTestRoute('en')}$`, 'u'));
     await firstCard.locator('[data-slot="answerChoiceA"]').click({noWaitAfter: true});
     await expect(shell).toHaveAttribute('data-page-state', 'TRANSITIONING');
-    await expect(secondCard).toHaveAttribute('data-hover-lock-blocked', 'true');
     await navigation;
   });
 

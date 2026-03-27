@@ -259,7 +259,10 @@
 
 ### 6.6 Text & Clamp Contract
 **Rule**: 텍스트 정책은 아래와 같이 고정한다.
-- Normal title: 줄바꿈 허용, truncate/ellipsis 금지
+- Desktop/Tablet Normal title: normal inline-size 기준의 wrap-based 1줄 clamp를 적용하고 overflow 시 ellipsis(`...`)를 노출해야 한다.
+- Desktop/Tablet Expanded title: ellipsis 없이 전체 title을 표시해야 하며, Expanded의 첫 줄은 widened expanded 폭이 아니라 **Normal title 폭 기준으로 계산한 첫 줄 split 결과**를 그대로 유지해야 한다.
+- Desktop/Tablet Expanded title의 나머지 텍스트는 첫 줄 아래에서만 reveal/collapse 되어야 하며, 첫 줄 continuity를 깨는 재래핑을 금지한다.
+- Mobile title: Normal/OPENING/OPEN/CLOSING 전 상태에서 전체 title을 표시해야 하며 ellipsis를 적용하면 안 된다.
 - Normal subtitle: 최대 2줄까지만 표시하며, overflow 발생 시 ellipsis(`...`)가 반드시 시각 노출되어야 한다.
 - Normal subtitle overflow 처리 결과는 동일 카드의 형제 슬롯 기하(썸네일/태그 포함)의 inline-size를 변경하면 안 된다.
 - Normal tags 영역: 1줄 슬롯 고정, chip은 1줄 truncate, wrap 금지
@@ -541,7 +544,12 @@
 
 ### 8.4 Expanded Shell Scale and Readability
 **Rule**:
-- Desktop/Tablet Expanded `scale=1.1`은 **Card Shell 전체**에 적용
+- Desktop/Tablet Expanded 콘텐츠 scale은 reduced-motion을 제외한 모든 경로에서 `1.04`로 고정해야 한다.
+- `desktop-wide`, `desktop-medium` 레이아웃의 row 1+ 카드는 콘텐츠 scale을 키우지 않고, 카드 외곽의 **최종 가로폭만** `1.10x`가 되도록 확장해야 한다.
+- row 0 카드와 `two-column` 레이아웃 카드는 외곽 가로폭도 `1.04x`를 유지해야 한다.
+- row 1+ 예외는 `expanded shell frame`의 pre-transform width/offset으로 처리해야 하며, shadow/surface/body가 함께 넓어져야 한다.
+- widened lower-row 카드의 visible title/meta/CTA inset은 row 0 Expanded 기준과 `<=1px` 오차로 일치해야 하며, inner counter-scale 또는 surface/body 단독 width 조정을 금지한다.
+- Mobile은 기존 full-bleed 모바일 전개 규칙을 유지하며, 위 desktop/tablet width-only 예외를 적용하지 않는다.
 - 내부 콘텐츠만 확대하는 구현 금지
 - Expanded 전 구간(진입/유지/해제)에서 title/body/CTA/meta crop 0건
 - transform-origin 판정은 Expanded 시작 시점의 settled row 경계를 기준으로 수행해야 한다.
@@ -794,12 +802,18 @@
 - tags 값이 비어 있는 경우 chip 렌더 개수는 `0`이어야 한다.
 - 빈 chip 강제 렌더 및 placeholder/공백문자 chip 렌더를 금지한다.
 
-### 13.2 Unavailable Handling
-**Rule**:
+### 13.2 Unavailable Card UX
+**Rule**: unavailable Test 카드는 진입 차단 + Coming Soon 표시를 적용한다.
 - unavailable Blog 카드는 존재하면 안 된다.
 - unavailable Test 카드는 Expanded/CTA/전환을 허용하지 않는다.
 - Hover-capable 모드에서는 hover/focus 시에만 오버레이 노출
 - Tap Mode에서는 오버레이 상시 노출
+
+**Adapter 레이어 책임 (Landing-side 계약)**:
+- `unavailable` 판정의 단일 소스는 `variant-registry.generated.json`(또는 동등한 fixture 파일)의 `unavailable` 플래그다.
+- 랜딩 카탈로그 데이터 정규화 레이어(`normalizeLandingCards` 또는 동등 함수)가 이 플래그를 기준으로 Coming Soon 표시 상태 지정과 진입 차단을 모두 담당한다.
+- 이 레이어에서 처리된 unavailable 상태는 런타임 재검증 없이 카드 렌더링에 직접 사용된다.
+- 직접 URL 접근(딥링크)을 통한 unavailable variant 진입 차단은 Test Flow Requirements §2.5 / §6.1 계약이 담당한다. 이 섹션의 계약과 중복되지 않는다.
 
 ### 13.3 Landing→Destination Handshake
 **Rule**: 전환 잠금과 GNB 교체 시점은 아래 규칙으로 고정한다.
@@ -843,20 +857,31 @@
 
 ### 13.6 Pre-answer Lifecycle / Failure Rollback
 **Rule**: pre-answer lifecycle과 실패 정리는 누수 없이 종료되어야 한다.
+
+**ingress-first 유효성 원칙 (SSOT: Test Flow Requirements §3.1, §4.1)**:
+- pre-answer를 Q1 응답으로 적용하기 위한 유일한 기준은 **landing ingress flag 존재 여부**다.
+- landing ingress flag가 존재하면 pre-answer를 Q1 응답으로 적용한다.
+- landing ingress flag가 없는 유입에 pre-answer 적용을 금지한다. storage에 pre-answer가 잔류하더라도 무시하고 Q1부터 정상 진행한다.
+- transition correlation은 pre-answer 유효성 판단의 근거로 사용하지 않는다.
+
+**read / consume 분리 계약**:
 - read와 consume을 분리해야 한다.
 - read 시 즉시 파기를 금지한다.
 - consume은 instruction Start click 직후 수행한다.
 - instruction 생략 경로에서는 Start click과 동등한 내부 `test_start` 시점에 consume한다.
-- `transition correlation + landing ingress flag` 없는 유입에 pre-answer 적용을 금지한다.
+
+**실패 롤백 계약**:
 - 전환 실패/취소 시 pre-answer를 롤백해야 한다.
 - 전환 시작 후 지속시간과 무관하게 반드시 종료 이벤트(`complete|fail|cancel`)로 정리해야 한다.
 - `short transition` 조기 return 등으로 fail/cancel 정리 생략을 금지한다.
 - 정리 시 pending transition/state/flag/body lock 누수를 금지한다.
-- QA 최소 액션 케이스:
+
+**QA 최소 액션 케이스**:
 1. 랜딩 CTA 직후 사용자 취소(뒤로가기/중단)
 2. locale duplicate 실패
 3. 목적지 라우트 진입 실패(타임아웃/로드 실패)
-- staged entry 만료/commit-failure 시나리오는 다음 Phase에서 Test Flow Requirements와 함께 별도 게이트로 다룬다.
+
+staged entry 만료/commit-failure 시나리오는 다음 Phase에서 Test Flow Requirements와 함께 별도 게이트로 다룬다.
 
 ### 13.7 Question Dwell Time
 **Rule**: dwell time은 포그라운드 여부와 무관하게 누적 계산한다.
@@ -905,7 +930,7 @@
 13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 available 카드 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
 15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_card_id`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `attempt_start`의 `question_index_1based`가 ingress 경로에서 `2`, 직접 진입에서 `1`로 정확히 발화, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
-Test Flow Requirements §11.2 Blocker #28과 연동하며, 연계 검증 단언은 동일 픽스처를 공유해야 한다.
+Test Flow Requirements §12.2 Blocker #28에 단방향으로 참조된다. 연계 검증 단언의 픽스처 공유 계약은 §12.2 Blocker #28이 소유한다.
 16. Rollback Cleanup Closure: fail/cancel 3케이스(사용자 취소, locale duplicate, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건` PASS (Section 13.3, 13.6).
 17. Return Restoration: 라우팅 직전 저장, 랜딩 재진입 mount 직후 1회 복원, 즉시 consume, 중복 복원 `0건` PASS (Section 13.8).
 18. Telemetry Final Payload Completeness: `final_submit` 필수 필드(`final_responses` 포함, Q1~QN 전 문항 맵) 누락 `0건`, raw text/PII `0건` PASS (Section 12.3).

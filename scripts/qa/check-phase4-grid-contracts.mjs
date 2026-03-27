@@ -70,6 +70,9 @@ if (fileExists('tests/e2e/grid-smoke.spec.ts')) {
   if (!/card type label is removed/u.test(e2eSpec) || !/subtitle clamp/u.test(e2eSpec)) {
     fail('Grid smoke spec must assert type-label removal and subtitle clamp consistency.');
   }
+  if (!/title clamp and expanded title continuity/u.test(e2eSpec)) {
+    fail('Grid smoke spec must assert desktop/tablet title clamp and expanded title continuity.');
+  }
 }
 
 if (errors.length > 0) {

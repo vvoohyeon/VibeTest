@@ -190,7 +190,7 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Acceptance criteria:**
   - URL format: `/result/{variant}/{type}?{base64Payload}`
     - `{variant}`: test variant identifier as URL path segment 1. Each variant maps to exactly one fixed scoring logic and one fixed rendering schema. No `scoringSchemaId` is required in the payload.
-    - `{type}`: final computed derivedType token as URL path segment 2. Token length equals the variant's `axisCount`.
+    - `{type}`: result type segment as URL path segment 2. For variants without `qualifierFields`, length equals `axisCount`. For variants with `qualifierFields` (e.g., EGTT), length equals `axisCount + sum(qualifierFields[i].tokenLength)`. Full type segment contract: Test Flow Requirements §3.11 (SSOT).
     - `{base64Payload}`: URL-safe Base64 encoding (`+`→`-`, `/`→`_`, padding `=` removed) of a JSON object.
   - A valid share URL opens and reconstructs the result view without server result retrieval.
   - The base64 payload MUST include:
