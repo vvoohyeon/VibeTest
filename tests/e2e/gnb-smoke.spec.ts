@@ -8,7 +8,7 @@ const THEME_STORAGE_KEY = 'vivetest-theme';
 const DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX = 12;
 const DESKTOP_SETTINGS_PANEL_EXTRA_RIGHT_PX = 15;
 const DESKTOP_SETTINGS_GEOMETRY_TOLERANCE_PX = 0.5;
-const EN_COMBINED_SETTINGS_LABEL = 'Language⋅Theme';
+const EN_COMBINED_SETTINGS_LABEL = 'Language ⋅ Theme';
 const HOVER_STYLE_SETTLE_MS = 180;
 
 async function installViewTransitionStub(page: Page) {

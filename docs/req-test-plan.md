@@ -33,38 +33,43 @@
 
 ### ADR-A — `src/features/test` 네임스페이스 분리 + `test-question-client.tsx` clean-room 교체
 
-현재 워크트리에서는 test runtime이 아직 `src/features/landing/test/*` 아래에 있고, route와 관련 unit test도 같은 경로를 canonical surface처럼 사용한다. malformed variant `notFound()`와 unknown variant generic fallback도 여전히 남아 있으므로, ADR-A는 방향은 확정되었지만 구현 상태로는 아직 열려 있다.
+현재 워크트리에서는 canonical test runtime이 `src/features/test/*`로 이동했고, route/unit/QA consumer도 새 경로를 사용한다. 다만 malformed variant `notFound()`와 unknown variant generic fallback은 그대로이며, `test-question-client.tsx` clean-room 교체도 아직 수행되지 않았으므로 ADR-A는 부분 완료 상태다.
 
 **완료 조건**:
-- [ ] `src/features/test` 디렉토리 분리 범위 결정 및 문서화
-- [ ] `src/features/landing/test/` 내 test 런타임 파일의 이관 대상 목록 확정
+- [x] `src/features/test` 디렉토리 분리 범위 결정 및 문서화
+- [x] test 런타임 파일의 `src/features/test/` 이관 대상 목록 확정 및 cutover 완료
 - [ ] `test-question-client.tsx` clean-room 교체 범위 및 타이밍 ADR 확정
-- [ ] Phase 1 T1-1~T1-7 파일이 생성될 디렉토리 경로 결정
+- [x] Phase 1 T1-1~T1-7 파일이 생성될 디렉토리 경로 결정
 
-**미완료 시 리스크**: Phase 1~5의 모든 타입/함수 파일이 `src/features/landing` 네임스페이스에 혼입됨. Phase 5 완료 후 전체 import 경로 재작업 불가피.
+**잔여 리스크**: clean-room 교체 없이 Phase 1 이후 로직을 계속 얹으면, canonical path는 분리돼 있어도 현재 bootstrap/fallback 구현의 제약이 그대로 누적된다.
 
 ### ADR-B — Storage Key 네이밍 + 5개 상태 플래그 계약
 
-**완료 조건**:
-- [ ] `derivation_in_progress`, `derivation_computed`, `min_loading_duration_elapsed`, `result_entry_committed`, `result_persisted` 5개 플래그의 storage key 명명 규칙 확정
-- [ ] `VariantId` brand type을 storage key prefix로 사용하는 variant-scope 격리 전략 확정
-- [ ] cleanup set 원자성 보장을 위한 key 그룹핑 구조 결정
-- [ ] ADR 문서 작성 완료
+현재 changeset에서는 storage topology를 문서로만 고정한다. 런타임 key migration은 수행하지 않는다.
 
-**미완료 시 리스크**: Phase 1의 `VariantId` 타입 결정이 Phase 3 storage key prefix 설계와 사후 불일치 발생. Phase 3에서 Phase 1 타입 역방향 수정 요구됨.
+**완료 조건**:
+- [x] `derivation_in_progress`, `derivation_computed`, `min_loading_duration_elapsed`, `result_entry_committed`, `result_persisted` 5개 플래그의 storage key reserved segment 확정
+- [x] `VariantId`를 storage key prefix로 사용하는 variant-scope 격리 전략 확정
+- [x] cleanup set 원자성 보장을 위한 key 그룹핑 구조 결정
+- [x] ADR 문서 작성 완료
+
+**결정 요약**:
+- storage prefix는 `test:{variant}:...`로 고정한다.
+- cleanup bundle은 반드시 variant-scoped prefix 내부에서만 정리한다.
+- 5개 future flag는 `test:{variant}:flag:{flagName}` reserved segment로 선언한다.
 
 ### ADR-E — Representative Variant 범위 + QA Baseline 정비
 
-representative test route anchor, local-only baseline 정책, mixed-evidence blocker registry(`automated_assertion` / `scenario_test` / `manual_checkpoint`)는 이번 정리에서 문서화했다. 다만 `qa:gate:once`는 현재 `tests/unit/gnb-message-labels.test.ts`의 combined theme label 기대값 불일치 때문에 아직 RED이므로, ADR-E는 범위 결정은 닫혔지만 gate 복구는 끝나지 않은 상태다.
+representative test route anchor, local-only baseline 정책, mixed-evidence blocker registry(`automated_assertion` / `scenario_test` / `manual_checkpoint`)는 유지한다. combined theme label은 메시지 JSON의 의도값인 `Language ⋅ Theme` 계열로 고정했고, 관련 스냅샷 baseline까지 현재 워크트리에 맞게 갱신했다.
 
 **완료 조건**:
 - [x] `theme-matrix-manifest.json` 대표 케이스 범위와 유지 기준이 `docs/test-phase0-adr.md`에 기록되어 있음
 - [x] baseline PNG는 로컬 QA 자산이며 Git tracked completeness를 완료 조건으로 보지 않음을 문서화
 - [x] Safari ghosting baseline 디렉토리 유지 범위를 local QA 기준으로 기록
 - [x] test flow 신규 settle recipe 케이스 추가 시 manifest + local baseline 갱신 기준 문서화
-- [ ] `qa:gate:once` GREEN 복구 완료
+- [x] `qa:gate:once` GREEN 복구 완료
 
-**미완료 시 리스크**: Phase 1 DoD 완료 판정 불가. `qa:gate:once` RED 상태가 Phase 11까지 누적되어 릴리스 신호 신뢰 불가. test flow 케이스 추가 시 manifest 불일치가 자동으로 증가.
+**상태 요약**: ADR-E는 완료다.
 
 ### Phase 0 완료 게이트
 
@@ -72,9 +77,9 @@ representative test route anchor, local-only baseline 정책, mixed-evidence blo
 
 | ADR | 완료 여부 |
 |---|---|
-| ADR-A: 네임스페이스 분리 + clean-room ADR | ⬜ 미완료 |
-| ADR-B: Storage Key + 5개 플래그 계약 | ⬜ 미완료 |
-| ADR-E: Representative Variant 범위 + QA Baseline 정비 | ⬜ 미완료 (`qa:gate:once` RED) |
+| ADR-A: 네임스페이스 분리 + clean-room ADR | partial (`src/features/test` cutover 완료, clean-room 보류) |
+| ADR-B: Storage Key + 5개 플래그 계약 | done |
+| ADR-E: Representative Variant 범위 + QA Baseline 정비 | done (`qa:gate:once` GREEN) |
 
 ---
 

@@ -9,11 +9,14 @@
 - Transition 상태 기계 (begin / complete / fail / cancel / rollback)
 - Telemetry 동의 게이트 + consent-source (custom + Vercel 통합)
 - `card_answered`, `landing_view`, `attempt_start`, `final_submit` telemetry 이벤트 생성 (pre-sync 큐 포함)
-- Unit 테스트 106개 GREEN. 그러나 `qa:gate:once`는 RED.
+- canonical test runtime path를 `src/features/test`로 분리하고 old `src/features/landing/test/*` 구현 경로 제거
+- Storage key ADR 문서화 완료 (`test:{variant}:...`, `test:{variant}:flag:{flagName}`)
+- Unit 테스트 111개 GREEN. `qa:gate:once`도 GREEN.
 
 **부분 구현 (Shell만 있거나 프로토타입 수준)**
 - `test-question-client.tsx`: 4문항 고정 루프, answer state, 단순 result echo. schema-driven scoring 없음, 결과 URL 없음, 세션 없음 → **clean-room 교체 대상**
 - Staged Entry: `createdAtMs` 저장되어 있으나 7분 만료 판정 미시행
+- Storage topology는 문서로 고정됐지만 runtime key migration은 아직 미구현
 - `session_id` 보장: transport-patch 모델로 구현되어 있으나, validator/서버 계약 미강제
 
 **미구현**
@@ -24,8 +27,6 @@
 - Instruction overlay (비-라우트), runtime entry commit 도메인 이벤트 — Phase 5 대상
 - Result URL `/result/{variant}/{type}?{base64Payload}` 구조 — Phase 8 대상
 - Result 섹션 렌더링 (mandatory/optional, content fallback) — Phase 9 대상
-- `src/features/test` 네임스페이스 — **착수 전 분리 필요**
-- Storage key ADR — **Phase 1 이전 작성 필요**
 - History, Share URL, Admin — 후속 Phase
 
 ## 문서 신뢰 우선순위 (요약)
@@ -42,8 +43,8 @@
 ## 문서와 Q&A 통합 해석 시 핵심 포인트
 
 - Gate GREEN 없이는 착수 불가. Traceability Closure (blocker 1~30 매핑) 선행.
-- `test-question-client.tsx` clean-room 교체 + `src/features/test` 분리를 착수 전 방향으로 확정.
-- Storage key ADR은 Phase 1 이전. Phase 3에서 key 바꿀 리스크를 Phase 1 타입 수준에서 차단.
+- `src/features/test` 경로 분리는 완료됐고, 다음 남은 핵심은 `test-question-client.tsx` clean-room 교체다.
+- Storage key ADR은 문서로 확정됐다. Phase 3에서는 이 결정을 바탕으로 runtime layer만 구현하면 된다.
 - axisCount 1/2/4 첫 구조에서 모두 수용. MBTI 하드코딩 절대 금지.
 - "지금 빨리 만들지만 다음 Phase에서 뜯는" 결정을 최우선으로 차단.
 
@@ -54,11 +55,11 @@
 | req-landing.md §13.6 vs 구현 | correlation 문구 vs ingress-first bootstrap. P2 확정: ingress-first가 맞지만 문서 미정리 |
 | requirements.md vs req-test.md | session_id transport-patch 모델 명시 수준 차이. req-test.md에 직접 규정 없음 |
 | question-bank.ts vs AR-001 | 코드는 unknown variant → generic fallback. req-test.md는 에러 복구 페이지로 이동 |
-| Phase 11 QA gate vs 저장소 | 168장 baseline → gitignore. `qa:gate:once` RED 상태 |
+| Phase 11 QA gate vs 저장소 | baseline은 로컬 QA 자산 기준으로 운영. 현재 워크트리 기준 `qa:gate:once` GREEN |
 
 ## 이번 우선순위에서 특히 강하게 반영할 운영 원칙
 
-- 착수 전 QA gate GREEN 복구 필수
+- QA gate GREEN 유지 필수
 - 코드 리팩터링보다 ADR/계약 확정 우선
 - "다음 Phase에서 다시 뜯지 않을 결정"을 지금 굳힘
 - UX fallback/recovery와 구조·도메인 계약을 동등 비중
@@ -71,14 +72,15 @@
 ## 1 — QA Gate GREEN 복구 + Blocker Traceability 완결
 
 - **카테고리**: QA / Testing
+- **현재 상태**: 완료. 현재 과제는 GREEN 유지다.
 - **현재 문제 징후**
-  - `qa:gate:once` RED: Phase 11 check가 168장 theme-matrix baseline을 요구하지만, 저장소에는 36장만 추적됨 (나머지 132장 `.gitignore` 가려짐). Safari ghosting baseline 디렉토리 비어 있음.
-  - Unit drift: `gnb-theme-transition`, `landing-card-contract` 관련 단언이 현재 runtime 계약과 불일치.
-  - `check-blocker-traceability.mjs` — landing blocker 1~19의 automated assertion 매핑 현황이 req-test.md 신규 blocker 1~30 기준과 정합하지 않음 (확인 필요).
+  - 현재 워크트리에서는 `qa:gate:once`가 GREEN이다. 직전 드리프트는 combined theme label 기대값과 representative screenshot baseline 불일치였다.
+  - 이후 동일 범주의 드리프트가 재발하면 message contract와 local baseline policy를 함께 점검해야 한다.
+  - `check-blocker-traceability.mjs`와 `docs/blocker-traceability.json`은 현재 1~30 범위를 통과하지만, future-phase blocker 추가 시 다시 drift가 날 수 있다.
 - **근거 문서**: project-analysis §9, req-landing.md §14.4, req-test.md §12.3
-- **왜 착수 전에 먼저 봐야 하는지**: gate RED 상태로 Phase 1을 시작하면 Phase 1 완료 판정 자체가 불가능. 릴리스 신호 신뢰 불가.
-- **미개선 시 리스크**: Phase 1 단위 테스트가 GREEN이어도 `qa:gate`는 계속 RED. 복잡도가 높아질수록 gate 회복 비용이 기하급수적으로 증가.
-- **기대 효과**: "릴리스 가능한 상태" 기준선 복구. Phase 1 DoD 완료 판정 신뢰성 확보.
+- **왜 착수 전에 먼저 봐야 하는지**: gate가 다시 RED로 돌아가면 Phase 1 완료 판정 자체가 불가능해진다. 릴리스 신호 신뢰를 유지해야 한다.
+- **미개선 시 리스크**: 이후 변경에서 representative baseline/message contract가 다시 어긋나면 `qa:gate` 신뢰가 다시 무너진다.
+- **기대 효과**: "릴리스 가능한 상태" 기준선을 계속 유지한다. Phase 1 DoD 완료 판정 신뢰를 보존한다.
 - **긴급도**: P0
 
 ---
@@ -86,14 +88,15 @@
 ## 2 — `src/features/test` 네임스페이스 분리 + `test-question-client.tsx` clean-room ADR 확정
 
 - **카테고리**: Architecture / Docs
+- **현재 상태**: 부분 완료. path split은 끝났고 clean-room replacement가 남아 있다.
 - **현재 문제 징후**
-  - 현재 test 런타임 전체 (`test-question-client.tsx`, `question-bank.ts`, 관련 파일)가 `src/features/landing/test/` 하위에 위치. landing 네임스페이스와 test 도메인이 물리적으로 혼합.
-  - 착수 전 `src/features/test` 분리. `test-question-client.tsx` 전면 교체(clean-room).
-  - 분리 없이 Phase 1~5 타입/함수를 쌓으면 전부 잘못된 위치에 구현됨.
+  - 현재 canonical test runtime은 `src/features/test/`로 분리됐지만, `test-question-client.tsx` clean-room 교체는 아직 남아 있다.
+  - 경로 분리는 끝났고, 다음 남은 과제는 현재 bootstrap/fallback 구현을 clean-room runtime으로 대체하는 것이다.
+  - canonical path는 바로잡았지만, domain foundation을 현 runtime 위에 누적하면 provisional bootstrap/fallback 제약이 그대로 남는다.
 - **근거 문서**: project-analysis §2, §3, §5; req-test-plan.md Part 2 개요
-- **왜 착수 전에 먼저 봐야 하는지**: 디렉토리 구조가 Phase 1 이후 수정되면 import 경로 전면 수정 발생. Phase 5까지 누적된 clean-room 구현이 landing 네임스페이스 내에 뒤섞임.
-- **미개선 시 리스크**: Phase 1~5 전체를 나중에 이동. e2e smoke import 경로 깨짐. landing과 test 관심사 혼합으로 테스트 불가능한 결합 고착.
-- **기대 효과**: Phase 1 타입/함수 파일이 처음부터 올바른 위치에 생성됨. landing 네임스페이스 책임 경계 명확화.
+- **왜 착수 전에 먼저 봐야 하는지**: 이제 구조 이동 리스크보다, 현재 임시 runtime 위에 도메인 로직을 계속 덧쌓는 리스크가 더 크다.
+- **미개선 시 리스크**: clean-room 없이 Phase 1~5를 얹으면 bootstrap, fallback, invalid-variant 제약이 새 도메인 모델과 계속 충돌한다.
+- **기대 효과**: canonical path split 위에서 test-owned runtime을 진짜 도메인 경계로 마무리할 수 있다.
 - **긴급도**: P0
 
 ---
@@ -101,14 +104,14 @@
 ## 3 — Storage Key ADR + 5개 상태 플래그 계약 문서화 (Phase 1 이전 완료)
 
 - **카테고리**: State / Docs / Architecture
+- **현재 상태**: 문서 결정 완료. runtime 구현은 후속 Phase 과제다.
 - **현재 문제 징후**
-  - `derivation_in_progress`, `derivation_computed`, `min_loading_duration_elapsed`, `result_entry_committed`, `result_persisted` 5개 플래그의 storage key 명명, variant-scope 격리 전략, cleanup set 원자성 조건이 어느 문서에도 확정되어 있지 않음.
-  - req-test-plan.md Part 4: "Phase 3 착수 전 ADR 작성 권장"이지만, "Phase 1 이전 작성" 확정.
-  - `VariantId` brand type이 storage key prefix로 사용될 것이므로 (req-test-plan.md §Phase 3 설계 제약), Phase 1 타입 정의와 storage key 구조의 사전 정합 확인 없이는 Phase 3에서 Phase 1을 뜯어야 함.
+  - key naming 자체는 확정됐다. 현재 남은 차이는 runtime storage layer가 아직 이 ADR을 코드로 구현하지 않았다는 점이다.
+  - reserved segment와 variant-scoped cleanup 원칙은 문서에 고정됐으므로, Phase 3는 설계가 아니라 구현 문제로 좁혀졌다.
 - **근거 문서**: req-test-plan.md Part 4, req-test.md §6.8, §8.2, §8.3
-- **왜 착수 전에 먼저 봐야 하는지**: Phase 1 `VariantId` 타입 결정이 Phase 3 storage key prefix 설계에 직접 영향. ADR 없이 Phase 1 타입을 확정하면 Phase 3에서 key 구조 변경 시 Phase 1~2 타입과 불일치.
-- **미개선 시 리스크**: Phase 3에서 storage key 재설계 → Phase 1 타입 수정 역방향 의존 발생. cleanup set 원자성 검증(blocker #17, #22) 불가.
-- **기대 효과**: Phase 1 타입과 storage key 구조가 사전 정합됨. Phase 3 착수 시 storage 추상 레이어 설계에만 집중 가능.
+- **왜 착수 전에 먼저 봐야 하는지**: Phase 3 구현이 ADR과 다른 prefix/grouping으로 새어 나가면 문서와 런타임이 다시 분리된다.
+- **미개선 시 리스크**: runtime key migration 시점에 variant-scope cleanup과 future flag naming이 재드리프트할 수 있다.
+- **기대 효과**: Phase 3에서는 `test:{variant}:...`와 `test:{variant}:flag:{flagName}` 규칙을 그대로 구현하면 된다.
 - **긴급도**: P0
 
 ---
@@ -211,15 +214,16 @@
 ## 10 — Representative Variant 범위 축소 + QA 스냅샷 자산 추적 가능성 정비
 
 - **카테고리**: QA / Testing
+- **현재 상태**: 완료. 현재 과제는 representative coverage와 local baseline policy를 계속 유지하는 것이다.
 - **현재 문제 징후**
-  - 168장 theme-matrix baseline 요구 중 저장소에 36장만 추적. 나머지 gitignored. Safari baseline 디렉토리 비어 있음.
-  - manifest(`theme-matrix-manifest.json`)와 실제 자산이 불일치. `check-phase11-telemetry-contracts.mjs`가 snapshot completeness까지 검사함.
-  - Phase 11 QA gate가 representative variant + screenshot baseline 변경 시 조기 실패 가드 없음
-  - 게이트 유지하되 대표 케이스 최소화, variant 대표성 재정의.
+  - representative test route anchor, local-only baseline 정책, mixed-evidence blocker registry는 현재 워크트리에 반영돼 있다.
+  - `qa:gate:once`가 현재 GREEN이더라도, theme recipe나 Safari visual contract를 바꾸면 manifest와 local baseline을 함께 갱신해야 한다.
+  - baseline PNG는 로컬 QA 자산이므로 Git tracked completeness보다 local directory completeness와 gate pass가 더 중요한 운영 기준이다.
+  - 신규 settle recipe를 추가할 때 representative 범위를 과도하게 넓히지 않도록 관리가 필요하다.
 - **근거 문서**: project-analysis §9, §10 item 6, req-test.md §12.2 blocker #26
-- **왜 착수 전에 먼저 봐야 하는지**: "테스트 플로우 구현 후 신규 settle recipe 케이스의 manifest + baseline 추가 부담"
-- **미개선 시 리스크**: drift guard는 이미 구현되어 있음. 하지만, 테스트 플로우 구현 후 신규 settle recipe 케이스의 manifest + baseline 추가 부담
-- **기대 효과**: manifest-baseline 정합성 복구. 대표 케이스 범위 명확화로 테스트 플로우 추가 시 baseline 추가 범위 결정 가능. Phase 11 gate 안정화.
+- **왜 먼저 봐야 하는지**: representative contract와 local baseline policy가 흐려지면, 다음 visual/theme 변경에서 gate가 다시 흔들릴 수 있다.
+- **미개선 시 리스크**: manifest, representative variant, local baseline이 따로 움직이면 동일 계열의 gate drift가 반복된다.
+- **기대 효과**: test flow 확장 시 baseline 추가 범위가 예측 가능해지고, Phase 11 gate 안정성이 유지된다.
 - **긴급도**: P1
 
 ---
@@ -229,7 +233,7 @@
 | 순위 | 과제명 | 긴급도 | 투입 대비 효과 | 테스트 플로우 선행 필요성 | 확신도 |
 |---|---|---|---|---|---|
 | 1 | QA Gate GREEN 복구 + Blocker Traceability 완결 | P0 | 매우 높음 | **착수 불가 전제조건** | 높음 |
-| 2 | `src/features/test` 분리 + clean-room ADR 확정 | P0 | 매우 높음 | **물리 구조 착수 전제** | 높음 |
+| 2 | `src/features/test` 분리 + clean-room ADR 확정 | P0 | 매우 높음 | **path split 완료, clean-room 후속** | 높음 |
 | 3 | Storage Key ADR + 5개 상태 플래그 계약 | P0 | 매우 높음 | **Phase 1 타입 설계 전제** | 높음 |
 | 4 | Domain Foundation 타입: axisCount 1/2/4 + qualifier 수용 | P0 | 매우 높음 | **Phase 1 핵심 산출물** | 높음 |
 | 5 | Invalid Variant → 에러 복구 페이지 계약 (현행 역방향 충돌 해소) | P1 | 높음 | Phase 4 착수 전 필수 | 높음 |
@@ -241,18 +245,17 @@
 
 ---
 
-# 당장 ADR/결정 문서화가 필요한 8가지
+# ADR/결정 문서화 상태와 남은 포인트
 
-| # | ADR 주제 | 착수 전/후 | 이유 |
+| # | ADR 주제 | 상태/시점 | 이유 |
 |---|---|---|---|
-| A | **`src/features/test` 경계와 파일 구조** | 착수 전 | Phase 1 파일 생성 위치 결정 |
-| B | **Storage key 네이밍 + 5개 상태 플래그 구조 + variant-scope 격리 전략** | Phase 1 이전 | Phase 1 `VariantId` 타입과 정합 필요 |
+| A | **`src/features/test` 경계와 파일 구조** | 완료 | canonical path split과 consumer cutover가 끝났고, clean-room ADR 후속만 남아 있다 |
+| B | **Storage key 네이밍 + 5개 상태 플래그 구조 + variant-scope 격리 전략** | 완료 | `test:{variant}:...` / `test:{variant}:flag:{flagName}` 규칙이 문서로 확정됐다 |
 | C | **Invalid variant 처리 경로 (AR-001 재확인 + `question-bank.ts` 교체 타이밍)** | Phase 4 이전 | 현재 코드와 역방향 충돌 해소 |
 | D | **`session_id` 보장 위치 (transport-patch client-runtime 계약 명시화)** | Phase 11 이전 | 이벤트 서사 QA 기준 전제 |
-| E | **Representative variant + manifest-baseline 대상 범위 (축소 기준)** | 즉시 | Gate 안정화와 테스트 플로우 확장 준비 동시 |
+| E | **Representative variant + manifest-baseline 대상 범위** | 완료(운영 유지) | gate 안정화와 테스트 플로우 확장 시 local baseline policy를 계속 일관되게 유지해야 한다 |
+| F | **`unavailable` test card 카탈로그 제외 계약 레이어 결정** | Phase 2 ADR | `normalizeLandingCards()`와 registry 소비 레이어 중 책임 위치를 확정해야 한다 |
+| G | **blocker traceability 범위와 evidence 정책** | 완료(1~30) | 이후 future-phase blocker 추가 시 상한과 evidence type 운영 규칙만 유지하면 된다 |
+| H | **test-flow telemetry hook 검사 추가 계획** | Phase 11 이전 | req-test.md §9.1의 6개 hook 완전 커버 보장 |
 
-> **F. `unavailable` test card 카탈로그 제외 계약 레이어 결정** — 현재 adapter.ts의 blog-only 필터를 test card로 확장할지, Phase 2 registry 로딩 레이어에서 처리할지 결정. `normalizeLandingCards()` 수정 vs `loadVariantRegistry()` 소비 레이어에서 처리 중 하나를 Phase 2 ADR에 포함.
-
-> **G. blocker-traceability.mjs 상한 확장 계획** — 현재 1~19 하드코딩을 Phase 11 착수 전 1~30으로 확장하는 타이밍과 책임자 결정. req-test.md §12.3 blocker traceability closure 요건 충족을 위한 전제.
-
-> **H. test-flow telemetry hook 검사 추가 계획** — `check-phase11-telemetry-contracts.mjs`에 test phase hook 검사를 추가할 Phase 확정. req-test.md §9.1의 6개 hook 완전 커버 보장.
+> **운영 메모** — `unavailable` test card 필터 책임 위치와 test-flow telemetry hook coverage는 여전히 후속 ADR이 필요하다. 반면 blocker traceability 1~30 closure, representative baseline 정책, canonical path split, storage key naming은 이번 changeset 기준으로 문서화가 끝난 상태다.

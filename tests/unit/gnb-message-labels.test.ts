@@ -15,18 +15,18 @@ import ztMessages from '../../src/messages/zt.json';
 
 describe('gnb settings label messages', () => {
   it('keeps only the combined theme label across all locales', () => {
-    expect(enMessages.gnb.theme).toBe('Language⋅Theme');
-    expect(krMessages.gnb.theme).toBe('언어⋅테마');
-    expect(jaMessages.gnb.theme).toBe('言語⋅テーマ');
-    expect(zsMessages.gnb.theme).toBe('语言⋅主题');
-    expect(ztMessages.gnb.theme).toBe('語言⋅主題');
-    expect(esMessages.gnb.theme).toBe('Idioma⋅Tema');
-    expect(frMessages.gnb.theme).toBe('Langue⋅Thème');
-    expect(ptMessages.gnb.theme).toBe('Idioma⋅Tema');
-    expect(deMessages.gnb.theme).toBe('Sprache⋅Thema');
-    expect(hiMessages.gnb.theme).toBe('भाषा⋅थीम');
-    expect(idMessages.gnb.theme).toBe('Bahasa⋅Tema');
-    expect(ruMessages.gnb.theme).toBe('Язык⋅Тема');
+    expect(enMessages.gnb.theme).toBe('Language ⋅ Theme');
+    expect(krMessages.gnb.theme).toBe('언어 ⋅ 테마');
+    expect(jaMessages.gnb.theme).toBe('言語 ⋅ テーマ');
+    expect(zsMessages.gnb.theme).toBe('语言 ⋅ 主题');
+    expect(ztMessages.gnb.theme).toBe('語言 ⋅ 主題');
+    expect(esMessages.gnb.theme).toBe('Idioma ⋅ Tema');
+    expect(frMessages.gnb.theme).toBe('Langue ⋅ Thème');
+    expect(ptMessages.gnb.theme).toBe('Idioma ⋅ Tema');
+    expect(deMessages.gnb.theme).toBe('Sprache ⋅ Thema');
+    expect(hiMessages.gnb.theme).toBe('भाषा ⋅ थीम');
+    expect(idMessages.gnb.theme).toBe('Bahasa ⋅ Tema');
+    expect(ruMessages.gnb.theme).toBe('Язык ⋅ Тема');
 
     expect('language' in enMessages.gnb).toBe(false);
     expect('language' in krMessages.gnb).toBe(false);

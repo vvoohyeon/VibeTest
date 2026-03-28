@@ -4,13 +4,11 @@
 
 This repository is a localized Next.js App Router application. Its real technical center of gravity is a landing-to-destination interaction system, not the full assessment product described in `docs/requirements.md`. The codebase is best understood as a polished V1 front-end interaction prototype with unusually mature contract discipline.
 
-**Test suite (2026-03-27):**
+**Test suite (2026-03-28):**
 
-- `npm test`: 28 unit test files / 111 tests — fails exactly one assertion in `tests/unit/gnb-message-labels.test.ts`
-  - Expected: `Language⋅Theme` (no spaces)
-  - Received: `Language ⋅ Theme` (spaces present in locale JSON files)
-  - This makes `qa:gate:once` effectively red for a narrow message-contract drift, not a runtime break.
+- `npm test`: 28 unit test files / 111 tests — passes
 - `npm run qa:static`: passes all phase checks (Phase 1 → 11)
+- `npm run qa:gate:once`: passes
 - Screenshot baselines: 168 theme-matrix PNGs, 5 Safari ghosting PNGs, 4 state-smoke PNGs — all present
 
 ---
@@ -66,11 +64,12 @@ The following product surfaces from `docs/requirements.md` have no implementatio
 | `src/app/layout.tsx` | Document structure, global CSS, theme bootstrap, Vercel analytics gates |
 | `src/app/[locale]/layout.tsx` | Locale validation, `NextIntlClientProvider`, `TransitionRuntimeMonitor` |
 | `src/app/[locale]/**/page.tsx` | Thin server components — load translations, validate params, hand off to `PageShell` + client |
-| `src/features/landing/` | **Real application runtime** — grid, GNB, transition, telemetry, destination clients |
+| `src/features/landing/` | **Shared application runtime** — grid, GNB, transition, telemetry, shared shell, blog destination |
+| `src/features/test/` | Canonical test destination surface — question bootstrap/runtime and question-bank resolution |
 | `src/config/site.ts` | Locale set definition |
 | `src/lib/routes/route-builder.ts` + `src/i18n/localized-path.ts` | Locale-free route authoring + locale prefix application |
 
-`src/features/landing` is the de facto platform namespace. It contains blog/test destinations, shared shell behavior, telemetry, and the GNB — not just landing-specific UI. This is intentional for V1 but will become strained when result/history/admin surfaces arrive.
+`src/features/landing` remains the de facto platform namespace for shared runtime concerns. The canonical test surface now lives in `src/features/test`, but it still depends on landing-owned transition, telemetry, shell, and catalog seams. This is still a V1 compromise and will become strained when result/history/admin surfaces arrive.
 
 Three directories exist as scaffold only and contain no implementation files: `src/components`, `src/hooks`, `src/lib/landing`.
 
@@ -93,7 +92,7 @@ Route tree
             │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
             │         └─ src/features/landing/grid/landing-catalog-grid.tsx
             ├─ src/app/[locale]/blog/page.tsx → blog-destination-client.tsx
-            ├─ src/app/[locale]/test/[variant]/page.tsx → test-question-client.tsx
+            ├─ src/app/[locale]/test/[variant]/page.tsx → src/features/test/test-question-client.tsx
             └─ src/app/[locale]/history/page.tsx (placeholder)
 
 Shared page wrapper (all localized routes)
@@ -116,7 +115,7 @@ Telemetry
 
 ### 4.1 Route Surface
 
-Effective route tree confirmed by 2026-03-27 build output:
+Effective route tree confirmed by 2026-03-28 build output:
 
 ```
 /_not-found              (static prerender)
@@ -209,9 +208,9 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 **Blog** (`src/features/landing/blog/blog-destination-client.tsx`): resolves selected article from transition payload, falls back to first available article, terminates with `BLOG_FALLBACK_EMPTY` if no articles exist.
 
-**Test** (`src/features/landing/test/test-question-client.tsx`): instruction gating, landing-ingress starts user at Q2, dwell time tracking, `attempt_start` / `final_submit` telemetry. The page is designed around entry semantics and telemetry correctness, not test logic.
+**Test** (`src/features/test/test-question-client.tsx`): instruction gating, landing-ingress starts user at Q2, dwell time tracking, `attempt_start` / `final_submit` telemetry. The page is designed around entry semantics and telemetry correctness, not test logic.
 
-`src/features/landing/test/question-bank.ts` builds Q1 from the selected card when possible; Q2–4 are generic locale fallbacks; unknown variants still get generic questions instead of a blocking error. No variant registry and no schema-driven scoring exist in current source.
+`src/features/test/question-bank.ts` builds Q1 from the selected card when possible; Q2–4 are generic locale fallbacks; unknown variants still get generic questions instead of a blocking error. No variant registry and no schema-driven scoring exist in current source.
 
 ### 5.6 Telemetry
 
@@ -338,7 +337,7 @@ Helper layer: `tests/e2e/helpers/landing-fixture.ts` pins `PRIMARY_AVAILABLE_TES
 `tests/e2e/theme-matrix-manifest.json` · `tests/e2e/theme-matrix-smoke.spec.ts` · `tests/e2e/helpers/landing-fixture.ts` · `tests/e2e/safari-hover-ghosting.spec.ts`
 
 ### Test domain completion (next major product work)
-`src/features/landing/test/test-question-client.tsx` · `src/features/landing/test/question-bank.ts` · `docs/req-test.md` · `docs/req-test-plan.md` · `docs/test-phase0-adr.md` · `docs/test-traceability-checkpoints.md`
+`src/features/test/test-question-client.tsx` · `src/features/test/question-bank.ts` · `docs/req-test.md` · `docs/req-test-plan.md` · `docs/test-phase0-adr.md` · `docs/test-traceability-checkpoints.md`
 
 ### Data model / fixture contract
 `src/features/landing/data/raw-fixtures.ts` · `src/features/landing/data/adapter.ts` · `src/features/landing/data/types.ts` · `src/features/landing/data/fixture-contract.ts`

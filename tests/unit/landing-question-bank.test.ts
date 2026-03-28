@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {buildLandingTestQuestionBank} from '../../src/features/landing/test/question-bank';
+import {buildLandingTestQuestionBank} from '../../src/features/test/question-bank';
 
 describe('landing question bank locale fallbacks', () => {
   it('reuses English fallback copy for Japanese until dedicated card content exists', () => {

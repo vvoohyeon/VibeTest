@@ -20,7 +20,7 @@ import {
   readPendingLandingTransition,
   type PendingLandingTransition
 } from '@/features/landing/transition/store';
-import {buildLandingTestQuestionBank} from '@/features/landing/test/question-bank';
+import {buildLandingTestQuestionBank} from '@/features/test/question-bank';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
