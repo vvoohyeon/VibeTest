@@ -29,19 +29,31 @@
 
 > **Phase 0은 구현 Phase가 아니다.** Phase 1 착수 이전에 아래 세 ADR이 모두 완료 상태여야 한다.  
 > 어느 하나라도 미완료 상태에서 Phase 1 파일을 생성하면 안 된다.
-> Phase 0 상태 요약과 결정 기록은 `docs/test-phase0-adr.md`를 따른다.
+> 이 Part 자체가 Phase 0 착수 게이트의 canonical summary이며, `docs/project-analysis.md`는 현재 상태와 운영 해석을 보강하는 문서로 취급한다.
 
 ### ADR-A — `src/features/test` 네임스페이스 분리 + `test-question-client.tsx` clean-room 교체
 
-현재 워크트리에서는 canonical test runtime이 `src/features/test/*`로 이동했고, route/unit/QA consumer도 새 경로를 사용한다. 다만 malformed variant `notFound()`와 unknown variant generic fallback은 그대로이며, `test-question-client.tsx` clean-room 교체도 아직 수행되지 않았으므로 ADR-A는 부분 완료 상태다.
+현재 워크트리에서는 canonical test runtime이 `src/features/test/*`로 이동했고, route/unit/QA consumer도 모두 이 경로를 기준으로 본다. 이 cutover는 병행 경로 추가가 아니라 기존 `src/features/landing/test/*` 구현 파일 제거까지 끝난 상태이며, shim/alias도 남아 있지 않다. Phase 0에서는 clean-room implementation 자체를 수행하지 않으며, ADR-A의 완료 의미는 **clean-room 범위, 타이밍, 인터페이스를 문서로 확정했다는 뜻**이다. 현재 구현은 provisional runtime으로 유지된다.
 
 **완료 조건**:
 - [x] `src/features/test` 디렉토리 분리 범위 결정 및 문서화
 - [x] test 런타임 파일의 `src/features/test/` 이관 대상 목록 확정 및 cutover 완료
-- [ ] `test-question-client.tsx` clean-room 교체 범위 및 타이밍 ADR 확정
+- [x] `test-question-client.tsx` clean-room 교체 범위 및 타이밍 ADR 확정
 - [x] Phase 1 T1-1~T1-7 파일이 생성될 디렉토리 경로 결정
 
-**잔여 리스크**: clean-room 교체 없이 Phase 1 이후 로직을 계속 얹으면, canonical path는 분리돼 있어도 현재 bootstrap/fallback 구현의 제약이 그대로 누적된다.
+**결정 요약**:
+- Phase 0에서는 `src/features/test/test-question-client.tsx`, `src/features/test/question-bank.ts`, `src/app/[locale]/test/[variant]/page.tsx`를 수정 대상으로 취급하지 않으며, 소스 코드 변경도 하지 않는다.
+- 위 세 파일은 legacy compatibility shell로 간주하고, 경계 고정은 코드가 아니라 `docs/req-test-plan.md`와 `docs/project-analysis.md`의 문서 계약으로만 수행한다.
+- clean-room 구현은 Phase 1 첫 변경셋 소유다.
+- canonical semantic variant gate는 `validateVariant(input: unknown, registeredVariants: VariantId[]): VariantValidationResult`로 고정한다.
+- `VariantValidationResult = { ok: true; value: VariantId } | { ok: false; reason: 'MISSING' | 'UNKNOWN' | 'UNAVAILABLE' }` shape는 Phase 1에서 구현만 하며 변경하지 않는다. shape 변경은 새 ADR 대상이다.
+- `question-bank.ts`의 unknown variant generic fallback 제거와 recovery page 연결은 Phase 4 첫 커밋에서 함께 수행한다.
+
+**후속 구현 경계**:
+- malformed variant `notFound()`와 unknown variant generic fallback은 현행 runtime 동작으로 남아 있다.
+- same-route recoverable invalid-variant는 아직 구현되지 않았으며, 그 부재는 Phase 0 미완료가 아니라 Phase 4 invalid-variant recovery 산출물의 소유 경계로 본다.
+- 따라서 Phase 1에서 `validateVariant()` pure contract를 도입하더라도 runtime same-route recovery wiring은 Phase 4까지 연결하지 않는다.
+- Phase 0 closure review에서는 `docs/blocker-traceability.json`의 blocker 27/28 entry에 대해 file path와 evidence kind를 점검했고, stale이 아니어서 registry JSON은 그대로 유지한다.
 
 ### ADR-B — Storage Key 네이밍 + 5개 상태 플래그 계약
 
@@ -60,10 +72,10 @@
 
 ### ADR-E — Representative Variant 범위 + QA Baseline 정비
 
-representative test route anchor, local-only baseline 정책, mixed-evidence blocker registry(`automated_assertion` / `scenario_test` / `manual_checkpoint`)는 유지한다. combined theme label은 메시지 JSON의 의도값인 `Language ⋅ Theme` 계열로 고정했고, 관련 스냅샷 baseline까지 현재 워크트리에 맞게 갱신했다.
+representative test route anchor의 single source of truth는 `tests/e2e/helpers/landing-fixture.ts`의 `PRIMARY_AVAILABLE_TEST_VARIANT`다. local-only baseline 정책과 mixed-evidence blocker registry(`automated_assertion` / `scenario_test` / `manual_checkpoint`)는 이 anchor를 기준으로 유지한다. combined theme label은 메시지 JSON의 의도값인 `Language ⋅ Theme` 계열로 고정했고, 관련 스냅샷 baseline까지 현재 워크트리에 맞게 갱신했다.
 
 **완료 조건**:
-- [x] `theme-matrix-manifest.json` 대표 케이스 범위와 유지 기준이 `docs/test-phase0-adr.md`에 기록되어 있음
+- [x] representative route anchor single source(`PRIMARY_AVAILABLE_TEST_VARIANT`)와 `theme-matrix-manifest.json` 대표 케이스 유지 기준이 본 ADR-E 요약에 반영되어 있음
 - [x] baseline PNG는 로컬 QA 자산이며 Git tracked completeness를 완료 조건으로 보지 않음을 문서화
 - [x] Safari ghosting baseline 디렉토리 유지 범위를 local QA 기준으로 기록
 - [x] test flow 신규 settle recipe 케이스 추가 시 manifest + local baseline 갱신 기준 문서화
@@ -77,7 +89,7 @@ representative test route anchor, local-only baseline 정책, mixed-evidence blo
 
 | ADR | 완료 여부 |
 |---|---|
-| ADR-A: 네임스페이스 분리 + clean-room ADR | partial (`src/features/test` cutover 완료, clean-room 보류) |
+| ADR-A: 네임스페이스 분리 + clean-room ADR | done (scope/timing/interface freeze 완료, runtime 교체는 Phase 1 첫 변경셋 소유) |
 | ADR-B: Storage Key + 5개 플래그 계약 | done |
 | ADR-E: Representative Variant 범위 + QA Baseline 정비 | done (`qa:gate:once` GREEN) |
 
@@ -208,6 +220,8 @@ type VariantValidationResult =
   | { ok: true; value: VariantId }
   | { ok: false; reason: 'MISSING' | 'UNKNOWN' | 'UNAVAILABLE' }
 ```
+
+> 위 시그니처와 union shape는 Phase 0 ADR-A에서 canonical contract로 고정한다. Phase 1 구현은 이 shape를 변경하지 않으며, Phase 4의 invalid-variant recovery wiring은 이 exact union을 소비한다. shape 변경이 필요하면 새 ADR을 연다.
 
 **계약**:
 - `input`이 등록된 VariantId에 없으면 `ok: false`.
@@ -553,11 +567,12 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 
 ### Cross-phase Migration Note — `question-bank.ts` fallback 제거
 
-Phase 1 T1-2 `validateVariant()` pure 함수 구현 완료 시점에 `question-bank.ts`의 **unknown variant → generic questions fallback** 동작을 제거해야 한다.
+Phase 1 T1-2 `validateVariant()` pure 함수 구현은 canonical variant gate를 제공하지만, 해당 시점에 `question-bank.ts`의 **unknown variant → generic questions fallback** 동작을 제거하지 않는다.
 
 - **현재 동작**: unknown variant가 유입되면 generic 문항을 fallback으로 제공 → req-test.md AR-001 계약과 역방향 충돌
 - **목표 동작**: unknown/invalid variant → `validateVariant()` ok:false → §6.1 에러 복구 페이지 이동. session/run context 미생성.
-- **제거 타이밍**: Phase 1 DoD 확인 후, Phase 2 착수 직전 동일 변경셋 또는 별도 커밋
+- **Phase 1 경계**: T1-2는 pure contract와 unit test만 추가한다. runtime 분기는 바꾸지 않는다.
+- **제거 타이밍**: Phase 4 첫 커밋. recovery page wiring과 함께 수행한다.
 - **미이행 시 리스크**: Phase 4 진입 경로 분류기 구현 시 기존 fallback 동작과 AR-001 계약이 충돌. blocker #1 자동 단언 매핑 불가.
 
 ---
@@ -653,7 +668,7 @@ Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1
 
 ---
 
-### Gate A — Phase 4 착수 전 확인 (Entry Path · Staged Entry · Invalid Variant Recovery)
+## Gate A — Phase 4 착수 전 확인 (Entry Path · Staged Entry · Invalid Variant Recovery)
 
 > Phase 3 완료 후, Phase 4 착수 전에 아래 세 항목을 확인한다.
 
@@ -683,7 +698,7 @@ Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1
 
 ---
 
-### Gate B — Phase 9 착수 전 확인 (Result Page · Content Fallback)
+## Gate B — Phase 9 착수 전 확인 (Result Page · Content Fallback)
 
 > Phase 8 완료 후, Phase 9 착수 전에 아래 항목을 확인한다.  
 > 별도 ADR 불필요. `req-test.md` AR-003·AR-004가 SSOT이며, 아래는 착수 조건 점검 목록이다.
@@ -709,7 +724,7 @@ Phase 1의 `VariantId` brand type이 storage key prefix로 사용된다. Phase 1
 
 ---
 
-### Gate C — Phase 11 착수 전 확인 (Telemetry Skeleton · Release Gate)
+## Gate C — Phase 11 착수 전 확인 (Telemetry Skeleton · Release Gate)
 
 > Phase 10 완료 후, Phase 11 착수 전에 아래 인프라 항목이 모두 준비되어 있어야 한다.  
 > 이 항목들이 미완료 상태에서 Phase 11 DoD(traceability closure)를 완결할 수 없다.

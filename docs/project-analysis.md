@@ -29,7 +29,7 @@ This repository is a localized Next.js App Router application. Its real technica
 
 | Area | What exists | What's missing |
 |---|---|---|
-| Test destination | Instruction overlay, 4-question flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry | Schema-driven scoring, variant registry, shareable result URL, durable session |
+| Test destination | Instruction overlay, 4-question flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry | Schema-driven scoring, variant registry, shareable result URL, durable session. Current runtime is a provisional compatibility shell retained by Phase 0 ADR; clean-room replacement is owned by the first Phase 1 changeset |
 | Test variant model | String ids in fixtures, format-only URL validation | Domain-level validation, blocking on unknown variant |
 | Blog destination | Selected-article view, article list | Article-specific route, content source beyond fixtures |
 
@@ -65,7 +65,7 @@ The following product surfaces from `docs/requirements.md` have no implementatio
 | `src/app/[locale]/layout.tsx` | Locale validation, `NextIntlClientProvider`, `TransitionRuntimeMonitor` |
 | `src/app/[locale]/**/page.tsx` | Thin server components — load translations, validate params, hand off to `PageShell` + client |
 | `src/features/landing/` | **Shared application runtime** — grid, GNB, transition, telemetry, shared shell, blog destination |
-| `src/features/test/` | Canonical test destination surface — question bootstrap/runtime and question-bank resolution |
+| `src/features/test/` | Canonical test destination surface — route, unit test, and QA consumers all resolve here for question bootstrap/runtime and question-bank resolution. The current runtime remains a provisional compatibility shell until the Phase 1 clean-room prelude, and the old `src/features/landing/test/*` implementation path has been removed without shims |
 | `src/config/site.ts` | Locale set definition |
 | `src/lib/routes/route-builder.ts` + `src/i18n/localized-path.ts` | Locale-free route authoring + locale prefix application |
 
@@ -208,9 +208,11 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 **Blog** (`src/features/landing/blog/blog-destination-client.tsx`): resolves selected article from transition payload, falls back to first available article, terminates with `BLOG_FALLBACK_EMPTY` if no articles exist.
 
-**Test** (`src/features/test/test-question-client.tsx`): instruction gating, landing-ingress starts user at Q2, dwell time tracking, `attempt_start` / `final_submit` telemetry. The page is designed around entry semantics and telemetry correctness, not test logic.
+**Test** (`src/features/test/test-question-client.tsx`): instruction gating, landing-ingress starts user at Q2, dwell time tracking, `attempt_start` / `final_submit` telemetry. The page is designed around entry semantics and telemetry correctness, not test logic. Phase 0 closed only the clean-room scope/timing/interface decision, so this file remains a provisional compatibility shell until the Phase 1 clean-room prelude.
 
-`src/features/test/question-bank.ts` builds Q1 from the selected card when possible; Q2–4 are generic locale fallbacks; unknown variants still get generic questions instead of a blocking error. No variant registry and no schema-driven scoring exist in current source.
+Closing Phase 0 ADR-A did **not** require source edits to `src/features/test/test-question-client.tsx`, `src/features/test/question-bank.ts`, or `src/app/[locale]/test/[variant]/page.tsx`. Those files are frozen as documentation-defined compatibility boundaries only, and the actual runtime replacement remains Phase 1 work.
+
+`src/features/test/question-bank.ts` builds Q1 from the selected card when possible; Q2–4 are generic locale fallbacks; unknown variants still get generic questions instead of a blocking error. No variant registry and no schema-driven scoring exist in current source. This generic fallback is intentionally retained in Phase 0 and is scheduled to be removed together with invalid-variant recovery wiring in the first Phase 4 changeset. Same-route recoverable invalid-variant handling does not exist yet and belongs to that same Phase 4 recovery step.
 
 ### 5.6 Telemetry
 
@@ -236,6 +238,8 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 ## 6. Runtime Contracts and Storage
 
 Storage key changes should be treated as runtime-contract changes, not implementation details.
+
+The key lists below describe the live prototype. Phase 0 fixed the future test-flow storage topology in documentation as `test:{variant}:...` plus `test:{variant}:flag:{flagName}`, but runtime key migration has not happened yet, so the current keys and the future Phase 3 contract should not be conflated.
 
 **localStorage keys:**
 - `vivetest-theme`
@@ -269,6 +273,8 @@ Storage key changes should be treated as runtime-contract changes, not implement
 
 ## 7. Testing and Quality Gates
 
+Phase 0 closure was judged against `qa:gate:once` returning GREEN. The breakdown below explains the assets and checks that make up that gate, rather than serving only as a generic test inventory.
+
 ### 7.1 Unit Tests (Vitest)
 
 Scoped to `tests/unit/`. Covers: reducers, route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB message labels.
@@ -289,7 +295,11 @@ Scoped to `tests/unit/`. Covers: reducers, route helpers, localization helpers, 
 | `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (5 baselines) |
 | `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
-Helper layer: `tests/e2e/helpers/landing-fixture.ts` pins `PRIMARY_AVAILABLE_TEST_CARD_ID` / `PRIMARY_AVAILABLE_TEST_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
+Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for the representative test-route anchor via `PRIMARY_AVAILABLE_TEST_CARD_ID` / `PRIMARY_AVAILABLE_TEST_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
+
+The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
+
+Theme-matrix, Safari ghosting, and related screenshot PNG baselines are local QA assets. Local baseline directory completeness matters for gate confidence, but Git-tracked PNG completeness and committing every generated PNG were not Phase 0 acceptance requirements.
 
 ### 7.3 Custom QA Scripts (`scripts/qa/`)
 
@@ -308,7 +318,9 @@ Helper layer: `tests/e2e/helpers/landing-fixture.ts` pins `PRIMARY_AVAILABLE_TES
 | `check-phase11-telemetry-contracts.mjs` | Telemetry surface + `PRIMARY_AVAILABLE_TEST_VARIANT` + theme-matrix screenshot closure |
 | `check-blocker-traceability.mjs` | All blockers in `docs/blocker-traceability.json` anchored to executable tests/scripts |
 
-`docs/blocker-traceability.json` spans blockers `1..30`, mixing `automated_assertion` and `manual_checkpoint` evidence kinds.
+`docs/blocker-traceability.json` spans blockers `1..30`, mixing `automated_assertion`, `scenario_test`, and `manual_checkpoint` evidence kinds.
+
+As part of the Phase 0 close-out review, test-flow blocker 27/28 entries were rechecked and found non-stale in both file-path and evidence-kind terms, so the registry itself did not need to change.
 
 **Release gate:** `qa:gate:once` = static checks + build + unit tests + Playwright smoke. `qa:gate` repeats the pipeline three times for flake detection.
 
