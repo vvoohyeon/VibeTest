@@ -6,24 +6,34 @@ import {
   TELEMETRY_CONSENT_STORAGE_KEY
 } from './helpers/consent';
 import {
+  buildLocalizedTestRoute,
   buildLocalizedPrimaryOptOutTestRoute,
   buildLocalizedPrimaryTestRoute,
   PRIMARY_AVAILABLE_TEST_CARD_ID,
   PRIMARY_AVAILABLE_TEST_VARIANT,
   PRIMARY_OPT_OUT_TEST_CARD_ID,
-  PRIMARY_OPT_OUT_TEST_VARIANT
+  PRIMARY_OPT_OUT_TEST_VARIANT,
+  TEST_VARIANT_INSTRUCTION_FIXTURES_EN
 } from './helpers/landing-fixture';
 
-const AVAILABLE_INSTRUCTION_EN =
-  'Instruction dummy: QMBTI opens with a quick personality rhythm check before you move into the main questions.';
-const OPT_OUT_INSTRUCTION_EN =
-  'Instruction dummy: Energy Check maps where your daily load leaks and asks you to follow the strongest drain signal.';
 const UNKNOWN_AVAILABLE_NOTE =
   'For a better experience, please agree to the terms to proceed with the test.';
 const UNKNOWN_OPT_OUT_NOTE =
   'For a better experience, please agree to the terms before proceeding with the test. You can still continue without agreeing.';
 const OPTED_OUT_AVAILABLE_WARNING =
   "This test is only available to users who have agreed. We're sorry, but if you keep your current preference, you will not be able to take this test.";
+
+function getInstructionFixture(variant: string) {
+  const fixture = TEST_VARIANT_INSTRUCTION_FIXTURES_EN.find((candidate) => candidate.variant === variant);
+  if (!fixture) {
+    throw new Error(`Missing test instruction fixture for variant: ${variant}`);
+  }
+
+  return fixture;
+}
+
+const AVAILABLE_INSTRUCTION_EN = getInstructionFixture(PRIMARY_AVAILABLE_TEST_VARIANT).instruction;
+const OPT_OUT_INSTRUCTION_EN = getInstructionFixture(PRIMARY_OPT_OUT_TEST_VARIANT).instruction;
 
 async function readConsent(page: Page) {
   return page.evaluate((key) => window.localStorage.getItem(key), TELEMETRY_CONSENT_STORAGE_KEY);
@@ -177,25 +187,45 @@ test.describe('Instruction consent contract smoke', () => {
     await expectNoLegacyInstructionUi(page);
   });
 
-  test('@smoke known-consent test routes show only the variant instruction and Start CTA', async ({page}) => {
-    await seedTelemetryConsent(page, 'OPTED_IN');
-    await page.setViewportSize({width: 1280, height: 900});
-
-    await page.goto(buildLocalizedPrimaryTestRoute('en'));
-    await expect(page.getByTestId('test-instruction-body')).toHaveText(AVAILABLE_INSTRUCTION_EN);
-    await expect(page.getByTestId('test-instruction-divider')).toHaveCount(0);
-    await expect(page.getByTestId('test-instruction-note')).toHaveCount(0);
-    await expect(page.getByTestId('test-start-button')).toBeVisible();
-    await expect(page.getByTestId('test-accept-all-and-start-button')).toHaveCount(0);
-    await expectNoLegacyInstructionUi(page);
-
+  test('@smoke direct opt_out OPTED_OUT keeps plain instruction and Start begins at Q1', async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_OUT');
+    await page.setViewportSize({width: 1280, height: 900});
     await page.goto(buildLocalizedPrimaryOptOutTestRoute('en'));
+
     await expect(page.getByTestId('test-instruction-body')).toHaveText(OPT_OUT_INSTRUCTION_EN);
     await expect(page.getByTestId('test-instruction-divider')).toHaveCount(0);
     await expect(page.getByTestId('test-instruction-note')).toHaveCount(0);
     await expect(page.getByTestId('test-start-button')).toBeVisible();
+    await expect(page.getByTestId('test-accept-all-and-start-button')).toHaveCount(0);
     await expect(page.getByTestId('test-deny-and-start-button')).toHaveCount(0);
+    await expect(page.getByTestId('test-deny-and-abandon-button')).toHaveCount(0);
+    await expect(page.getByTestId('test-keep-current-preference-button')).toHaveCount(0);
     await expectNoLegacyInstructionUi(page);
+
+    await page.getByTestId('test-start-button').click();
+    await expect.poll(() => readConsent(page)).toBe('OPTED_OUT');
+    await expect.poll(() => readInstructionSeen(page, PRIMARY_OPT_OUT_TEST_VARIANT)).toBe('true');
+    await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 4');
   });
+
+  for (const fixture of TEST_VARIANT_INSTRUCTION_FIXTURES_EN) {
+    test(`@smoke known-consent direct ${fixture.cardType} ${fixture.variant} shows the resolved instruction with Start only`, async ({
+      page
+    }) => {
+      await seedTelemetryConsent(page, 'OPTED_IN');
+      await page.setViewportSize({width: 1280, height: 900});
+      await page.goto(buildLocalizedTestRoute('en', fixture.variant));
+
+      await expect(page.getByTestId('test-instruction-body')).toHaveText(fixture.instruction);
+      await expect(page.getByTestId('test-instruction-divider')).toHaveCount(0);
+      await expect(page.getByTestId('test-instruction-note')).toHaveCount(0);
+      await expect(page.getByTestId('test-start-button')).toBeVisible();
+      await expect(page.getByTestId('test-accept-all-and-start-button')).toHaveCount(0);
+      await expect(page.getByTestId('test-deny-and-start-button')).toHaveCount(0);
+      await expect(page.getByTestId('test-deny-and-abandon-button')).toHaveCount(0);
+      await expect(page.getByTestId('test-keep-current-preference-button')).toHaveCount(0);
+      await expectNoLegacyInstructionUi(page);
+    });
+  }
 });

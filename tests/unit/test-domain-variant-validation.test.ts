@@ -17,6 +17,17 @@ describe('test domain variant validation', () => {
     });
   });
 
+  it('returns MISSING for non-string variant inputs', () => {
+    expect(validateVariant(123, registeredVariants, availableVariants)).toEqual({
+      ok: false,
+      reason: 'MISSING'
+    });
+    expect(validateVariant({variant: 'qmbti'}, registeredVariants, availableVariants)).toEqual({
+      ok: false,
+      reason: 'MISSING'
+    });
+  });
+
   it('returns the canonical VariantId for a registered and available variant', () => {
     expect(validateVariant('qmbti', registeredVariants, availableVariants)).toEqual({
       ok: true,
@@ -38,4 +49,3 @@ describe('test domain variant validation', () => {
     });
   });
 });
-

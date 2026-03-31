@@ -8,7 +8,7 @@ import {
   type LandingGridColumnMode
 } from '../../src/features/landing/grid/layout-plan';
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_CARD_ID} from './helpers/landing-fixture';
+import {PRIMARY_AVAILABLE_TEST_CARD_ID, PRIMARY_OPT_OUT_TEST_CARD_ID} from './helpers/landing-fixture';
 
 const COLUMN_MODE_ORDER: Record<LandingGridColumnMode, number> = {
   'desktop-wide': 0,
@@ -859,7 +859,12 @@ test.describe('Phase 4 grid smoke', () => {
 
     const firstCard = page.locator(`[data-card-id="${PRIMARY_AVAILABLE_TEST_CARD_ID}"]`);
     const secondCard = page.locator('[data-card-id="test-rhythm-b"]');
+    const optOutCard = page.locator(`[data-card-id="${PRIMARY_OPT_OUT_TEST_CARD_ID}"]`);
     const unavailableCard = page.locator('[data-card-id="test-coming-soon-1"]');
+
+    await expect(firstCard).toHaveCount(1);
+    await expect(optOutCard).toHaveCount(1);
+    await expect(optOutCard).toHaveAttribute('data-card-type', 'opt_out');
 
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
@@ -908,5 +913,19 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(secondCard).toHaveAttribute('data-desktop-motion-role', 'handoff-target');
     await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-target');
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
+
+    await optOutCard.hover();
+    await expect(secondCard).toHaveAttribute('data-desktop-motion-role', 'handoff-source');
+    await expect(secondCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-source');
+    await expect(optOutCard).toHaveAttribute('data-desktop-motion-role', 'handoff-target');
+    await expect(optOutCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-target');
+    await expect(optOutCard).toHaveAttribute('data-card-state', 'expanded');
+
+    await firstCard.hover();
+    await expect(optOutCard).toHaveAttribute('data-desktop-motion-role', 'handoff-source');
+    await expect(optOutCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-source');
+    await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'handoff-target');
+    await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-target');
+    await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
   });
 });

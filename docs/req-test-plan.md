@@ -696,15 +696,35 @@ Phase 1은 pure 함수만 포함하므로 100% 단위 테스트 커버리지 목
 - [x] `scale` scoringMode 선언 variant에서 blocking error 확인
 - [x] storage, UI, 라우팅 의존 없음 (import 트리 검사)
 
-### Cross-phase Migration Note — `question-bank.ts` fallback 제거
+### Cross-phase Migration Note — invalid-variant 처리 현황 및 Phase 4 경계
 
-Phase 1 T1-2 `validateVariant()` pure 함수 구현은 canonical variant gate를 제공하지만, 해당 시점에 `question-bank.ts`의 **unknown variant → generic questions fallback** 동작을 제거하지 않는다.
+Phase 1 T1-2 `validateVariant()` pure 함수 구현은 canonical variant gate를 제공한다.
 
-- **현재 동작**: unknown variant가 유입되면 generic 문항을 fallback으로 제공 → req-test.md AR-001 계약과 역방향 충돌
-- **목표 동작**: unknown/invalid variant → `validateVariant()` ok:false → §6.1 에러 복구 페이지 이동. session/run context 미생성.
-- **Phase 1 경계**: T1-2는 pure contract와 unit test만 추가한다. runtime 분기는 바꾸지 않는다.
-- **제거 타이밍**: Phase 4 첫 커밋. recovery page wiring과 함께 수행한다.
-- **미이행 시 리스크**: Phase 4 진입 경로 분류기 구현 시 기존 fallback 동작과 AR-001 계약이 충돌. blocker #1 자동 단언 매핑 불가.
+**현재 코드베이스 상태 (Phase 1 완료 시점 기준)**:
+- `src/app/[locale]/test/[variant]/page.tsx`는 `findLandingTestCardByVariant(locale, variant)`를
+  호출하고, fixture lookup miss 시 즉시 `notFound()`를 반환한다.
+- `question-bank.ts`는 `variant` 문자열을 직접 받지 않고, resolve된 `LandingTestCard`만 받아
+  Q1을 구성한다. unknown variant를 generic 문항으로 대체하는 fallback 경로는 존재하지 않는다.
+- 따라서 **unknown variant → generic questions fallback은 이미 코드에서 제거된 상태**다.
+  "Phase 1/2 전에 제거해야 한다"는 이전 서술은 현행 코드와 불일치하므로 이 Note로 대체한다.
+
+**현재 동작의 한계**:
+- 현재 invalid-variant 처리는 hard fail(`notFound()`)이며, 사용자에게 복구 경로를 제공하지 않는다.
+- req-test.md §6.1이 요구하는 "다른 테스트를 선택할 수 있는 에러 복구 페이지"는 아직 없다.
+- `validateVariant()` ok:false 결과를 route/runtime이 소비하지 않으므로, same-route
+  recoverable invalid-variant handling은 미구현 상태다.
+
+**Phase 4 소유 항목 (지금 당기면 안 됨)**:
+- `validateVariant()` ok:false → §6.1 에러 복구 페이지 이동 wiring
+- same-route recoverable invalid-variant recovery page 구현
+- session/run context 미생성 보장 (현재는 `notFound()`로 route 자체가 중단되므로 생성되지 않으나,
+  recovery wiring 이후에는 명시적 차단 로직 필요)
+- **Phase 4 첫 커밋에서 위 세 항목을 함께 수행한다.**
+
+**blocker 연결**:
+- blocker #1 (`validateVariant` MISSING/UNKNOWN/UNAVAILABLE 자동 단언)은 Phase 1 unit test에서
+  pure contract 기준으로 이미 매핑되어 있다.
+- runtime 경로 분류기와 recovery page를 연결한 뒤 Phase 4에서 e2e/integration 단언으로 보강한다.
 
 ---
 
@@ -728,10 +748,16 @@ Phase 1 T1-2 `validateVariant()` pure 함수 구현은 canonical variant gate를
 
 ### ⚠️ Phase 2 착수 전 코드 정리
 
-`question-bank.ts`의 unknown variant → generic questions fallback 제거는 **Part 3의 `Cross-phase Migration Note — question-bank.ts fallback 제거`**를 canonical 기준으로 따른다.
+`question-bank.ts`의 unknown variant generic fallback은 **Phase 1 완료 시점 기준으로 이미 코드에서 제거된 상태**다.
+현재 동작은 `findLandingTestCardByVariant()` miss → `notFound()` hard fail이며,
+Phase 4 소유 항목인 same-route recovery page/wiring과는 별개다.
 
-- Phase 2 착수 전 확인 사항은 해당 섹션의 제거 타이밍, 목표 동작, 리스크 정의를 그대로 따른다.
-- 본 Part에서는 중복 정의하지 않고, Phase 2 착수 조건으로만 참조한다.
+- **Phase 2 착수 전 코드 정리 대상 없음**: fallback 제거는 이미 완료됐으므로 Phase 2 착수 조건으로
+  코드 변경을 요구하지 않는다.
+- **Phase 4 소유 항목 혼동 주의**: "fallback 제거"가 아직 남아 있는 것처럼 읽히는 이전 서술은
+  Part 3 Cross-phase Migration Note로 대체됐다. Phase 4 구현 대상은
+  `validateVariant()` ok:false → recovery page wiring 및 same-route recovery 구현이다.
+- 세부 경계는 **Part 3 `Cross-phase Migration Note — invalid-variant 처리 현황 및 Phase 4 경계`**를 참조한다.
 
 ### Phase 2 의 목적과 주요 산출물
 

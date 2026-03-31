@@ -4,6 +4,11 @@ import {
   PRIMARY_AVAILABLE_TEST_CARD_ID,
   PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY,
   PRIMARY_AVAILABLE_TEST_VARIANT,
+  PRIMARY_OPT_OUT_TEST_CARD_ID,
+  PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY,
+  PRIMARY_OPT_OUT_TEST_VARIANT,
+  TEST_VARIANT_INSTRUCTION_FIXTURES_EN,
+  buildLocalizedPrimaryOptOutTestRoute,
   buildLocalizedPrimaryTestRoute
 } from './helpers/landing-fixture';
 
@@ -12,6 +17,16 @@ const LANDING_TRANSITION_SIGNAL_EVENT = 'landing:transition-signal';
 const LANDING_TRANSITION_SIGNAL_STORAGE_KEY = 'vivetest-test-transition-signals';
 const TRANSITION_OVERLAY_READY_DELAY_MS = 180;
 const PRIMARY_AVAILABLE_TEST_ROUTE_EN = buildLocalizedPrimaryTestRoute('en');
+const PRIMARY_OPT_OUT_TEST_ROUTE_EN = buildLocalizedPrimaryOptOutTestRoute('en');
+
+function getInstructionFixture(variant: string) {
+  const fixture = TEST_VARIANT_INSTRUCTION_FIXTURES_EN.find((candidate) => candidate.variant === variant);
+  if (!fixture) {
+    throw new Error(`Missing test instruction fixture for variant: ${variant}`);
+  }
+
+  return fixture;
+}
 
 function collectForbiddenKeys(value: unknown, trail = ''): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -261,6 +276,52 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(0);
     expect(attemptStart?.question_index_1based).toBe(1);
     expect(attemptStart?.landing_ingress_flag).toBe(false);
+  });
+
+  test('@smoke assertion:B6-transition-ingress landing opt_out transition keeps the plain instruction contract and continues from Q2 for OPTED_OUT consent', async ({
+    page
+  }) => {
+    const optOutInstruction = getInstructionFixture(PRIMARY_OPT_OUT_TEST_VARIANT).instruction;
+
+    await delayDestinationReadyRaf(page);
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, 'OPTED_OUT');
+    }, TELEMETRY_CONSENT_STORAGE_KEY);
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const testCard = page.locator(`[data-card-id="${PRIMARY_OPT_OUT_TEST_CARD_ID}"]`);
+    await testCard.getByTestId('landing-grid-card-trigger').click();
+    await testCard.locator('[data-slot="answerChoiceA"]').click();
+
+    await expect(page).toHaveURL(new RegExp(`${PRIMARY_OPT_OUT_TEST_ROUTE_EN}$`, 'u'));
+    await expectSourceGnbOverlay(page, 'test');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toContainText('ViveTest');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+    await expect(page.getByTestId('test-instruction-body')).toHaveText(optOutInstruction);
+    await expect(page.getByTestId('test-instruction-divider')).toHaveCount(0);
+    await expect(page.getByTestId('test-instruction-note')).toHaveCount(0);
+    await expect(page.getByTestId('test-start-button')).toBeVisible();
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect
+      .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY))
+      .not.toBeNull();
+
+    await page.reload();
+    await expect(page).toHaveURL(new RegExp(`${PRIMARY_OPT_OUT_TEST_ROUTE_EN}$`, 'u'));
+    await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
+    await expect(page.getByTestId('test-instruction-body')).toHaveText(optOutInstruction);
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect
+      .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY))
+      .not.toBeNull();
+
+    await page.getByTestId('test-start-button').click();
+    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect
+      .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY))
+      .toBeNull();
   });
 
   test('@smoke assertion:B6-transition-ingress test route re-entry without ingress falls back to Q1 after start consumes ingress', async ({

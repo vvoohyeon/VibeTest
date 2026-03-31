@@ -36,6 +36,29 @@ describe('test entry policy', () => {
         instructionText: INSTRUCTION_TEXT,
         cardType: 'opt_out',
         consentState: 'OPTED_OUT',
+        landingIngressFlag: true
+      })
+    ).toMatchObject({
+      ingressType: 'landing',
+      content: {
+        showConsentNote: false,
+        consentNoteKey: null,
+        showDivider: false
+      },
+      cta: {
+        primary: {
+          action: 'start',
+          labelKey: 'start',
+          testId: 'test-start-button'
+        }
+      }
+    });
+
+    expect(
+      resolveTestEntryPolicy({
+        instructionText: INSTRUCTION_TEXT,
+        cardType: 'opt_out',
+        consentState: 'OPTED_OUT',
         landingIngressFlag: false
       })
     ).toMatchObject({

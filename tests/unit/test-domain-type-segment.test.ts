@@ -156,4 +156,50 @@ describe('test domain type segment and qualifier validation', () => {
       detail: 'sex'
     });
   });
+
+  it('assertion:B27-type-segment-parsing-qualifier-validation-unit rejects invalid qualifier field specs in declaration order', () => {
+    const emptyValuesSchema = makeEgttVariantSchema();
+    emptyValuesSchema.schema.qualifierFields = [
+      {key: 'sex', questionIndex: asQuestionIndex(1), values: [], tokenLength: 1}
+    ];
+
+    expect(validateVariantDataIntegrity(emptyValuesSchema)).toEqual({
+      ok: false,
+      reason: 'QUALIFIER_SPEC_INVALID',
+      detail: 'sex: values is empty'
+    });
+
+    const invalidTokenLengthSchema = makeEgttVariantSchema();
+    invalidTokenLengthSchema.schema.qualifierFields = [
+      {key: 'sex', questionIndex: asQuestionIndex(1), values: ['m', 'f'], tokenLength: 0}
+    ];
+
+    expect(validateVariantDataIntegrity(invalidTokenLengthSchema)).toEqual({
+      ok: false,
+      reason: 'QUALIFIER_SPEC_INVALID',
+      detail: 'sex: tokenLength must be > 0'
+    });
+
+    const mismatchedValueLengthSchema = makeEgttVariantSchema();
+    mismatchedValueLengthSchema.schema.qualifierFields = [
+      {key: 'sex', questionIndex: asQuestionIndex(1), values: ['mm', 'f'], tokenLength: 1}
+    ];
+
+    expect(validateVariantDataIntegrity(mismatchedValueLengthSchema)).toEqual({
+      ok: false,
+      reason: 'QUALIFIER_SPEC_INVALID',
+      detail: 'sex: value "mm" length 2 !== tokenLength 1'
+    });
+
+    const duplicateValueSchema = makeEgttVariantSchema();
+    duplicateValueSchema.schema.qualifierFields = [
+      {key: 'sex', questionIndex: asQuestionIndex(1), values: ['m', 'm'], tokenLength: 1}
+    ];
+
+    expect(validateVariantDataIntegrity(duplicateValueSchema)).toEqual({
+      ok: false,
+      reason: 'DUPLICATE_QUALIFIER_VALUE',
+      detail: 'sex: duplicate value "m"'
+    });
+  });
 });

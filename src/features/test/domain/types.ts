@@ -73,7 +73,9 @@ export type BlockingDataErrorReason =
   | 'UNSUPPORTED_SCORING_MODE'
   | 'QUALIFIER_QUESTION_NOT_FOUND'
   | 'QUALIFIER_QUESTION_NOT_PROFILE'
-  | 'DUPLICATE_QUALIFIER_KEY';
+  | 'DUPLICATE_QUALIFIER_KEY'
+  | 'QUALIFIER_SPEC_INVALID'
+  | 'DUPLICATE_QUALIFIER_VALUE';
 
 export type VariantDataIntegrityResult =
   | {ok: true}
@@ -102,4 +104,3 @@ export function asVariantId(value: string): VariantId {
 export function asQuestionIndex(value: number): QuestionIndex {
   return value as QuestionIndex;
 }
-

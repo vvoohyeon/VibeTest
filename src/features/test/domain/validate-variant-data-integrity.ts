@@ -73,6 +73,44 @@ function checkQualifierFields(
         detail: String(field.questionIndex)
       };
     }
+
+    if (field.tokenLength <= 0) {
+      return {
+        ok: false,
+        reason: 'QUALIFIER_SPEC_INVALID',
+        detail: `${field.key}: tokenLength must be > 0`
+      };
+    }
+
+    if (field.values.length === 0) {
+      return {
+        ok: false,
+        reason: 'QUALIFIER_SPEC_INVALID',
+        detail: `${field.key}: values is empty`
+      };
+    }
+
+    const values = new Set<string>();
+
+    for (const value of field.values) {
+      if (value.length !== field.tokenLength) {
+        return {
+          ok: false,
+          reason: 'QUALIFIER_SPEC_INVALID',
+          detail: `${field.key}: value "${value}" length ${String(value.length)} !== tokenLength ${String(field.tokenLength)}`
+        };
+      }
+
+      if (values.has(value)) {
+        return {
+          ok: false,
+          reason: 'DUPLICATE_QUALIFIER_VALUE',
+          detail: `${field.key}: duplicate value "${value}"`
+        };
+      }
+
+      values.add(value);
+    }
   }
 
   return {ok: true};
@@ -148,4 +186,3 @@ export function validateVariantDataIntegrity(schema: VariantSchema): VariantData
 }
 
 export type {BlockingDataErrorReason};
-
