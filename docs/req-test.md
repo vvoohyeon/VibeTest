@@ -1167,7 +1167,8 @@ skeleton으로 확보해야 할 hook 위치:
 | cross-phase event integrity 정책 변경 (`card_answered`↔`attempt_start` 연계, `landing_ingress_flag` 계약) | 3.1, 9.1, 9.2, 12.2, Landing Requirements §12.1, §14.2 |
 | Sheets sync 계약 변경 (sheet 구성, cross-sheet 검증 범위, lazy validation 정책, `unavailable` 처리 방식) | 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 12.2 |
 | cross-phase event integrity 정책 변경 (`card_answered`↔`attempt_start` 연계, `landing_ingress_flag` 계약) | 3.1, 9.1, 9.2, 12.2, Landing Requirements §12.1, §14.2 |
-
+| consent instruction 계약 변경 (ingress type / consent state / card type 조합, CTA 레이블, consent note 문구, 시작 문항 정책 포함) | 3.6, 12.2, Landing Requirements §13.5, §13.9, §14.2 |
+  
 ---
 
 ## 12. Acceptance / Traceability / Release Gate
