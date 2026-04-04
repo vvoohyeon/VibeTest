@@ -3,23 +3,27 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
 
 import {
-  createLandingCatalog,
-  findLandingBlogCardByVariant,
-  findLandingCardByVariant,
-  findLandingTestCardByVariant,
-  listEnterableBlogCards,
-  normalizeAllLandingCards
-} from '../../src/features/landing/data/adapter';
-import {buildFixtureContractReport} from '../../src/features/landing/data/fixture-contract';
-import {landingRawFixtures} from '../../src/features/landing/data/raw-fixtures';
+  buildFixtureContractReport,
+  buildVariantRegistry,
+  isEnterableCard,
+  loadVariantRegistry,
+  resolveLandingBlogCardByVariant,
+  resolveLandingCardByVariant,
+  resolveLandingCatalog,
+  resolveLandingTestCardByVariant,
+  resolveTestPreviewPayload,
+  type LandingBlogCard,
+  type LandingTestCard,
+  type VariantRegistrySourceCard
+} from '../../src/features/variant-registry';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
-import type {LandingTestCard, RawLandingCard} from '../../src/features/landing/data/types';
 
-describe('landing fixture and adapter contract', () => {
+describe('landing registry and resolver contract', () => {
   const legacyHeroFlagKey = 'is' + 'Hero';
+  const legacyBlogTextKey = 'blog' + 'Summary';
 
   it('satisfies fixture minimum counts and diversity requirements', () => {
-    const report = buildFixtureContractReport(landingRawFixtures);
+    const report = buildFixtureContractReport(loadVariantRegistry());
 
     expect(report.testCount).toBeGreaterThanOrEqual(5);
     expect(report.blogCount).toBeGreaterThanOrEqual(3);
@@ -36,102 +40,146 @@ describe('landing fixture and adapter contract', () => {
     expect(report.hasRequiredSlotOmission).toBe(false);
   });
 
-  it('omits legacy hero placement metadata from raw fixtures and normalized cards', () => {
-    const normalizedCards = normalizeAllLandingCards(landingRawFixtures, 'en');
-
-    for (const rawCard of landingRawFixtures) {
-      expect(rawCard).not.toHaveProperty(legacyHeroFlagKey);
-    }
-
-    for (const normalizedCard of normalizedCards) {
-      expect(normalizedCard).not.toHaveProperty(legacyHeroFlagKey);
-    }
-  });
-
-  it('normalizes localized Korean text and tags while blocking unavailable blog cards', () => {
-    const catalogKr = createLandingCatalog('kr');
-
-    const qmbtiTest = catalogKr.find((card) => card.variant === 'qmbti');
-    expect(qmbtiTest?.type).toBe('test');
-    if (!qmbtiTest || qmbtiTest.type !== 'test') {
-      throw new Error('Expected qmbti to be present as a test card');
-    }
-
-    expect(qmbtiTest.title).toBe('10분컷 MBTI');
-    expect(qmbtiTest.subtitle).toBe('내 기본 딥워크 리듬을 빠르게 찾아보세요.');
-    expect(qmbtiTest.tags).toEqual(['순식간에', '쌉가능', '어서와']);
-    expect(qmbtiTest.test.instruction).toBe('더미 안내문: QMBTI는 본 문항에 들어가기 전에 작업 리듬 성향을 짧게 점검하는 테스트입니다.');
-    expect(qmbtiTest.test.previewQuestion).toBe('🎉 파티나 생일잔치에 가면 나는');
-
-    const opsHandbookBlog = catalogKr.find((card) => card.variant === 'ops-handbook');
-    expect(opsHandbookBlog?.type).toBe('blog');
-    if (!opsHandbookBlog || opsHandbookBlog.type !== 'blog') {
-      throw new Error('Expected ops-handbook to be present as a blog card');
-    }
-
-    expect(opsHandbookBlog.title).toBe('안정적인 배포를 위한 운영 핸드북');
-    expect(opsHandbookBlog.subtitle).toContain('사고 대응 태세');
-    expect(opsHandbookBlog.tags).toEqual(['운영', '배포']);
-    expect(Object.keys(opsHandbookBlog.blog)).toEqual(['meta']);
-    expect(catalogKr.some((card) => card.type === 'blog' && card.availability === 'unavailable')).toBe(false);
-  });
-
-  it('falls back to default-locale and default values for Japanese requests without localized text and tags', () => {
-    const fallbackInput: Array<Partial<RawLandingCard>> = [
+  it('sorts source rows by seq and drops seq from the exported runtime registry', () => {
+    const sourceRows: VariantRegistrySourceCard[] = [
       {
-        variant: 'fallback-variant',
-        type: 'test',
-        availability: 'available',
-        title: {
-          en: 'English fallback title'
-        },
-        subtitle: {
-          default: 'Default subtitle'
-        },
-        tags: {
-          en: ['fallback-tag']
-        },
-        test: {
-          instruction: {
-            en: 'English fallback instruction'
-          },
-          previewQuestion: {
-            en: 'English fallback question'
-          },
-          answerChoiceA: {
-            default: 'Default choice A'
-          },
-          answerChoiceB: {
-            default: 'Default choice B'
-          },
-          meta: {
-            estimatedMinutes: 1,
-            shares: 2,
-            attempts: 3
-          }
+        seq: 20,
+        variant: 'later-blog',
+        type: 'blog',
+        attribute: 'available',
+        title: {en: 'Later blog'},
+        subtitle: {en: 'Later subtitle'},
+        tags: {en: ['later']},
+        meta: {
+          durationM: 2,
+          sharedC: 4,
+          engagedC: 8
         }
-      } as Partial<RawLandingCard>
+      },
+      {
+        seq: 10,
+        variant: 'earlier-test',
+        type: 'test',
+        attribute: 'available',
+        title: {en: 'Earlier test'},
+        subtitle: {en: 'Earlier subtitle'},
+        tags: {en: ['earlier']},
+        instruction: {en: 'Earlier instruction'},
+        previewQuestion: {en: 'Earlier preview'},
+        answerChoiceA: {en: 'Choice A'},
+        answerChoiceB: {en: 'Choice B'},
+        meta: {
+          durationM: 1,
+          sharedC: 2,
+          engagedC: 3
+        }
+      }
     ];
 
-    const [fallbackCard] = normalizeAllLandingCards(fallbackInput, 'ja');
+    const registry = buildVariantRegistry(sourceRows);
 
-    expect(fallbackCard.title).toBe('English fallback title');
-    expect(fallbackCard.subtitle).toBe('Default subtitle');
-    expect(fallbackCard.tags).toEqual(['fallback-tag']);
-
-    if (fallbackCard.type !== 'test') {
-      throw new Error('Expected fallback card to normalize as a test card');
-    }
-
-    expect(fallbackCard.test.instruction).toBe('English fallback instruction');
-    expect(fallbackCard.test.previewQuestion).toBe('English fallback question');
-    expect(fallbackCard.test.answerChoiceA).toBe('Default choice A');
-    expect(fallbackCard.test.answerChoiceB).toBe('Default choice B');
+    expect(registry.landingCards.map((card) => card.variant)).toEqual(['earlier-test', 'later-blog']);
+    expect(registry.testPreviewPayloadByVariant['earlier-test'].previewQuestion.en).toBe('Earlier preview');
+    expect('seq' in registry.landingCards[0]).toBe(false);
+    expect('seq' in registry.landingCards[1]).toBe(false);
   });
 
-  it('hides debug/sample fixtures from the end-user catalog while keeping them available for QA', () => {
-    const endUserCatalog = createLandingCatalog('en');
-    const qaCatalog = createLandingCatalog('en', {audience: 'qa'});
+  it('fails registry build when seq is missing, duplicated, or non-positive', () => {
+    const validTestRow: VariantRegistrySourceCard = {
+      seq: 1,
+      variant: 'valid-test',
+      type: 'test',
+      attribute: 'available',
+      title: {en: 'Valid test'},
+      subtitle: {en: 'Valid subtitle'},
+      tags: {en: ['valid']},
+      instruction: {en: 'Valid instruction'},
+      previewQuestion: {en: 'Preview'},
+      answerChoiceA: {en: 'A'},
+      answerChoiceB: {en: 'B'},
+      meta: {
+        durationM: 1,
+        sharedC: 2,
+        engagedC: 3
+      }
+    };
+
+    expect(() =>
+      buildVariantRegistry([
+        {
+          ...validTestRow,
+          seq: 0,
+          variant: 'zero-seq'
+        }
+      ])
+    ).toThrow(/positive integer seq/u);
+
+    expect(() =>
+      buildVariantRegistry([
+        validTestRow,
+        {
+          ...validTestRow,
+          variant: 'duplicate-seq',
+          seq: validTestRow.seq
+        }
+      ])
+    ).toThrow(/globally unique/u);
+
+    expect(() =>
+      buildVariantRegistry([
+        {
+          ...validTestRow,
+          seq: undefined as unknown as number,
+          variant: 'missing-seq'
+        }
+      ])
+    ).toThrow(/positive integer seq/u);
+  });
+
+  it('keeps legacy hero metadata out of the exported runtime registry', () => {
+    const registry = loadVariantRegistry();
+
+    for (const runtimeCard of registry.landingCards) {
+      expect(runtimeCard).not.toHaveProperty(legacyHeroFlagKey);
+    }
+  });
+
+  it('keeps the inline Q1 preview is temporary until Questions Q1 migration bridge behind the resolver boundary', () => {
+    const qmbtiTest = resolveLandingTestCardByVariant('ja', 'qmbti');
+    const qmbtiPreview = resolveTestPreviewPayload('qmbti', 'ja');
+
+    expect(qmbtiTest?.title).toBe('10m MBTI test');
+    expect(qmbtiTest?.subtitle).toBe('Find your default deep-work cadence.');
+    expect(qmbtiTest?.tags).toEqual(['Rapid', 'ipsum', 'Lorem']);
+    expect(qmbtiTest?.test.instruction).toBe(
+      'QMBTI opens with a quick personality rhythm check before you move into the main questions.'
+    );
+    expect(qmbtiPreview).toEqual({
+      variant: 'qmbti',
+      previewQuestion: '🎉 When do you feel most focused?',
+      answerChoiceA: 'Early morning blocks',
+      answerChoiceB: 'Late-night sprints'
+    });
+    expect(qmbtiTest?.test).not.toHaveProperty('previewQuestion');
+  });
+
+  it('resolves Korean blog cards with unified meta keys while preserving subtitle as the only source text', () => {
+    const opsHandbookBlog = resolveLandingBlogCardByVariant('kr', 'ops-handbook');
+
+    expect(opsHandbookBlog?.title).toBe('안정적인 배포를 위한 운영 핸드북');
+    expect(opsHandbookBlog?.subtitle).toContain('사고 대응 태세');
+    expect(opsHandbookBlog?.tags).toEqual(['운영', '배포']);
+    expect(opsHandbookBlog?.blog.meta).toEqual({
+      durationM: 8,
+      sharedC: 1920,
+      engagedC: 42401
+    });
+    expect(Object.keys(opsHandbookBlog?.blog ?? {})).toEqual(['meta']);
+  });
+
+  it('hides debug and hidden fixtures from the end-user catalog while keeping them available for QA', () => {
+    const endUserCatalog = resolveLandingCatalog('en');
+    const qaCatalog = resolveLandingCatalog('en', {audience: 'qa'});
 
     expect(endUserCatalog.some((card) => card.variant === 'debug-sample')).toBe(false);
     expect(endUserCatalog.some((card) => card.variant === 'hidden-beta')).toBe(false);
@@ -140,7 +188,7 @@ describe('landing fixture and adapter contract', () => {
   });
 
   it('filters available cards immediately when consent switches to OPTED_OUT while keeping opt_out and unavailable cards', () => {
-    const optedOutCatalog = createLandingCatalog('en', {consentState: 'OPTED_OUT'});
+    const optedOutCatalog = resolveLandingCatalog('en', {consentState: 'OPTED_OUT'});
 
     expect(optedOutCatalog.some((card) => card.variant === 'qmbti')).toBe(false);
     expect(optedOutCatalog.some((card) => card.variant === 'ops-handbook')).toBe(false);
@@ -148,99 +196,90 @@ describe('landing fixture and adapter contract', () => {
     expect(optedOutCatalog.some((card) => card.variant === 'creativity-profile')).toBe(true);
   });
 
-  it('fails closed when cards contain invalid variants or unexpected schema keys', () => {
-    const malformed: unknown[] = [
-      {
-        variant: '',
-        type: 'test',
-        availability: 'available',
-        tags: [''],
-        test: {
-          instruction: {en: 'legacy'},
-          previewQuestion: {en: 'legacy'},
+  it('fails closed when source rows contain unexpected or legacy schema keys', () => {
+    expect(() =>
+      buildVariantRegistry([
+        {
+          seq: 1,
+          variant: 'unexpected-top-level',
+          type: 'test',
+          attribute: 'available',
+          title: {en: 'Broken'},
+          subtitle: {en: 'Broken'},
+          tags: {en: ['broken']},
+          instruction: {en: 'Broken'},
+          previewQuestion: {en: 'Broken'},
           answerChoiceA: {en: 'A'},
           answerChoiceB: {en: 'B'},
           meta: {
-            estimatedMinutes: 1,
-            shares: 1,
-            attempts: 1
-          }
-        }
-      },
-      {
-        variant: 'unexpected-top-level',
-        type: 'test',
-        availability: 'available',
-        unexpectedKey: 'should-fail',
-        test: {
-          instruction: {en: 'legacy'},
-          previewQuestion: {en: 'legacy'},
-          answerChoiceA: {en: 'A'},
-          answerChoiceB: {en: 'B'},
-          meta: {
-            estimatedMinutes: 1,
-            shares: 1,
-            attempts: 1
-          }
-        }
-      },
-      {
-        variant: 'unexpected-blog-payload',
-        type: 'blog',
-        availability: 'available',
-        title: {en: 'Broken blog'},
-        subtitle: {en: 'Broken subtitle'},
-        tags: {en: ['broken']},
-        blog: {
-          meta: {
-            readMinutes: 1,
-            shares: 1,
-            views: 1
+            durationM: 1,
+            sharedC: 1,
+            engagedC: 1
           },
-          unexpectedNestedKey: 'should-fail'
+          unexpectedKey: 'should-fail'
         }
-      },
-      {
-        variant: 'legacy-hero-flag',
-        type: 'blog',
-        availability: 'available',
-        title: {en: 'Legacy hero flag'},
-        subtitle: {en: 'Should fail closed when layout metadata leaks into fixtures.'},
-        tags: {en: ['legacy']},
-        [legacyHeroFlagKey]: true,
-        blog: {
-          meta: {
-            readMinutes: 1,
-            shares: 1,
-            views: 1
-          }
-        }
-      }
-    ];
+      ])
+    ).toThrow();
 
-    expect(() => normalizeAllLandingCards(malformed, 'en')).toThrow();
+    expect(() =>
+      buildVariantRegistry([
+        {
+          seq: 1,
+          variant: 'legacy-blog-field',
+          type: 'blog',
+          attribute: 'available',
+          title: {en: 'Broken blog'},
+          subtitle: {en: 'Broken subtitle'},
+          tags: {en: ['broken']},
+          meta: {
+            durationM: 1,
+            sharedC: 1,
+            engagedC: 1
+          },
+          [legacyBlogTextKey]: 'should-fail'
+        }
+      ])
+    ).toThrow();
+
+    expect(() =>
+      buildVariantRegistry([
+        {
+          seq: 1,
+          variant: 'legacy-hero-flag',
+          type: 'blog',
+          attribute: 'available',
+          title: {en: 'Legacy hero flag'},
+          subtitle: {en: 'Should fail closed when layout metadata leaks into fixtures.'},
+          tags: {en: ['legacy']},
+          meta: {
+            durationM: 1,
+            sharedC: 1,
+            engagedC: 1
+          },
+          [legacyHeroFlagKey]: true
+        }
+      ])
+    ).toThrow();
   });
 
-  it('uses strict variant lookup without generating fallback test cards', () => {
-    const matchingCard = findLandingCardByVariant('ja', 'qmbti');
-    const matchingTestCard = findLandingTestCardByVariant('ja', 'qmbti');
-    const missingCard = findLandingTestCardByVariant('en', 'missing-variant');
+  it('looks up cards strictly by variant and preserves enterable blog order', () => {
+    const matchingCard = resolveLandingCardByVariant('ja', 'qmbti');
+    const matchingTestCard = resolveLandingTestCardByVariant('ja', 'qmbti');
+    const missingCard = resolveLandingTestCardByVariant('en', 'missing-variant');
+    const blogCard = resolveLandingBlogCardByVariant('en', 'build-metrics');
+    const enterableBlogs = resolveLandingCatalog('en', {audience: 'qa'}).filter(
+      (card): card is LandingBlogCard => card.type === 'blog' && isEnterableCard(card.attribute)
+    );
 
     expect(matchingCard?.variant).toBe('qmbti');
     expect(matchingTestCard?.variant).toBe('qmbti');
     expect(missingCard).toBeNull();
-  });
-
-  it('looks up blog cards by variant and preserves registry order for enterable blog listings', () => {
-    const blogCard = findLandingBlogCardByVariant('en', 'build-metrics');
-    const enterableBlogs = listEnterableBlogCards('en');
-
     expect(blogCard?.variant).toBe('build-metrics');
     expect(enterableBlogs.map((card) => card.variant)).toEqual(['ops-handbook', 'build-metrics', 'release-gate']);
   });
 
-  it('assigns a distinct resolved instruction to every fixture test variant', () => {
-    const testCards = normalizeAllLandingCards(landingRawFixtures, 'en').filter(
+  it('assigns a distinct resolved instruction to every registry test variant', () => {
+    const testCards = resolveLandingCatalog('en', {audience: 'qa'}).filter(
       (card): card is LandingTestCard => card.type === 'test'
     );
     const instructions = testCards.map((card) => card.test.instruction);
@@ -249,7 +288,7 @@ describe('landing fixture and adapter contract', () => {
   });
 
   it('renders blog CTA text from copy even if a legacy fixture CTA leaks in', () => {
-    const blogCard = createLandingCatalog('kr').find((card) => card.variant === 'release-gate');
+    const blogCard = resolveLandingCatalog('kr').find((card) => card.variant === 'release-gate');
 
     if (!blogCard || blogCard.type !== 'blog') {
       throw new Error('Expected release-gate as a blog card fixture');

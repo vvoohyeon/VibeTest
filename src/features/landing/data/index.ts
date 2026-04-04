@@ -1,33 +1,35 @@
 export {
-  createLandingCatalog,
-  findLandingBlogCardByVariant,
-  findLandingCardByVariant,
-  filterLandingCatalog,
-  findLandingTestCardByVariant,
-  listEnterableBlogCards,
-  normalizeAllLandingCards,
-  normalizeLandingCards
-} from '@/features/landing/data/adapter';
-export {
+  buildFixtureContractReport,
   deriveAvailability,
+  getVariantRegistrySourceFixture,
   isCatalogVisibleCard,
   isDebugOnlyCard,
   isEnterableCard,
+  isLandingCardAttribute,
   isUnavailablePresentation,
-  resolveCardType
-} from '@/features/landing/data/card-type';
-export {buildFixtureContractReport} from '@/features/landing/data/fixture-contract';
-export {getLandingRawFixtures, landingRawFixtures} from '@/features/landing/data/raw-fixtures';
+  loadVariantRegistry,
+  resolveAttribute,
+  resolveLandingBlogCardByVariant,
+  resolveLandingCardByVariant,
+  resolveLandingCatalog,
+  resolveLandingTestCardByVariant,
+  resolveTestPreviewPayload,
+  variantRegistryGenerated,
+  variantRegistrySourceFixture
+} from '@/features/variant-registry';
 export type {
   FixtureContractReport,
   LandingAvailability,
   LandingBlogCard,
   LandingCard,
+  LandingCardAttribute,
   LandingCatalogAudience,
-  LandingCardType,
   LandingContentType,
+  LandingMeta,
   LandingTestCard,
   LocalizedStringList,
   LocalizedText,
-  RawLandingCard
-} from '@/features/landing/data/types';
+  TestPreviewPayload,
+  VariantRegistry,
+  VariantRegistrySourceCard
+} from '@/features/variant-registry';

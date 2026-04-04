@@ -208,7 +208,7 @@ test.describe('Instruction consent contract smoke', () => {
   });
 
   for (const fixture of TEST_VARIANT_INSTRUCTION_FIXTURES_EN) {
-    test(`@smoke known-consent direct ${fixture.cardType} ${fixture.variant} shows the resolved instruction with Start only`, async ({
+    test(`@smoke known-consent direct ${fixture.attribute} ${fixture.variant} shows the resolved instruction with Start only`, async ({
       page
     }) => {
       await seedTelemetryConsent(page, 'OPTED_IN');

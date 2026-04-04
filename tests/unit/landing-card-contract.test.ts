@@ -4,13 +4,13 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
 
 import type {AppLocale} from '../../src/config/site';
-import {createLandingCatalog} from '../../src/features/landing/data/adapter';
 import type {
   LandingCardDesktopMotionRole,
   LandingCardDesktopShellPhase
 } from '../../src/features/landing/grid/desktop-shell-phase';
 import type {LandingCardInteractionMode, LandingCardVisualState} from '../../src/features/landing/grid/landing-grid-card';
 import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/grid/landing-grid-card';
+import {resolveLandingCatalog} from '../../src/features/variant-registry';
 
 function renderCardDocument({
   card,
@@ -21,7 +21,7 @@ function renderCardDocument({
   desktopMotionRole = 'idle',
   desktopShellPhase = 'idle'
 }: {
-  card: ReturnType<typeof createLandingCatalog>[number];
+  card: ReturnType<typeof resolveLandingCatalog>[number];
   state: LandingCardVisualState;
   locale?: AppLocale;
   interactionMode?: LandingCardInteractionMode;
@@ -52,7 +52,7 @@ function renderDesktopExpandedCardDocument({
   locale = 'en',
   interactionMode = 'hover'
 }: {
-  card: ReturnType<typeof createLandingCatalog>[number];
+  card: ReturnType<typeof resolveLandingCatalog>[number];
   locale?: AppLocale;
   interactionMode?: LandingCardInteractionMode;
 }): Document {
@@ -68,7 +68,7 @@ function renderDesktopExpandedCardDocument({
 
 describe('landing card slot contract', () => {
   it('keeps Normal slot order as title -> thumbnail -> subtitle -> tags and preserves empty-tags container', () => {
-    const catalog = createLandingCatalog('en', {audience: 'qa'});
+    const catalog = resolveLandingCatalog('en', {audience: 'qa'});
     const card = catalog.find((candidate) => candidate.variant === 'debug-sample');
 
     if (!card) {
@@ -94,7 +94,7 @@ describe('landing card slot contract', () => {
   });
 
   it('resolves thumbnail media from variant assets first and falls back to generated SVG when missing', () => {
-    const catalog = createLandingCatalog('en', {audience: 'qa'});
+    const catalog = resolveLandingCatalog('en', {audience: 'qa'});
     const assetCard = catalog.find((candidate) => candidate.variant === 'qmbti');
     const fallbackCard = catalog.find((candidate) => candidate.variant === 'build-metrics');
 
@@ -113,7 +113,7 @@ describe('landing card slot contract', () => {
   });
 
   it('renders Test Expanded slots without subtitle/thumbnail/tags and keeps exactly three meta items', () => {
-    const catalog = createLandingCatalog('en');
+    const catalog = resolveLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.type === 'test' && candidate.availability === 'available');
 
     if (!card || card.type !== 'test') {
@@ -141,7 +141,7 @@ describe('landing card slot contract', () => {
   });
 
   it('forces unavailable cards to stay normal even when expanded state is requested', () => {
-    const catalog = createLandingCatalog('en');
+    const catalog = resolveLandingCatalog('en');
     const unavailableCard = catalog.find((candidate) => candidate.variant === 'creativity-profile');
 
     if (!unavailableCard) {
@@ -165,7 +165,7 @@ describe('landing card slot contract', () => {
   });
 
   it('renders Blog Expanded subtitle/meta/primaryCTA contract and formats numbers with comma separators', () => {
-    const catalog = createLandingCatalog('en');
+    const catalog = resolveLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.variant === 'ops-handbook');
 
     if (!card || card.type !== 'blog') {
@@ -197,7 +197,7 @@ describe('landing card slot contract', () => {
   });
 
   it('keeps desktop blog expanded subtitle continuity as lead + overflow === source subtitle', () => {
-    const catalog = createLandingCatalog('en');
+    const catalog = resolveLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.variant === 'ops-handbook');
 
     if (!card || card.type !== 'blog') {
@@ -217,7 +217,7 @@ describe('landing card slot contract', () => {
   });
 
   it('renders desktop expanded title continuity markers while preserving the full title text', () => {
-    const catalog = createLandingCatalog('en');
+    const catalog = resolveLandingCatalog('en');
     const card = catalog.find((candidate) => candidate.variant === 'rhythm-b');
 
     if (!card) {

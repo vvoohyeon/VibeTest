@@ -1,4 +1,4 @@
-import type {LandingCardType} from '@/features/landing/data';
+import type {LandingCardAttribute} from '@/features/variant-registry';
 import type {TelemetryConsentState} from '@/features/landing/telemetry/types';
 
 export type TestIngressType = 'landing' | 'direct';
@@ -142,13 +142,13 @@ function buildConsentPolicy(input: {
 
 export function resolveTestEntryPolicy(input: {
   instructionText: string;
-  cardType: LandingCardType;
+  attribute: LandingCardAttribute;
   consentState: TelemetryConsentState;
   landingIngressFlag: boolean;
 }): TestEntryPolicy {
   const ingressType: TestIngressType = input.landingIngressFlag ? 'landing' : 'direct';
 
-  if (ingressType === 'direct' && input.consentState === 'OPTED_OUT' && input.cardType === 'available') {
+  if (ingressType === 'direct' && input.consentState === 'OPTED_OUT' && input.attribute === 'available') {
     return buildConsentPolicy({
       ingressType,
       instructionText: input.instructionText,
@@ -162,7 +162,7 @@ export function resolveTestEntryPolicy(input: {
     });
   }
 
-  if (input.consentState === 'UNKNOWN' && input.cardType === 'available') {
+  if (input.consentState === 'UNKNOWN' && input.attribute === 'available') {
     return buildConsentPolicy({
       ingressType,
       instructionText: input.instructionText,
@@ -176,7 +176,7 @@ export function resolveTestEntryPolicy(input: {
     });
   }
 
-  if (input.consentState === 'UNKNOWN' && input.cardType === 'opt_out') {
+  if (input.consentState === 'UNKNOWN' && input.attribute === 'opt_out') {
     return buildConsentPolicy({
       ingressType,
       instructionText: input.instructionText,

@@ -70,7 +70,7 @@
 ### 2.1 Data Architecture & Source of Truth
 
 - Google Sheets가 테스트 콘텐츠(질문·결과)와 랜딩 카드 메타데이터의 **단일 소스**다.
-- 코드베이스의 `raw-fixtures.ts`(및 동등한 fixture 파일)는 **dev/test fallback**으로 유지한다. production 경로에서는 사용하지 않는다.
+- 코드베이스의 fixture-backed `source-fixture.ts`(및 동등한 fixture 파일)는 **dev/test fallback**으로 유지한다. production 경로에서는 사용하지 않는다.
 - 동기화 산출물: **`variant-registry.generated.json`**(또는 `.ts`) 단일 파일. 런타임 코드는 이 파일의 인터페이스만 참조하며, 환경(production / local dev)에 따라 구현 파일만 교체된다.
 - `scoringSchemaId`를 포함한 `VariantSchema` 전체가 이 파일에 포함된다. Landing Card 메타데이터(`unavailable` 플래그 포함)도 동일 파일에 통합 관리한다.
 
@@ -121,10 +121,10 @@
 - 각 variant가 실제로 **첫 진입 요청**될 때 해당 variant에 대한 검증을 1회 실행한다.
 - 첫 검증 이후: 동일 variant는 캐싱된 결과를 사용한다.
 - 검증 실패 시: session/run context 생성 없이 해당 variant 진입을 즉시 차단 → §6.1 에러 복구 페이지.
-- Landing 카탈로그 렌더링 시점에는 lazy validation이 실행되지 않는다. 랜딩에서는 `cardType`과 enterable 계약 기준으로만 카드 표시 여부를 결정한다.
+- Landing 카탈로그 렌더링 시점에는 lazy validation이 실행되지 않는다. 랜딩에서는 `attribute`와 enterable 계약 기준으로만 카드 표시 여부를 결정한다.
 
 **카드 타입 계약**:
-- Landing Card Metadata Sheet의 `cardType` 컬럼으로 카드의 가시성·진입 가능성을 결정한다.
+- Landing Card Metadata Sheet의 `attribute` 컬럼으로 카드의 가시성·진입 가능성을 결정한다.
 - 5종 타입: `available` | `unavailable` | `hide` | `opt_out` | `debug`.
   각 타입의 정의와 consent 연동 규칙은 Landing Requirements §2, §13.9가 SSOT다.
 - 오퍼레이터 직접 기입과 코드 레벨 자동 강등(§2.4 2차 방어선) 모두 유효하다.
@@ -134,13 +134,13 @@
   → `hide` 강등 (카탈로그에서 제외. 데이터 오류 variant를 사용자에게 노출하지 않는다).
 - Questions Sheet에 존재하고 Results Sheet에 없는 variant
   → 해당 variant 진입 차단 → §6.1 에러 복구 페이지.
-  카탈로그 가시성은 `cardType` 값을 유지한다.
+  카탈로그 가시성은 `attribute` 값을 유지한다.
 - 불일치 variant만 처리하며, 나머지 variant는 정상 서비스한다.
 
 **`unavailable: true` 레거시 필드 처리**:
 - 기존 `unavailable: boolean` 필드가 Sheet에 존재하면
-  `true` → `cardType: 'unavailable'`으로 해석한다.
-- 신규 Sheet 구성에서는 `cardType` 컬럼을 단일 소스로 사용한다.
+  `true` → `attribute: 'unavailable'`으로 해석한다.
+- 신규 Sheet 구성에서는 `attribute` 컬럼을 단일 소스로 사용한다.
 
 **검증 범위**:
 - `validateCrossSheetIntegrity()` 및 런타임 lazy validation의 검증 대상은
@@ -156,7 +156,7 @@
 
 ### 2.7 Fixture Fallback Policy
 
-- `raw-fixtures.ts` 및 동등한 fixture 파일은 **production 배포에서 사용하지 않는다**.
+- `source-fixture.ts` 및 동등한 fixture 파일은 **production 배포에서 사용하지 않는다**.
 - **dev 환경**: fixture 파일을 `variant-registry.generated.json`과 동일 경로·동일 인터페이스로 배치한다.
 - **테스트**: fixture 파일은 unit/e2e 테스트의 유일한 variant 소스다. Google Sheets 실연동 없이 전체 테스트 스위트가 실행 가능해야 한다.
 - fixture 파일의 구조(인터페이스)는 `variant-registry.generated.json`과 동일해야 한다. 구조 불일치는 구현 오류로 처리한다.

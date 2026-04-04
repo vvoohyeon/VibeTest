@@ -1,11 +1,11 @@
 import {describe, expect, it} from 'vitest';
 
-import {findLandingTestCardByVariant} from '../../src/features/landing/data/adapter';
 import {buildLandingTestQuestionBank} from '../../src/features/test/question-bank';
+import {resolveLandingTestCardByVariant} from '../../src/features/variant-registry';
 
 describe('landing question bank locale fallbacks', () => {
   it('builds q1 from the resolved landing card while keeping the shared locale fallback questions', () => {
-    const card = findLandingTestCardByVariant('ja', 'qmbti');
+    const card = resolveLandingTestCardByVariant('ja', 'qmbti');
     if (!card) {
       throw new Error('Expected qmbti fixture card');
     }

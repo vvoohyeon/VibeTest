@@ -2,9 +2,9 @@ import {notFound} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 
 import {isLocale} from '@/config/site';
-import {findLandingTestCardByVariant} from '@/features/landing/data';
 import {PageShell} from '@/features/landing/shell';
 import {TestQuestionClient} from '@/features/test/test-question-client';
+import {resolveLandingTestCardByVariant} from '@/features/variant-registry';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
 export default async function QuestionPage({
@@ -23,7 +23,7 @@ export default async function QuestionPage({
   }
 
   await getTranslations({locale, namespace: 'test'});
-  const card = findLandingTestCardByVariant(locale, variant);
+  const card = resolveLandingTestCardByVariant(locale, variant);
 
   if (!card) {
     notFound();

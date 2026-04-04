@@ -9,7 +9,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'available',
+        attribute: 'available',
         consentState: 'OPTED_IN',
         landingIngressFlag: true
       })
@@ -34,7 +34,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'opt_out',
+        attribute: 'opt_out',
         consentState: 'OPTED_OUT',
         landingIngressFlag: true
       })
@@ -57,7 +57,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'opt_out',
+        attribute: 'opt_out',
         consentState: 'OPTED_OUT',
         landingIngressFlag: false
       })
@@ -82,7 +82,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'available',
+        attribute: 'available',
         consentState: 'UNKNOWN',
         landingIngressFlag: true
       })
@@ -109,7 +109,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'available',
+        attribute: 'available',
         consentState: 'UNKNOWN',
         landingIngressFlag: false
       })
@@ -135,7 +135,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'opt_out',
+        attribute: 'opt_out',
         consentState: 'UNKNOWN',
         landingIngressFlag: true
       })
@@ -160,7 +160,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'opt_out',
+        attribute: 'opt_out',
         consentState: 'UNKNOWN',
         landingIngressFlag: false
       })
@@ -183,7 +183,7 @@ describe('test entry policy', () => {
     expect(
       resolveTestEntryPolicy({
         instructionText: INSTRUCTION_TEXT,
-        cardType: 'available',
+        attribute: 'available',
         consentState: 'OPTED_OUT',
         landingIngressFlag: false
       })
@@ -211,7 +211,7 @@ describe('test entry policy', () => {
   it('keeps action effects independent from CTA text decisions', () => {
     const policy = resolveTestEntryPolicy({
       instructionText: INSTRUCTION_TEXT,
-      cardType: 'available',
+      attribute: 'available',
       consentState: 'UNKNOWN',
       landingIngressFlag: false
     });

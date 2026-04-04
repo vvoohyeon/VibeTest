@@ -6,7 +6,6 @@ import {useTranslations} from 'next-intl';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import type {LandingTestCard} from '@/features/landing/data';
 import {setTelemetryConsentState, useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
 import {trackAttemptStart, trackFinalSubmit} from '@/features/landing/telemetry/runtime';
 import {
@@ -26,6 +25,7 @@ import {
 import {resolveTestEntryPolicy, type TestInstructionAction} from '@/features/test/entry-policy';
 import {InstructionOverlay} from '@/features/test/instruction-overlay';
 import {buildLandingTestQuestionBank} from '@/features/test/question-bank';
+import type {LandingTestCard} from '@/features/variant-registry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
@@ -164,11 +164,11 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
     () =>
       resolveTestEntryPolicy({
         instructionText: card.test.instruction,
-        cardType: card.cardType,
+        attribute: card.attribute,
         consentState,
         landingIngressFlag: runtimeState.landingIngressFlag
       }),
-    [card.cardType, card.test.instruction, consentState, runtimeState.landingIngressFlag]
+    [card.attribute, card.test.instruction, consentState, runtimeState.landingIngressFlag]
   );
 
   const isBooting = !runtimeState.ready || !consentSnapshot.synced;

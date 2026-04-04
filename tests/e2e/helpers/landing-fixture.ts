@@ -1,7 +1,9 @@
 import type {AppLocale} from '../../../src/config/site';
-import {normalizeAllLandingCards} from '../../../src/features/landing/data/adapter';
-import {landingRawFixtures} from '../../../src/features/landing/data/raw-fixtures';
-import type {LandingCardType, LandingTestCard} from '../../../src/features/landing/data/types';
+import {
+  resolveLandingCatalog,
+  type LandingCardAttribute,
+  type LandingTestCard
+} from '../../../src/features/variant-registry';
 
 export const PRIMARY_AVAILABLE_TEST_VARIANT = 'qmbti';
 export const PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY =
@@ -14,16 +16,16 @@ export const NON_ENTERABLE_BLOG_VARIANT = 'hidden-beta';
 
 export interface TestVariantInstructionFixture {
   variant: string;
-  cardType: LandingCardType;
+  attribute: LandingCardAttribute;
   instruction: string;
 }
 
 export const TEST_VARIANT_INSTRUCTION_FIXTURES_EN: ReadonlyArray<TestVariantInstructionFixture> =
-  normalizeAllLandingCards(landingRawFixtures, 'en')
+  resolveLandingCatalog('en', {audience: 'qa'})
     .filter((card): card is LandingTestCard => card.type === 'test')
     .map((card) => ({
       variant: card.variant,
-      cardType: card.cardType,
+      attribute: card.attribute,
       instruction: card.test.instruction
     }));
 

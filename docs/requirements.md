@@ -27,13 +27,13 @@ This product lets users take multiple kinds of short assessments (test variants/
 
 ## 3) Core User Journeys
 1. **Browse catalog and enter content (landing)**
-   1) User browses a mixed catalog of available and unavailable items.
-   2) For available items, entry into a destination page (test or blog) is initiated only via an explicit call-to-action (CTA) that is available on the card’s back/expanded state (not from the front/browsing face).
+   1) User browses a mixed catalog of standard available items, consent-independent opt-out-capable test items, and unavailable items.
+   2) For enterable items, entry into a destination page (test or blog) is initiated only via an explicit call-to-action (CTA) that is available on the card’s back/expanded state (not from the front/browsing face).
    3) For unavailable items, the catalog remains browseable but no entry CTA is provided and navigation must not start.
    
 2. **Take a test (happy path)**
    1) User selects or confirms a display language (UI + test content).
-   2) User selects an available test variant.
+   2) User selects an enterable test variant.
    3) User passes through instruction step.
    4) User answers questions and progresses through the test.
    5) System computes the variant-defined final result label and scoreStats, then renders result/profile content.
@@ -68,14 +68,14 @@ This product lets users take multiple kinds of short assessments (test variants/
 ## 4) Functional Requirements
 
 ### REQ-F-001 — Test catalog and availability
-- **Statement:** The product must expose multiple test variants and clearly separate selectable variants from unavailable ones.
+- **Statement:** The product must expose multiple test variants and clearly separate end-user-enterable variants from unavailable ones.
 - **Rationale:** Users need discoverability while avoiding dead-end flows.
 - **Acceptance criteria:**
-  - For available catalog items, navigation/entry MUST be triggered only by an explicit CTA in the item’s expanded/back state; clicking/tapping non-CTA regions of the card (front or back) MUST NOT start navigation.
+  - For end-user-enterable catalog items, navigation/entry MUST be triggered only by an explicit CTA in the item’s expanded/back state; clicking/tapping non-CTA regions of the card (front or back) MUST NOT start navigation.
   - The front/browsing face of a catalog card MUST NOT include any start/entry CTA.
+  - Enterable test variants may be standard available items or consent-independent opt-out-capable items; both remain gated behind the same back-state CTA and instruction-step entry contracts.
   - Unavailable variants are visible but non-startable and labeled as unavailable/coming soon.
   - Debug/sample variants must never appear in the production end-user catalog.
-  - Parity note: If the current implementation exposes any debug/sample variant as “available,” this is a known deviation. The rebuild must enforce production filtering so that debug/sample variants are never user-startable nor visible in the production catalog.
 - **Confidence:** High
 
 ### REQ-F-002 — Test variant validation and error recovery
@@ -94,6 +94,8 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Rationale:** Establishes context and supports consistent session tracking.
 - **Acceptance criteria:**
   - Test start action is initiated from instruction context.
+  - The instruction step may combine variant-specific instruction content with consent-note and CTA branches determined by ingress type, consent state, and card type.
+  - Consent-related branching must be resolved inside the instruction step; the test route must not expose a separate route-local consent banner or dialog outside that context.
   - Leaving instruction before start is treated as pre-test abandonment context.
 - **Confidence:** High
 
@@ -404,12 +406,12 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 ### REQ-F-027 — Landing catalog entry gating (device-aware)
 - **Statement:** Entry from the landing catalog into any destination (test or blog) MUST be gated behind the card’s back/expanded state and an explicit CTA activation.
 - **Acceptance criteria:**
-  - On touch devices, the first tap on an available card MUST only toggle the expanded/back state; it MUST NOT start navigation.
-  - On pointer/desktop devices, the entry CTA MUST only be available after the card is in its back/expanded state (e.g., after an intentional hover/focus interaction), not on the front face.
+  - On touch devices, the first tap on an enterable card MUST only toggle the expanded/back state; it MUST NOT start navigation.
+  - On pointer/desktop devices, the entry CTA MUST only be available after an enterable card is in its back/expanded state (e.g., after an intentional hover/focus interaction), not on the front face.
 - **Confidence:** Medium
 
 ### REQ-F-028 — Instant-start first question contract (landing test cards)
-- **Statement:** For test items entered from the landing catalog, the card back MUST present exactly two answer choices that act as the entry CTAs, and selecting one MUST both initiate entry into the test flow and commit the first answer (Q1) for that run.
+- **Statement:** For enterable test items entered from the landing catalog, the card back MUST present exactly two answer choices that act as the entry CTAs, and selecting one MUST both initiate entry into the test flow and commit the first answer (Q1) for that run.
 - **Acceptance criteria:**
   - No separate “Start test” CTA is required on the landing card once the two answer-choice CTAs are present.
   - If an instruction step exists in the product flow, it MUST NOT invalidate or overwrite the committed Q1 answer captured at entry; the first unanswered question presented after entry MUST reflect that Q1 is already answered.
@@ -456,16 +458,16 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Confidence:** High
 
 ### REQ-F-033 — Keyboard access path to back-state CTAs (landing catalog)
-- **Statement:** For available catalog items, keyboard users MUST be able to reach and activate back/expanded-state CTAs without any navigation trigger existing on the front/browsing face.
+- **Statement:** For enterable catalog items, keyboard users MUST be able to reach and activate back/expanded-state CTAs without any navigation trigger existing on the front/browsing face.
 - **Rationale:** The entry contract is “CTA on back only”; keyboard navigation must provide an equivalent path to those CTAs.
 - **Acceptance criteria:**
-  - A keyboard user MUST be able to place focus on an available catalog card and perform an explicit action to enter its back/expanded state.
+  - A keyboard user MUST be able to place focus on an enterable catalog card and perform an explicit action to enter its back/expanded state.
   - After entering the back/expanded state, the user MUST be able to move focus to the back-state CTAs and activate them (tests: two answer-choice CTAs; blog: “Read more”).
   - Keyboard interactions on the front/browsing face MUST NOT start navigation.
 - **Confidence:** Medium
 
 ### REQ-F-034 — Single-card attention lock on desktop (landing catalog)
-- **Statement:** On desktop/pointer contexts, when a catalog card enters an attention/reading state (available back/expanded open, or unavailable disclosure active), other catalog cards MUST NOT enter back/expanded states nor expose entry CTAs until the attention state ends.
+- **Statement:** On desktop/pointer contexts, when a catalog card enters an attention/reading state (enterable back/expanded open, or unavailable disclosure active), other catalog cards MUST NOT enter back/expanded states nor expose entry CTAs until the attention state ends.
 - **Rationale:** Prevents competing interactive states and reduces accidental state transitions during focused reading/decision-making.
 - **Acceptance criteria:**
   - While an attention/reading state is active for one card, other cards MUST remain non-expanded and MUST NOT present any entry CTA.
@@ -473,7 +475,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Confidence:** Medium
 
 ### REQ-F-035 — Mobile catalog scroll/interaction lock during back-state
-- **Statement:** On touch devices, while an available catalog card is in its back/expanded state, the landing catalog MUST lock background scrolling and prevent interaction with other catalog items until the back/expanded state is dismissed or navigation begins via a back-state CTA.
+- **Statement:** On touch devices, while an enterable catalog card is in its back/expanded state, the landing catalog MUST lock background scrolling and prevent interaction with other catalog items until the back/expanded state is dismissed or navigation begins via a back-state CTA.
 - **Rationale:** Maintains interaction stability on touch and prevents accidental navigation/scroll conflicts.
 - **Acceptance criteria:**
   - Back/expanded state on touch MUST NOT allow background catalog scrolling.
@@ -514,6 +516,8 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 ## 7) Traceability Appendix (Evidence Map)
 
 > Implementation references are intentionally confined to this appendix.
+>
+> Most concrete file references below come from earlier implementation generations and may be superseded by the current App Router/runtime SSOT in `docs/project-analysis.md`, `docs/req-landing.md`, and `docs/req-test.md`. Treat this appendix as historical traceability context, not the current implementation source of truth.
 
 - **REQ-F-001**
   - Evidence: `data/testMetadata.ts` (`testMetadataMap.available`, `getTestTypes("available")`), `pages/index.tsx` (card rendering and non-start behavior), `components/TestCard.tsx` (disabled interaction for unavailable tests).

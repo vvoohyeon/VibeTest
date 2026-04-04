@@ -1,10 +1,10 @@
 import type {AppLocale} from '@/config/site';
 import {
-  findLandingBlogCardByVariant,
-  listEnterableBlogCards
-} from '@/features/landing/data';
-import {isEnterableCard} from '@/features/landing/data/card-type';
-import type {LandingBlogCard} from '@/features/landing/data/types';
+  isEnterableCard,
+  resolveLandingBlogCardByVariant,
+  resolveLandingCatalog,
+  type LandingBlogCard
+} from '@/features/variant-registry';
 
 export interface BlogIndexPageModel {
   articles: LandingBlogCard[];
@@ -17,18 +17,22 @@ export interface BlogDetailPageModel {
 
 export function getBlogIndexPageModel(locale: AppLocale): BlogIndexPageModel {
   return {
-    articles: listEnterableBlogCards(locale)
+    articles: resolveLandingCatalog(locale, {audience: 'qa'}).filter(
+      (card): card is LandingBlogCard => card.type === 'blog' && isEnterableCard(card.attribute)
+    )
   };
 }
 
 export function getBlogDetailPageModel(locale: AppLocale, variant: string): BlogDetailPageModel | null {
-  const article = findLandingBlogCardByVariant(locale, variant);
+  const article = resolveLandingBlogCardByVariant(locale, variant);
   if (!article || !isEnterableCard(article)) {
     return null;
   }
 
   return {
     article,
-    articles: listEnterableBlogCards(locale)
+    articles: resolveLandingCatalog(locale, {audience: 'qa'}).filter(
+      (card): card is LandingBlogCard => card.type === 'blog' && isEnterableCard(card.attribute)
+    )
   };
 }

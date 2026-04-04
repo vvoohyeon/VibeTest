@@ -15,7 +15,6 @@ import type {
 import {useRef} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {isUnavailablePresentation, type LandingCard} from '@/features/landing/data';
 import {
   type LandingCardSubtitleSplit,
   useLandingCardSubtitleSplit,
@@ -29,6 +28,11 @@ import {
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 import {LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
+import {
+  isUnavailablePresentation,
+  resolveTestPreviewPayload,
+  type LandingCard
+} from '@/features/variant-registry';
 
 const metaValueFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0
@@ -313,6 +317,8 @@ function ExpandedCardBodyContent({
   const bodyProps = interactive ? {} : {'data-slot': 'mobileTransientExpandedBody'};
 
   if (card.type === 'test') {
+    const previewPayload = resolveTestPreviewPayload(card.variant, locale);
+
     return (
       <div className="landing-grid-card-mobile-body" {...bodyProps}>
         <p
@@ -320,7 +326,7 @@ function ExpandedCardBodyContent({
           data-slot={interactive ? 'previewQuestion' : undefined}
           data-motion-slot="preview"
         >
-          {card.test.previewQuestion}
+          {previewPayload.previewQuestion}
         </p>
 
         <div
@@ -340,7 +346,7 @@ function ExpandedCardBodyContent({
             tabIndex={interactive ? undefined : -1}
             aria-hidden={interactive ? undefined : 'true'}
           >
-            {card.test.answerChoiceA}
+            {previewPayload.answerChoiceA}
           </button>
           <button
             type="button"
@@ -354,7 +360,7 @@ function ExpandedCardBodyContent({
             tabIndex={interactive ? undefined : -1}
             aria-hidden={interactive ? undefined : 'true'}
           >
-            {card.test.answerChoiceB}
+            {previewPayload.answerChoiceB}
           </button>
         </div>
 
@@ -365,15 +371,15 @@ function ExpandedCardBodyContent({
         >
           <div className="landing-grid-card-meta-item">
             <dt className="landing-grid-card-meta-label">{copy.metaEstimated}</dt>
-            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.estimatedMinutes)}</dd>
+            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.durationM)}</dd>
           </div>
           <div className="landing-grid-card-meta-item">
             <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.shares)}</dd>
+            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.sharedC)}</dd>
           </div>
           <div className="landing-grid-card-meta-item">
             <dt className="landing-grid-card-meta-label">{copy.metaAttempts}</dt>
-            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.attempts)}</dd>
+            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.engagedC)}</dd>
           </div>
         </dl>
       </div>
@@ -409,15 +415,15 @@ function ExpandedCardBodyContent({
       >
         <div className="landing-grid-card-meta-item">
           <dt className="landing-grid-card-meta-label">{copy.metaReadTime}</dt>
-          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.readMinutes)}</dd>
+          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.durationM)}</dd>
         </div>
         <div className="landing-grid-card-meta-item">
           <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.shares)}</dd>
+          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.sharedC)}</dd>
         </div>
         <div className="landing-grid-card-meta-item">
           <dt className="landing-grid-card-meta-label">{copy.metaViews}</dt>
-          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.views)}</dd>
+          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.engagedC)}</dd>
         </div>
       </dl>
 
@@ -535,7 +541,7 @@ export function LandingGridCard({
       data-testid="landing-grid-card"
       data-card-variant={card.variant}
       data-card-seq={typeof sequence === 'number' ? sequence : undefined}
-      data-card-type={card.cardType}
+      data-card-attribute={card.attribute}
       data-card-content-type={card.type}
       data-card-availability={card.availability}
       data-card-state={resolvedState}

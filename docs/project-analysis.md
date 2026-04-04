@@ -4,13 +4,12 @@
 
 This repository is a localized Next.js App Router application. Its real technical center of gravity is a landing-to-destination interaction system plus a fixture-backed, policy-driven test-entry shell, not the full assessment product described in `docs/requirements.md`. The codebase is best understood as a V1 front-end interaction prototype with mature contract coverage in landing, transition, consent, and telemetry seams, plus a separate pure test-domain foundation that is only partially wired into the user-facing runtime.
 
-**Test suite (2026-03-31):**
+**Workspace verification (2026-04-04):**
 
-- `npm test`: 33 unit test files / 135 tests — passes
-- `npm run test:e2e:smoke`: 258 smoke assertions — passes
-- `npm run qa:static`: passes all phase checks (Phase 1 → 11)
-- `npm run qa:gate:once`: passes
-- Screenshot baselines: 168 theme-matrix PNGs, 5 Safari ghosting PNGs, 4 state-smoke PNGs — all present
+- `npm test -- --run`: 34 unit test files / 144 tests — passes
+- `npx playwright test --grep @smoke --list`: 271 smoke tests in 9 files — listed
+- `npm run qa:rules`: fails at Phase 11 because theme-matrix and Safari ghosting PNG baselines are absent
+- Snapshot baseline status: theme-matrix and Safari ghosting PNG baselines are absent in the current workspace; only 2 `state-smoke` PNGs are present
 
 ---
 
@@ -31,7 +30,7 @@ This repository is a localized Next.js App Router application. Its real technica
 
 | Area | What exists | What's missing |
 |---|---|---|
-| Test destination | Policy-driven instruction overlay keyed by ingress type + consent state + `cardType`, variant-scoped instruction copy from fixtures, 4-question flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry | Result route family, shareable payload reconstruction, durable session/history, and schema-driven result rendering are not implemented. Current runtime is still a compatibility shell around entry semantics and fixture-backed question data |
+| Test destination | Policy-driven instruction overlay keyed by ingress type + consent state + `attribute`, variant-scoped instruction copy from the canonical registry, 4-question flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry | Result route family, shareable payload reconstruction, durable session/history, and schema-driven result rendering are not implemented. Current runtime is still a compatibility shell around entry semantics and registry-backed question data |
 | Test domain integration | Pure domain validators, integrity checks, derivation helpers, and type-segment parsing/building exist under `src/features/test/domain/` and are covered by dedicated unit tests | The current route/runtime does not import these domain modules yet, so schema-driven scoring and qualifier-aware result flow are not wired into `/[locale]/test/[variant]` |
 | Blog destination | List-only index route, variant-keyed article detail route, article list | Content source beyond fixtures |
 
@@ -91,15 +90,16 @@ Route tree
        └─ src/app/[locale]/layout.tsx (locale, messages, TransitionRuntimeMonitor)
             ├─ src/app/[locale]/page.tsx
             │    └─ LandingRuntime + LandingCatalogGridLoader
-            │         ├─ src/features/landing/data/raw-fixtures.ts (content source)
-            │         ├─ src/features/landing/data/adapter.ts (normalization)
-            │         ├─ src/features/landing/data/card-type.ts (cardType helpers)
+            │         ├─ src/features/variant-registry/source-fixture.ts (fixture-backed source rows)
+            │         ├─ src/features/variant-registry/variant-registry.generated.ts (fixture-backed runtime registry)
+            │         ├─ src/features/variant-registry/resolvers.ts (registry loader + resolver boundary)
+            │         ├─ src/features/variant-registry/attribute.ts (attribute helpers)
             │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
             │         └─ src/features/landing/grid/landing-catalog-grid.tsx
             ├─ src/app/[locale]/blog/page.tsx (list-only blog index)
             ├─ src/app/[locale]/blog/[variant]/page.tsx (route-keyed blog detail)
             ├─ src/app/[locale]/test/[variant]/page.tsx
-            │    ├─ findLandingTestCardByVariant(locale, variant) → notFound on miss
+            │    ├─ resolveLandingTestCardByVariant(locale, variant) → notFound on miss
             │    └─ src/features/test/test-question-client.tsx
             │         ├─ src/features/test/entry-policy.ts
             │         ├─ src/features/test/instruction-overlay.tsx
@@ -153,7 +153,7 @@ Segment/global 404 handling is implemented through `src/app/not-found.tsx` and `
 
 Defined in `src/config/site.ts`: `en`, `kr`, `zs`, `zt`, `ja`, `es`, `fr`, `pt`, `de`, `hi`, `id`, `ru`
 
-All 12 locale files in `src/messages/` are complete with the same 6 namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent`. Shared UI chrome, CTA labels, and generic consent-note copy are handled by these files. Variant-specific test instruction copy is already fixture-backed in `src/features/landing/data/raw-fixtures.ts`.
+All 12 locale files in `src/messages/` are complete with the same 6 namespaces: `gnb`, `landing`, `test`, `blog`, `history`, `consent`. Shared UI chrome, CTA labels, and generic consent-note copy are handled by these files. Variant-specific test instruction copy is now fixture-backed through `src/features/variant-registry/source-fixture.ts` and consumed through the registry resolver boundary.
 
 ### 4.3 Proxy Contract
 
@@ -201,7 +201,7 @@ Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localS
 
 ### 5.3 Catalog Data Model
 
-Source: `src/features/landing/data/raw-fixtures.ts`
+Source: `src/features/variant-registry/source-fixture.ts`
 
 Current fixture inventory:
 - 10 total cards (7 test, 3 blog)
@@ -210,11 +210,11 @@ Current fixture inventory:
 - Publicly enterable test variant ids: `qmbti`, `rhythm-b`, `energy-check`
 - Blog variants: `ops-handbook`, `build-metrics`, `release-gate`
 
-`src/features/landing/data/card-type.ts` now owns `cardType` normalization and the helper surface that matters to the rest of the app: `deriveAvailability()`, `isEnterableCard()`, `isCatalogVisibleCard()`, and `isUnavailablePresentation()`.
+`src/features/variant-registry/attribute.ts` now owns `attribute` normalization and the helper surface that matters to the rest of the app: `deriveAvailability()`, `isEnterableCard()`, `isCatalogVisibleCard()`, and `isUnavailablePresentation()`.
 
-`src/features/landing/data/adapter.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), malformed-value normalization, legacy field coercion into `cardType`, consent-aware catalog filtering, and strict `findLandingTestCardByVariant()` lookup. It still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
+`src/features/variant-registry/resolvers.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, and drops `seq` from the exported runtime registry. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
 
-The adapter still normalizes malformed copy silently (empty strings, zeroed metadata) where the long-term requirements describe blocking validation. This divergence will become critical once fixtures are replaced by a remote data source.
+The current builder still relies on fixture-backed localized copy and the temporary bridge where inline Q1 preview is temporary until Questions Q1 migration. That bridge is now isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly.
 
 Active e2e representative anchors now use canonical landing variants directly: `PRIMARY_AVAILABLE_TEST_VARIANT` (`qmbti`) and `PRIMARY_OPT_OUT_TEST_VARIANT` (`energy-check`). Theme-matrix screenshots still key off the available representative route.
 
@@ -234,13 +234,13 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 **Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, landing-ingress starts user at Q2 while deep-link entry starts at Q1, dwell time tracking, and `attempt_start` / `final_submit` telemetry. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. The page is still designed around entry semantics and telemetry correctness, not scoring logic, so it remains a compatibility shell rather than the future domain-complete runtime.
 
-`src/app/[locale]/test/[variant]/page.tsx` now regex-validates the URL segment and then resolves the card via `findLandingTestCardByVariant(locale, variant)`, failing closed with `notFound()` when the fixture lookup misses. This is stricter than the earlier format-only route handling, but it is still not the full invalid-variant recovery surface described in the long-term requirements.
+`src/app/[locale]/test/[variant]/page.tsx` now regex-validates the URL segment and then resolves the card via `resolveLandingTestCardByVariant(locale, variant)`, failing closed with `notFound()` when the registry lookup misses. This is stricter than the earlier format-only route handling, but it still does not provide the full invalid-variant recovery surface described in the long-term requirements or enforce the SSOT rule that direct non-enterable test routes should be blocked.
 
 `src/features/test/question-bank.ts` now always builds Q1 from the resolved card and Q2–4 from localized fallback questions. Unknown variants no longer receive a generic fallback because route bootstrap is now strict.
 
 **Pure test-domain foundation** (`src/features/test/domain/*`): the current source already contains a separate pure module for branded ids, schema/question models, variant validation, question-model validation, variant data integrity checks, score derivation, and type-segment parsing/building. This surface is exported through `src/features/test/domain/index.ts` and covered by `tests/unit/test-domain-variant-validation.test.ts`, `tests/unit/test-domain-question-model.test.ts`, `tests/unit/test-domain-derivation.test.ts`, and `tests/unit/test-domain-type-segment.test.ts`.
 
-The important boundary is that the live route/runtime path does not import this pure domain module yet. There is still no variant registry, no schema-driven result route, no shareable result payload reconstruction, and no same-route recoverable invalid-variant handling in the user-facing flow.
+The important boundary is that the live route/runtime path does not import this pure domain module yet. The app does have a canonical fixture-backed variant registry, but there is still no schema-driven result route, no shareable result payload reconstruction, and no same-route recoverable invalid-variant handling in the user-facing flow.
 
 ### 5.6 Telemetry
 
@@ -297,8 +297,9 @@ The key lists below describe the live prototype. Phase 0 fixed the future test-f
 - `[Start]`, `[Accept All and Start]`, and `[Deny and Start]` record `instructionSeen` and commit runtime entry.
 - `[Deny and Abandon]` and `[Keep Current Preference]` do not record `instructionSeen`; they redirect home instead.
 - Auto-commit after `instructionSeen` now applies only to the plain `[Start]` path because note-based consent policies keep `canAutoCommitAfterInstructionSeen=false`.
-- Blog destination always resolves an article (silent fallback to first available).
-- Test variant URL validation is stricter than before (`findLandingTestCardByVariant()` + `notFound()`), but still fixture-backed rather than registry-backed.
+- Blog destination rejects invalid or non-enterable variants by redirecting to the localized blog index.
+- Direct `/test/[variant]` entry currently resolves any registered test card, including `unavailable`, `hide`, and `debug` fixtures. Active SSOT docs instead say those direct entries should be blocked and handed off to invalid-variant recovery.
+- Test variant URL validation is stricter than before (`resolveLandingTestCardByVariant()` + `notFound()`), but still fixture-backed rather than sheet-backed.
 - `history` page shares the full landing shell and GNB but is a non-functional placeholder.
 - Preferences button in the consent banner is a visible no-op.
 
@@ -310,11 +311,11 @@ The repository includes unit tests, Playwright smoke suites, and custom QA scrip
 
 ### 7.1 Unit Tests (Vitest)
 
-Scoped to `tests/unit/`. The rerun on 2026-03-31 passed with 33 files / 135 tests. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, and the pure test-domain modules.
+Scoped to `tests/unit/`. The rerun on 2026-04-04 passed with 34 files / 144 tests. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, and the pure test-domain modules.
 
 ### 7.2 E2E Tests (Playwright)
 
-9 spec files in `tests/e2e/`:
+9 spec files in `tests/e2e/` are currently enumerated by `npx playwright test --grep @smoke --list`:
 
 | Spec | Contract covered |
 |---|---|
@@ -332,11 +333,11 @@ Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of tru
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 
-Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces around representative routes and states. The manifest currently encodes 168 theme-matrix cases (96 layout + 72 state), and the Safari suite defines 5 WebKit-only snapshot names.
+Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces around representative routes and states. The manifest currently encodes 168 theme-matrix cases (96 layout + 72 state), and the Safari suite defines 5 WebKit-only snapshot names, but the corresponding PNG baselines are absent from the current workspace.
 
 ### 7.3 Custom QA Scripts (`scripts/qa/`)
 
-`qa:rules` runs 10 phase checks:
+`qa:rules` runs 12 checks:
 
 | Script | Contract enforced |
 |---|---|
@@ -349,11 +350,15 @@ Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces aro
 | `check-phase9-performance-contracts.mjs` | Hydration/performance contracts |
 | `check-phase10-transition-contracts.mjs` | Transition correlation and closure |
 | `check-phase11-telemetry-contracts.mjs` | Telemetry surface + `PRIMARY_AVAILABLE_TEST_VARIANT` + theme-matrix screenshot closure |
+| `check-variant-registry-contracts.mjs` | Variant-registry boundary, fixture-source usage, and active-doc contract presence |
+| `check-variant-only-contracts.mjs` | Variant-only routing and non-enterable blog detail redirect contracts |
 | `check-blocker-traceability.mjs` | All blockers in `docs/blocker-traceability.json` anchored to their declared evidence surfaces |
 
 `docs/blocker-traceability.json` spans blockers `1..30`, mixing `automated_assertion`, `scenario_test`, and `manual_checkpoint` evidence kinds.
 
 Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`; the remaining test-flow blockers 24~30 still mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence surfaces. The registry remains the machine-readable source for the current evidence kind and file mapping.
+
+As of 2026-04-04, `npm run qa:rules` stops at `check-phase11-telemetry-contracts.mjs` because the expected theme-matrix and Safari ghosting PNG baselines are missing from the workspace.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 
@@ -388,19 +393,19 @@ Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`;
 `src/features/test/domain/index.ts` · `src/features/test/domain/types.ts` · `src/features/test/domain/validate-variant.ts` · `src/features/test/domain/validate-question-model.ts` · `src/features/test/domain/validate-variant-data-integrity.ts` · `src/features/test/domain/derivation.ts` · `src/features/test/domain/type-segment.ts` · `tests/unit/test-domain-variant-validation.test.ts` · `tests/unit/test-domain-question-model.test.ts` · `tests/unit/test-domain-derivation.test.ts` · `tests/unit/test-domain-type-segment.test.ts`
 
 ### Data model / fixture contract
-`src/features/landing/data/raw-fixtures.ts` · `src/features/landing/data/adapter.ts` · `src/features/landing/data/card-type.ts` · `src/features/landing/data/types.ts` · `src/features/landing/data/fixture-contract.ts`
+`src/features/variant-registry/source-fixture.ts` · `src/features/variant-registry/builder.ts` · `src/features/variant-registry/attribute.ts` · `src/features/variant-registry/resolvers.ts` · `src/features/variant-registry/types.ts`
 
 ---
 
 ## 9. Risks and Open Gaps
 
-**Test domain integration is incomplete.** `src/features/test/domain/*` already provides variant validation, schema/question integrity checks, derivation, and type-segment parsing/building, but the live route/runtime still uses fixture-backed question data and a local result panel. There is still no variant registry, no `/result` route family, no invalid-variant recovery route, and no result history.
+**Test domain integration is incomplete.** `src/features/test/domain/*` already provides variant validation, schema/question integrity checks, derivation, and type-segment parsing/building, but the live route/runtime still uses fixture-backed question data and a local result panel. The app already has a canonical variant registry, yet there is still no `/result` route family, no invalid-variant recovery route, and no result history.
 
 **The instruction contract is much cleaner, but the copy ownership split is now real.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. That split is intentional, but future editors can easily introduce drift if they assume all test copy lives in one source.
 
 **Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1582 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. Powerful but fragile under content-density or browser changes. The most likely future refactoring cost concentration point.
 
-**Data validation is tolerant where requirements call for blocking.** `src/features/landing/data/adapter.ts` normalizes silently; `docs/req-test.md` and `docs/requirements.md` describe stricter validation and registry-backed behavior. This mismatch becomes critical once static fixtures are replaced by a remote data source.
+**Direct test-route reachability is looser than the active SSOT.** `src/app/[locale]/test/[variant]/page.tsx` currently resolves any registered test card, and `tests/e2e/consent-smoke.spec.ts` intentionally exercises direct entry for `unavailable`, `hide`, and `debug` fixtures. The active requirements in `docs/req-landing.md` and `docs/req-test.md` instead say those routes should be blocked and handed off to invalid-variant recovery.
 
 **Telemetry server authority is missing.** `src/app/api/telemetry/route.ts` returns `204` on any parseable JSON. Schema enforcement, forbidden-field rejection, and persistence exist only on the trusted client path.
 
@@ -410,5 +415,5 @@ Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`;
 
 **Tech stack notes:**
 - `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`
-- `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §16 Landing Motion Contract
+- `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract
 - Tailwind v4 packages installed but runtime is primarily `src/app/globals.css`

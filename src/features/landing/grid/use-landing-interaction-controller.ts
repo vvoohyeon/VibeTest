@@ -7,7 +7,7 @@ import type {
 } from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
 
-import {isEnterableCard, type LandingCard} from '@/features/landing/data';
+import {isEnterableCard, type LandingCard} from '@/features/variant-registry';
 import {
   resolveDesktopShellPhase,
   type LandingCardDesktopMotionRole,

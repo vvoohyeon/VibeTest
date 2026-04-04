@@ -1,5 +1,5 @@
 import type {AppLocale} from '@/config/site';
-import type {LandingTestCard} from '@/features/landing/data';
+import {resolveTestPreviewPayload, type LandingTestCard} from '@/features/variant-registry';
 
 export interface LandingTestQuestion {
   id: string;
@@ -59,12 +59,14 @@ function buildLocalizedFallbackQuestions(locale: AppLocale): LandingTestQuestion
 }
 
 export function buildLandingTestQuestionBank(card: LandingTestCard, locale: AppLocale): LandingTestQuestion[] {
+  const previewPayload = resolveTestPreviewPayload(card.variant, locale);
+
   return [
     {
       id: 'q1',
-      prompt: card.test.previewQuestion,
-      choiceA: card.test.answerChoiceA,
-      choiceB: card.test.answerChoiceB
+      prompt: previewPayload.previewQuestion,
+      choiceA: previewPayload.answerChoiceA,
+      choiceB: previewPayload.answerChoiceB
     },
     ...buildLocalizedFallbackQuestions(locale)
   ];

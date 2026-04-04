@@ -946,7 +946,7 @@ test.describe('Phase 4 grid smoke', () => {
 
     await expect(firstCard).toHaveCount(1);
     await expect(optOutCard).toHaveCount(1);
-    await expect(optOutCard).toHaveAttribute('data-card-type', 'opt_out');
+    await expect(optOutCard).toHaveAttribute('data-card-attribute', 'opt_out');
 
     await firstCard.hover();
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');

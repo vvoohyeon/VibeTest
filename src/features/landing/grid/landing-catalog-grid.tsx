@@ -11,7 +11,7 @@ import {
 import {useLocale, useTranslations} from 'next-intl';
 
 import {defaultLocale, isLocale} from '@/config/site';
-import type {LandingCard} from '@/features/landing/data';
+import type {LandingCard} from '@/features/variant-registry';
 import {type LandingCardSpacingContract, LandingGridCard} from '@/features/landing/grid/landing-grid-card';
 import {
   freezeBaselineRows,

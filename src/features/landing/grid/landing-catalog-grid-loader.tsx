@@ -3,9 +3,9 @@
 import {useMemo} from 'react';
 
 import type {AppLocale} from '@/config/site';
-import {createLandingCatalog} from '@/features/landing/data';
 import {LandingCatalogGrid} from '@/features/landing/grid/landing-catalog-grid';
 import {useTelemetryConsentSource} from '@/features/landing/telemetry/consent-source';
+import {resolveLandingCatalog} from '@/features/variant-registry';
 
 interface LandingCatalogGridLoaderProps {
   locale: AppLocale;
@@ -16,7 +16,7 @@ export function LandingCatalogGridLoader({locale, assetBackedVariants}: LandingC
   const consentSnapshot = useTelemetryConsentSource();
   const cards = useMemo(
     () =>
-      createLandingCatalog(locale, {
+      resolveLandingCatalog(locale, {
         consentState: consentSnapshot.synced ? consentSnapshot.consentState : 'UNKNOWN'
       }),
     [consentSnapshot.consentState, consentSnapshot.synced, locale]
