@@ -28,7 +28,6 @@ const LANDING_CARD_ALLOWED_KEYS = new Set([
   'title',
   'subtitle',
   'tags',
-  'isHero',
   'debug',
   'sample',
   'test',
@@ -273,7 +272,6 @@ export function normalizeAllLandingCards(
     const title = resolveLocalizedText(rawCard.title as LocalizedText | string | undefined, locale);
     const subtitle = resolveLocalizedText(rawCard.subtitle as LocalizedText | string | undefined, locale);
     const tags = resolveLocalizedTagList(rawCard.tags as LocalizedStringList | ReadonlyArray<string> | undefined, locale);
-    const isHero = rawCard.isHero === true;
     const debug = rawCard.debug === true;
     const sample = rawCard.sample === true;
 
@@ -293,7 +291,6 @@ export function normalizeAllLandingCards(
         title,
         subtitle,
         tags,
-        isHero,
         debug,
         sample,
         localeResolvedText: {
@@ -336,7 +333,6 @@ export function normalizeAllLandingCards(
       title,
       subtitle,
       tags,
-      isHero,
       debug,
       sample,
       localeResolvedText: {

@@ -259,6 +259,20 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(row1Cards).toHaveCount(4);
     await expect(row2Cards).toHaveCount(1);
 
+    const visibleVariantOrder = await page.getByTestId('landing-grid-card').evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-card-variant') ?? '')
+    );
+    expect(visibleVariantOrder).toEqual([
+      'qmbti',
+      'rhythm-b',
+      'energy-check',
+      'creativity-profile',
+      'burnout-risk',
+      'ops-handbook',
+      'build-metrics',
+      'release-gate'
+    ]);
+
     await expect(row0Cards.nth(2)).toHaveAttribute('data-card-seq', '2');
     await expect(row1Cards.first()).toHaveAttribute('data-card-seq', '3');
 

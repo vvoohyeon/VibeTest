@@ -42,7 +42,6 @@ interface RawLandingCardCommon {
   title: LocalizedText;
   subtitle: LocalizedText;
   tags: LocalizedStringList;
-  isHero?: boolean;
   debug?: boolean;
   sample?: boolean;
 }
@@ -76,7 +75,6 @@ export interface LandingCardCommon {
   title: string;
   subtitle: string;
   tags: string[];
-  isHero: boolean;
   localeResolvedText: LocaleResolvedText;
   debug: boolean;
   sample: boolean;

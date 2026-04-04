@@ -16,6 +16,8 @@ import {getDefaultCardCopy, LandingGridCard} from '../../src/features/landing/gr
 import type {LandingTestCard, RawLandingCard} from '../../src/features/landing/data/types';
 
 describe('landing fixture and adapter contract', () => {
+  const legacyHeroFlagKey = 'is' + 'Hero';
+
   it('satisfies fixture minimum counts and diversity requirements', () => {
     const report = buildFixtureContractReport(landingRawFixtures);
 
@@ -32,6 +34,18 @@ describe('landing fixture and adapter contract', () => {
     expect(report.hasEmptyTags).toBe(true);
     expect(report.hasDebugSample).toBe(true);
     expect(report.hasRequiredSlotOmission).toBe(false);
+  });
+
+  it('omits legacy hero placement metadata from raw fixtures and normalized cards', () => {
+    const normalizedCards = normalizeAllLandingCards(landingRawFixtures, 'en');
+
+    for (const rawCard of landingRawFixtures) {
+      expect(rawCard).not.toHaveProperty(legacyHeroFlagKey);
+    }
+
+    for (const normalizedCard of normalizedCards) {
+      expect(normalizedCard).not.toHaveProperty(legacyHeroFlagKey);
+    }
   });
 
   it('normalizes localized Korean text and tags while blocking unavailable blog cards', () => {
@@ -184,6 +198,22 @@ describe('landing fixture and adapter contract', () => {
             views: 1
           },
           unexpectedNestedKey: 'should-fail'
+        }
+      },
+      {
+        variant: 'legacy-hero-flag',
+        type: 'blog',
+        availability: 'available',
+        title: {en: 'Legacy hero flag'},
+        subtitle: {en: 'Should fail closed when layout metadata leaks into fixtures.'},
+        tags: {en: ['legacy']},
+        [legacyHeroFlagKey]: true,
+        blog: {
+          meta: {
+            readMinutes: 1,
+            shares: 1,
+            views: 1
+          }
         }
       }
     ];
