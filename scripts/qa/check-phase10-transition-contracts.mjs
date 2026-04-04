@@ -75,8 +75,13 @@ if (fileExists('src/features/test/test-question-client.tsx')) {
 
 if (fileExists('src/features/landing/blog/blog-destination-client.tsx')) {
   const blogClient = read('src/features/landing/blog/blog-destination-client.tsx');
-  if (!/completePendingLandingTransition/u.test(blogClient) || !/BLOG_FALLBACK_EMPTY/u.test(blogClient)) {
-    fail('Blog destination client must complete transitions and handle empty fallback closure.');
+  if (
+    !/completePendingLandingTransition/u.test(blogClient) ||
+    !/terminatePendingLandingTransition/u.test(blogClient) ||
+    !/usePathname/u.test(blogClient) ||
+    !/pendingTransition\.targetRoute !== pathname/u.test(blogClient)
+  ) {
+    fail('Blog destination client must complete transitions from route truth and terminate stale pending transitions.');
   }
 
   if (/useTelemetryBootstrap/u.test(blogClient)) {

@@ -563,7 +563,7 @@ test.describe('Phase 4 grid smoke', () => {
       [shortCard, longCard].map(async (cardLocator) => {
         const cardWidth = await cardLocator.evaluate((element) => element.getBoundingClientRect().width);
         const thumbnailWidth = await cardLocator
-          .locator('[data-slot="thumbnailOrIcon"]')
+          .locator('[data-slot="cardThumbnail"]')
           .evaluate((element) => element.getBoundingClientRect().width);
         const tagsWidth = await cardLocator
           .locator('[data-slot="tags"]')
@@ -789,7 +789,7 @@ test.describe('Phase 4 grid smoke', () => {
         .filter((value): value is string => value !== null);
     });
 
-    expect(orderedSlots).toEqual(['cardTitle', 'thumbnailOrIcon', 'cardSubtitle', 'tags']);
+    expect(orderedSlots).toEqual(['cardTitle', 'cardThumbnail', 'cardSubtitle', 'tags']);
     await expect(emptyTagsCard.locator('[data-slot="tags"] .landing-grid-card-tag-item')).toHaveCount(0);
 
     const minHeight = await emptyTagsCard
@@ -798,7 +798,7 @@ test.describe('Phase 4 grid smoke', () => {
     expect(minHeight).toBe('28px');
 
     const thumbnailRatio = await emptyTagsCard
-      .locator('[data-slot="thumbnailOrIcon"]')
+      .locator('[data-slot="cardThumbnail"]')
       .evaluate((element) => element.clientWidth / Math.max(1, element.clientHeight));
     expect(thumbnailRatio).toBeGreaterThan(5.5);
     expect(thumbnailRatio).toBeLessThan(6.5);
@@ -953,12 +953,12 @@ test.describe('Phase 4 grid smoke', () => {
     await page.mouse.move(8, 8);
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'closing');
     await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'closing');
-    await expect(firstCard.locator('[data-slot="thumbnailOrIcon"]')).toHaveCount(0);
+    await expect(firstCard.locator('[data-slot="cardThumbnail"]')).toHaveCount(0);
     await expect(firstCard.locator('[data-slot="expandedLayer"]')).toHaveCount(1);
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-card-state', 'normal');
     await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'idle');
-    await expect(firstCard.locator('[data-slot="thumbnailOrIcon"]')).toHaveCount(1);
+    await expect(firstCard.locator('[data-slot="cardThumbnail"]')).toHaveCount(1);
     await expect(firstCard.locator('[data-slot="expandedLayer"]')).toHaveCount(0);
 
     await unavailableCard.hover();

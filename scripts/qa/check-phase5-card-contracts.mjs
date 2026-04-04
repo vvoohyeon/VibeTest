@@ -42,7 +42,7 @@ if (fileExists('src/features/landing/grid/landing-catalog-grid.tsx')) {
 if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   const cardFile = read('src/features/landing/grid/landing-grid-card.tsx');
 
-  if (!/data-slot=(["'])cardTitle\1/u.test(cardFile) || !/thumbnailOrIcon/u.test(cardFile)) {
+  if (!/data-slot=(["'])cardTitle\1/u.test(cardFile) || !/cardThumbnail/u.test(cardFile)) {
     fail('LandingGridCard must define normal slot markers.');
   }
 

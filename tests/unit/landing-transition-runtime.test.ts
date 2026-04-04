@@ -68,7 +68,7 @@ describe('landing transition runtime', () => {
       route: '/en',
       sourceVariant: 'build-metrics',
       targetType: 'blog',
-      targetRoute: '/en/blog',
+      targetRoute: '/en/blog/build-metrics',
       variant: 'build-metrics'
     });
 

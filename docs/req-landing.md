@@ -138,7 +138,7 @@
 2. 쿠키가 없거나 무효면 `Accept-Language`를 파싱해 지원 locale 최적 매치를 선택한다.
 3. 매치 실패 시 `defaultLocale`로 리다이렉트한다.
 - locale 없는 경로 처리(V2 고정): 허용 목록 기반 리다이렉트만 허용한다.
-- 허용 목록(locale-less redirect allowlist): `/blog`, `/history`, `/test/[variant]`, `/result/[variant]/[type]`
+- 허용 목록(locale-less redirect allowlist): `/blog`, `/blog/[variant]`, `/history`, `/test/[variant]`, `/result/[variant]/[type]`
 - 허용 목록에 없는 locale-less 경로는 locale 주입 리다이렉트하지 않고 global unmatched 404로 처리한다.
 - duplicate locale prefix는 비정상 경로로 분기해 전역 unmatched 404 전략으로 처리한다.
 - localized request가 실제 페이지로 통과할 때는 proxy가 request-scoped locale header를 주입해 root document semantics(`html lang`)의 서버 반영 근거를 제공해야 한다.
@@ -154,11 +154,18 @@
 
 **Implementation Notes**:
 - RouteBuilder 입력/출력은 locale-free 경로를 기준으로 한다.
+- `RouteBuilder.blog()`는 list-only route `/{locale}/blog`를 생성한다.
+- `RouteBuilder.blogArticle(variant)`는 canonical article route `/{locale}/blog/{variant}`를 생성한다.
+- `/{locale}/blog`는 article 본문이나 selected article panel을 렌더링하지 않는다.
+- `/{locale}/blog/{variant}`만 route variant와 일치하는 selected article을 렌더링한다.
+- blog detail route에서 invalid variant 또는 non-enterable variant(`hide`, `debug`, `unavailable`)는 다른 글 fallback 없이 localized blog index로 redirect한다.
+- blog detail 선택의 source of truth는 route variant뿐이다. pending transition은 overlay/completion/restore 보조 신호로만 사용한다.
 - `as Route`, `as never` 같은 우회 캐스팅을 금지한다.
 
 **Verification**:
-1. Automated: RouteBuilder 단위 테스트(landing/blog/history/test/result)를 수행한다.
-2. Automated: ESLint rule 또는 코드 검색으로 금지 패턴을 검사한다.
+1. Automated: RouteBuilder 단위 테스트(landing/blog/blogArticle/history/test/result)를 수행한다.
+2. Automated: `/blog` index direct entry, `/blog/{variant}` direct entry, detail refresh, 목록 링크 이동, landing CTA 유입, invalid/non-enterable redirect를 각각 검증한다.
+3. Automated: ESLint rule 또는 코드 검색으로 금지 패턴을 검사한다.
 
 ### 5.5 404 Strategy
 **Rule**: 404는 두 층으로 분리한다.
@@ -254,10 +261,12 @@
 
 ### 6.5 Card Slot Order Contract
 **Rule**: 슬롯 순서와 존재 규칙은 고정한다.
-- Normal 순서: `cardTitle -> thumbnailOrIcon -> cardSubtitle -> tags`
+- Normal 순서: `cardTitle -> cardThumbnail -> cardSubtitle -> tags`
 - Expanded 공통 헤더: `cardTitle`만 유지
 - Expanded Test에서는 `subtitle/thumbnail/tags`를 제거한다(숨김 아님, 비노출).
 - Expanded Blog에서는 `thumbnail/tags`만 제거하고 같은 `subtitle`을 유지한다.
+- `cardThumbnail`은 UI slot 이름일 뿐이며, thumbnail asset 결정 입력은 오직 `variant`다.
+- fallback thumbnail도 `variant` 기반 규칙 안에서만 결정한다.
 - Test Expanded: `previewQuestion`, `answerChoiceA/B`, `meta(3)`
 - Blog Expanded: `cardSubtitleExpanded(최대 4줄)`, `meta(3)`, `primaryCTA(Read more)`
 
@@ -279,6 +288,8 @@
 - Expanded Test answer choices 텍스트는 버튼 내부 좌측 정렬을 강제하며 줄 수 제한 없이 줄바꿈을 허용한다.
 - Expanded Test answer choices 텍스트는 truncate/ellipsis/clamp를 금지한다.
 - Landing Expanded Blog subtitle: 같은 `subtitle`을 continuity 있게 유지하며 총 4줄까지만 표시한다.
+- Blog는 별도 blog 전용 보조 텍스트 소스를 사용하지 않는다.
+- blog subtitle은 치환, 요약, 후처리, blog 전용 우회 소스 없이 동일한 `subtitle` 텍스트 하나만 재사용한다.
 - Expanded meta/CTA: overflow 시 truncate
 - 카드 타이포그래피는 동일 locale에서 Normal/Expanded 상태 간 대표 폰트 1종을 유지해야 하며 상태별 폰트 분기를 금지한다.
 - 폰트는 `ko`, `en` locale별로 각 1종의 대표 폰트를 허용하고 공통 fallback 체인을 사용한다.

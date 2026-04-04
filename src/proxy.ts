@@ -49,6 +49,7 @@ export const config = {
   matcher: [
     '/',
     '/blog',
+    '/blog/:variant',
     '/history',
     '/test/:variant',
     '/en',

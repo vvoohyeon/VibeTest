@@ -24,7 +24,7 @@ This repository is a localized Next.js App Router application. Its real technica
 - Landing-to-destination transition handshake with sessionStorage persistence and timeout/cancel semantics (`src/features/landing/transition/`)
 - Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
-- Blog destination with article list and selected-article view (`src/features/landing/blog/blog-destination-client.tsx`)
+- Blog index/list route plus route-driven article detail (`src/features/landing/blog/blog-destination-client.tsx`, `src/app/[locale]/blog/[variant]/page.tsx`)
 - Pure test-domain foundation for schema validation and derivation utilities: `validateVariant`, `validateQuestionModel`, `validateVariantDataIntegrity`, `computeScoreStats`, `deriveDerivedType`, `parseTypeSegment`, `buildTypeSegment`, plus `VariantSchema` / `ScoringSchema` / `QuestionType` / `QualifierFieldSpec` types (`src/features/test/domain/`)
 
 ### Partially implemented
@@ -33,7 +33,7 @@ This repository is a localized Next.js App Router application. Its real technica
 |---|---|---|
 | Test destination | Policy-driven instruction overlay keyed by ingress type + consent state + `cardType`, variant-scoped instruction copy from fixtures, 4-question flow, answer state, dwell tracking, result panel, `attempt_start` / `final_submit` telemetry | Result route family, shareable payload reconstruction, durable session/history, and schema-driven result rendering are not implemented. Current runtime is still a compatibility shell around entry semantics and fixture-backed question data |
 | Test domain integration | Pure domain validators, integrity checks, derivation helpers, and type-segment parsing/building exist under `src/features/test/domain/` and are covered by dedicated unit tests | The current route/runtime does not import these domain modules yet, so schema-driven scoring and qualifier-aware result flow are not wired into `/[locale]/test/[variant]` |
-| Blog destination | Selected-article view, article list | Article-specific route, content source beyond fixtures |
+| Blog destination | List-only index route, variant-keyed article detail route, article list | Content source beyond fixtures |
 
 ### Placeholder only
 
@@ -96,7 +96,8 @@ Route tree
             │         ├─ src/features/landing/data/card-type.ts (cardType helpers)
             │         ├─ src/features/landing/grid/use-landing-interaction-controller.ts
             │         └─ src/features/landing/grid/landing-catalog-grid.tsx
-            ├─ src/app/[locale]/blog/page.tsx → blog-destination-client.tsx
+            ├─ src/app/[locale]/blog/page.tsx (list-only blog index)
+            ├─ src/app/[locale]/blog/[variant]/page.tsx (route-keyed blog detail)
             ├─ src/app/[locale]/test/[variant]/page.tsx
             │    ├─ findLandingTestCardByVariant(locale, variant) → notFound on miss
             │    └─ src/features/test/test-question-client.tsx
@@ -140,6 +141,7 @@ Current route files under `src/app/` expose the following application surface:
 ```
 /[locale]                (dynamic)
 /[locale]/blog           (dynamic)
+/[locale]/blog/[variant] (dynamic)
 /[locale]/history        (dynamic)
 /[locale]/test/[variant] (dynamic)
 /api/telemetry           (dynamic)
@@ -222,13 +224,13 @@ Landing-to-destination handshake: `src/features/landing/transition/use-landing-t
 
 On the destination side, `src/features/landing/transition/transition-runtime-monitor.tsx` enforces a **1600ms timeout**. `TransitionGnbOverlay` keeps a landing-context GNB visible during pending transition for visual continuity. `LandingRuntime` restores scroll on return and cancels stale transitions with `USER_CANCEL`.
 
-Result reasons: `USER_CANCEL`, `DUPLICATE_LOCALE`, `DESTINATION_TIMEOUT`, `DESTINATION_LOAD_ERROR`, `BLOG_FALLBACK_EMPTY`, `UNKNOWN`. Cleanup is centralized in `rollbackLandingTransition()`.
+Result reasons: `USER_CANCEL`, `DUPLICATE_LOCALE`, `DESTINATION_TIMEOUT`, `DESTINATION_LOAD_ERROR`, `UNKNOWN`. Cleanup is centralized in `rollbackLandingTransition()`.
 
 Limitation: all persistence is session-scoped and client-only. No server correlation, no durable transition history.
 
 ### 5.5 Destination Bootstrap
 
-**Blog** (`src/features/landing/blog/blog-destination-client.tsx`): resolves selected article from transition payload, falls back to first available article, terminates with `BLOG_FALLBACK_EMPTY` if no articles exist.
+**Blog** (`src/features/landing/blog/server-model.ts`, `src/features/landing/blog/blog-destination-client.tsx`): `variant` is the only article identifier. `/{locale}/blog` is list-only, while `/{locale}/blog/{variant}` resolves article detail strictly from the route variant. Invalid or non-enterable variants redirect to the localized blog index. Pending transition is only a completion/overlay signal and is not the article selection source of truth.
 
 **Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, landing-ingress starts user at Q2 while deep-link entry starts at Q1, dwell time tracking, and `attempt_start` / `final_submit` telemetry. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. The page is still designed around entry semantics and telemetry correctness, not scoring logic, so it remains a compatibility shell rather than the future domain-complete runtime.
 

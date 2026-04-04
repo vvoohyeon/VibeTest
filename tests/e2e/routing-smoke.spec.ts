@@ -4,7 +4,14 @@ import path from 'node:path';
 import {expect, test} from '@playwright/test';
 
 import {localeOptions, locales} from '../../src/config/site';
-import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
+import {
+  buildLocalizedBlogDetailRoute,
+  buildLocalizedBlogIndexRoute,
+  NON_ENTERABLE_BLOG_VARIANT,
+  PRIMARY_AVAILABLE_TEST_VARIANT,
+  PRIMARY_BLOG_VARIANT,
+  SECONDARY_BLOG_VARIANT
+} from './helpers/landing-fixture';
 
 const PREVIEW_LOG_PATH = path.join(process.cwd(), '.next/qa/preview-smoke.log');
 const PREVIEW_404_ALLOWLIST = /Error: Internal: NoFallbackError(?:\n\s+at .+)+/gu;
@@ -52,6 +59,10 @@ test.describe('Phase 1 routing smoke', () => {
     await expect(page).toHaveURL(new RegExp(`/${SUPPORTED_LOCALE_PATTERN}/blog$`, 'u'));
     expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
 
+    await page.goto(`/blog/${PRIMARY_BLOG_VARIANT}`);
+    await expect(page).toHaveURL(new RegExp(`/${SUPPORTED_LOCALE_PATTERN}/blog/${PRIMARY_BLOG_VARIANT}$`, 'u'));
+    expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
+
     await page.goto('/history');
     await expect(page).toHaveURL(new RegExp(`/${SUPPORTED_LOCALE_PATTERN}/history$`, 'u'));
     expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
@@ -94,8 +105,10 @@ test.describe('Phase 1 routing smoke', () => {
       {pathname: '/kr', locale: 'kr'},
       {pathname: '/zs', locale: 'zs'},
       {pathname: '/zt/blog', locale: 'zt'},
+      {pathname: `/zt/blog/${PRIMARY_BLOG_VARIANT}`, locale: 'zt'},
       {pathname: '/ja', locale: 'ja'},
-      {pathname: '/ru/blog', locale: 'ru'}
+      {pathname: '/ru/blog', locale: 'ru'},
+      {pathname: `/ru/blog/${PRIMARY_BLOG_VARIANT}`, locale: 'ru'}
     ] as const;
 
     for (const {pathname, locale} of localizedResponses) {
@@ -133,6 +146,7 @@ test.describe('Phase 1 routing smoke', () => {
 
     await page.goto('/en');
     await page.goto('/en/blog');
+    await page.goto(`/en/blog/${PRIMARY_BLOG_VARIANT}`);
     await page.goto('/en/history');
     await page.waitForTimeout(100);
 
@@ -148,5 +162,45 @@ test.describe('Phase 1 routing smoke', () => {
           .filter(hasHydrationWarning)
       ).toEqual([]);
     }
+  });
+
+  test('@smoke blog index direct entry stays list-only while detail direct entry resolves by route variant', async ({page}) => {
+    await page.goto(buildLocalizedBlogIndexRoute('en'));
+    await expect(page.getByTestId('blog-shell-card')).toBeVisible();
+    await expect(page.getByTestId('blog-selected-article')).toHaveCount(0);
+    await expect(page.locator('.blog-article-list-item')).toHaveCount(3);
+
+    await page.goto(buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT));
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
+    await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
+
+    await page.reload();
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
+    await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
+  });
+
+  test('@smoke blog detail list navigation and landing CTA stay aligned to the route variant', async ({page}) => {
+    await page.goto(buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT));
+    await page.locator('.blog-article-list-item').first().getByRole('link').click();
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${PRIMARY_BLOG_VARIANT}$`, 'u'));
+    await expect(page.getByTestId('blog-selected-article')).toContainText('Operational Handbook for Stable Releases');
+
+    await page.goto('/en');
+    const blogCard = page.locator(`[data-card-variant="${SECONDARY_BLOG_VARIANT}"]`);
+    await blogCard.getByTestId('landing-grid-card-trigger').click();
+    await blogCard.locator('[data-slot="primaryCTA"]').click();
+
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
+    await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
+  });
+
+  test('@smoke blog detail invalid and non-enterable variants redirect to blog index', async ({page}) => {
+    await page.goto(buildLocalizedBlogDetailRoute('en', 'missing-variant'));
+    await expect(page).toHaveURL(/\/en\/blog$/u);
+    await expect(page.getByTestId('blog-selected-article')).toHaveCount(0);
+
+    await page.goto(buildLocalizedBlogDetailRoute('en', NON_ENTERABLE_BLOG_VARIANT));
+    await expect(page).toHaveURL(/\/en\/blog$/u);
+    await expect(page.getByTestId('blog-selected-article')).toHaveCount(0);
   });
 });

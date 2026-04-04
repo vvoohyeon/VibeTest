@@ -2,6 +2,7 @@ import {defaultLocale, type AppLocale} from '@/config/site';
 import {
   deriveAvailability,
   isCatalogVisibleCard,
+  isEnterableCard,
   resolveCardType
 } from '@/features/landing/data/card-type';
 import {getLandingRawFixtures} from '@/features/landing/data/raw-fixtures';
@@ -13,24 +14,35 @@ import type {
   LandingContentType,
   LandingTestCard,
   LocalizedStringList,
-  LocalizedText,
-  RawBlogPayload,
-  RawLandingCard,
-  RawTestPayload
+  LocalizedText
 } from '@/features/landing/data/types';
 
 const DEFAULT_CATALOG_AUDIENCE = 'end-user';
 const LANDING_VARIANT_PATTERN = /^[a-z0-9-]+$/u;
+const LANDING_CARD_ALLOWED_KEYS = new Set([
+  'variant',
+  'type',
+  'cardType',
+  'availability',
+  'unavailable',
+  'title',
+  'subtitle',
+  'tags',
+  'isHero',
+  'debug',
+  'sample',
+  'test',
+  'blog'
+]);
+const RAW_TEST_ALLOWED_KEYS = new Set(['instruction', 'previewQuestion', 'answerChoiceA', 'answerChoiceB', 'meta']);
+const RAW_TEST_META_ALLOWED_KEYS = new Set(['estimatedMinutes', 'shares', 'attempts']);
+const RAW_BLOG_ALLOWED_KEYS = new Set(['meta']);
+const RAW_BLOG_META_ALLOWED_KEYS = new Set(['readMinutes', 'shares', 'views']);
 
-type LooseRawLandingCard = Partial<RawLandingCard> & {
-  id?: unknown;
-  thumbnailOrIcon?: unknown;
-  test?: Partial<RawTestPayload> & {
-    variant?: unknown;
-  };
-  blog?: Partial<RawBlogPayload> & {
-    articleId?: unknown;
-  };
+type LooseRecord = Record<string, unknown>;
+type LooseRawLandingCard = LooseRecord & {
+  test?: LooseRecord;
+  blog?: LooseRecord;
 };
 
 export interface LandingCatalogOptions {
@@ -129,6 +141,30 @@ function normalizeNumber(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
+function isPlainRecord(value: unknown): value is LooseRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function assertAllowedKeys(value: LooseRecord, allowedKeys: ReadonlySet<string>, context: string): void {
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) {
+      throw new Error(`${context} contains unexpected key "${key}".`);
+    }
+  }
+}
+
+function assertHasRequiredKey(value: LooseRecord, key: string, context: string): void {
+  if (!(key in value)) {
+    throw new Error(`${context} is missing required key "${key}".`);
+  }
+}
+
+function assertHasRequiredKeys(value: LooseRecord, keys: ReadonlyArray<string>, context: string): void {
+  for (const key of keys) {
+    assertHasRequiredKey(value, key, context);
+  }
+}
+
 function normalizeType(value: unknown, variant: string): LandingContentType {
   if (value === 'test' || value === 'blog') {
     return value;
@@ -150,22 +186,52 @@ function normalizeVariant(value: unknown, index: number): string {
   return variant;
 }
 
-function assertNoLegacyIdentifierFields(rawCard: LooseRawLandingCard, variant: string): void {
-  if (rawCard.id !== undefined) {
-    throw new Error(`Landing card "${variant}" must not define legacy id.`);
+function assertRawLandingCardShape(rawCard: LooseRawLandingCard, variant: string, type: LandingContentType): void {
+  assertAllowedKeys(rawCard, LANDING_CARD_ALLOWED_KEYS, `Landing card "${variant}"`);
+  assertHasRequiredKeys(rawCard, ['title', 'subtitle', 'tags'], `Landing card "${variant}"`);
+
+  if (type === 'test') {
+    if (rawCard.blog !== undefined) {
+      throw new Error(`Landing test card "${variant}" must not define blog payload.`);
+    }
+
+    if (!isPlainRecord(rawCard.test)) {
+      throw new Error(`Landing test card "${variant}" must define test payload.`);
+    }
+
+    assertAllowedKeys(rawCard.test, RAW_TEST_ALLOWED_KEYS, `Landing test card "${variant}"`);
+    assertHasRequiredKeys(
+      rawCard.test,
+      ['instruction', 'previewQuestion', 'answerChoiceA', 'answerChoiceB', 'meta'],
+      `Landing test card "${variant}"`
+    );
+
+    if (!isPlainRecord(rawCard.test.meta)) {
+      throw new Error(`Landing test card "${variant}" must define test.meta payload.`);
+    }
+
+    assertAllowedKeys(rawCard.test.meta, RAW_TEST_META_ALLOWED_KEYS, `Landing test card "${variant}" test.meta`);
+    assertHasRequiredKeys(rawCard.test.meta, ['estimatedMinutes', 'shares', 'attempts'], `Landing test card "${variant}" test.meta`);
+    return;
   }
 
-  if (rawCard.thumbnailOrIcon !== undefined) {
-    throw new Error(`Landing card "${variant}" must not define legacy thumbnailOrIcon.`);
+  if (rawCard.test !== undefined) {
+    throw new Error(`Landing blog card "${variant}" must not define test payload.`);
   }
 
-  if (rawCard.test?.variant !== undefined) {
-    throw new Error(`Landing card "${variant}" must not define nested test.variant.`);
+  if (!isPlainRecord(rawCard.blog)) {
+    throw new Error(`Landing blog card "${variant}" must define blog payload.`);
   }
 
-  if (rawCard.blog?.articleId !== undefined) {
-    throw new Error(`Landing card "${variant}" must not define nested blog.articleId.`);
+  assertAllowedKeys(rawCard.blog, RAW_BLOG_ALLOWED_KEYS, `Landing blog card "${variant}"`);
+  assertHasRequiredKeys(rawCard.blog, ['meta'], `Landing blog card "${variant}"`);
+
+  if (!isPlainRecord(rawCard.blog.meta)) {
+    throw new Error(`Landing blog card "${variant}" must define blog.meta payload.`);
   }
+
+  assertAllowedKeys(rawCard.blog.meta, RAW_BLOG_META_ALLOWED_KEYS, `Landing blog card "${variant}" blog.meta`);
+  assertHasRequiredKeys(rawCard.blog.meta, ['readMinutes', 'shares', 'views'], `Landing blog card "${variant}" blog.meta`);
 }
 
 function assertUniqueVariants(rawCards: ReadonlyArray<LooseRawLandingCard>): void {
@@ -181,32 +247,44 @@ function assertUniqueVariants(rawCards: ReadonlyArray<LooseRawLandingCard>): voi
 }
 
 export function normalizeAllLandingCards(
-  rawCards: ReadonlyArray<Partial<RawLandingCard>>,
+  rawCards: ReadonlyArray<unknown>,
   locale: AppLocale
 ): LandingCard[] {
-  const looseCards = rawCards.map((rawCard) => (rawCard ?? {}) as LooseRawLandingCard);
+  const looseCards = rawCards.map((rawCard, index) => {
+    if (!isPlainRecord(rawCard)) {
+      throw new Error(`Landing card at index ${index} must be an object.`);
+    }
+
+    return rawCard as LooseRawLandingCard;
+  });
   assertUniqueVariants(looseCards);
 
   return looseCards.map((rawCard, index) => {
     const variant = normalizeVariant(rawCard.variant, index);
-    assertNoLegacyIdentifierFields(rawCard, variant);
-
     const type = normalizeType(rawCard.type, variant);
-    const cardType = resolveCardType(rawCard);
+    assertRawLandingCardShape(rawCard, variant, type);
+    const cardType = resolveCardType(rawCard as {
+      cardType?: unknown;
+      availability?: unknown;
+      unavailable?: unknown;
+      debug?: unknown;
+    });
     const availability = deriveAvailability(cardType);
-    const title = resolveLocalizedText(rawCard.title, locale);
-    const subtitle = resolveLocalizedText(rawCard.subtitle, locale);
-    const tags = resolveLocalizedTagList(rawCard.tags, locale);
+    const title = resolveLocalizedText(rawCard.title as LocalizedText | string | undefined, locale);
+    const subtitle = resolveLocalizedText(rawCard.subtitle as LocalizedText | string | undefined, locale);
+    const tags = resolveLocalizedTagList(rawCard.tags as LocalizedStringList | ReadonlyArray<string> | undefined, locale);
     const isHero = rawCard.isHero === true;
     const debug = rawCard.debug === true;
     const sample = rawCard.sample === true;
 
     if (type === 'blog') {
-      if (!rawCard.blog) {
-        throw new Error(`Landing blog card "${variant}" must define blog payload.`);
-      }
-
-      const blog = rawCard.blog;
+      const blog = rawCard.blog as LooseRecord & {
+        meta: LooseRecord & {
+          readMinutes?: unknown;
+          shares?: unknown;
+          views?: unknown;
+        };
+      };
       const normalizedBlogCard: LandingBlogCard = {
         variant,
         type,
@@ -234,11 +312,17 @@ export function normalizeAllLandingCards(
       return normalizedBlogCard;
     }
 
-    if (!rawCard.test) {
-      throw new Error(`Landing test card "${variant}" must define test payload.`);
-    }
-
-    const test = rawCard.test;
+    const test = rawCard.test as LooseRecord & {
+      instruction?: LocalizedText | string;
+      previewQuestion?: LocalizedText | string;
+      answerChoiceA?: LocalizedText | string;
+      answerChoiceB?: LocalizedText | string;
+      meta: LooseRecord & {
+        estimatedMinutes?: unknown;
+        shares?: unknown;
+        attempts?: unknown;
+      };
+    };
     const instruction = resolveLocalizedText(test.instruction, locale);
     const previewQuestion = resolveLocalizedText(test.previewQuestion, locale);
     const answerChoiceA = resolveLocalizedText(test.answerChoiceA, locale);
@@ -298,10 +382,28 @@ export function createLandingCatalog(locale: AppLocale, options: LandingCatalogO
   return filterLandingCatalog(normalizeAllLandingCards(getLandingRawFixtures(), locale), options);
 }
 
+export function findLandingCardByVariant(locale: AppLocale, variant: string): LandingCard | null {
+  return normalizeAllLandingCards(getLandingRawFixtures(), locale).find((card) => card.variant === variant) ?? null;
+}
+
 export function findLandingTestCardByVariant(locale: AppLocale, variant: string): LandingTestCard | null {
   return (
     normalizeAllLandingCards(getLandingRawFixtures(), locale).find(
       (card): card is LandingTestCard => card.type === 'test' && card.variant === variant
     ) ?? null
+  );
+}
+
+export function findLandingBlogCardByVariant(locale: AppLocale, variant: string): LandingBlogCard | null {
+  return (
+    normalizeAllLandingCards(getLandingRawFixtures(), locale).find(
+      (card): card is LandingBlogCard => card.type === 'blog' && card.variant === variant
+    ) ?? null
+  );
+}
+
+export function listEnterableBlogCards(locale: AppLocale): LandingBlogCard[] {
+  return normalizeAllLandingCards(getLandingRawFixtures(), locale).filter(
+    (card): card is LandingBlogCard => card.type === 'blog' && isEnterableCard(card)
   );
 }

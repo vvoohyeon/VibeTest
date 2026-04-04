@@ -2,7 +2,13 @@ import {expect, test, type Page} from '@playwright/test';
 
 import {expectPageToBeAxeClean} from './helpers/axe';
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_VARIANT, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {
+  buildLocalizedBlogDetailRoute,
+  buildLocalizedBlogIndexRoute,
+  buildLocalizedPrimaryTestRoute,
+  PRIMARY_AVAILABLE_TEST_VARIANT,
+  SECONDARY_BLOG_VARIANT
+} from './helpers/landing-fixture';
 
 const TRANSITION_OVERLAY_READY_DELAY_MS = 300;
 
@@ -112,7 +118,7 @@ test.describe('Canonical accessibility smoke', () => {
     await focusDesktopSettingsByKeyboard(page);
     await expectPageToBeAxeClean(page);
 
-    for (const route of ['/en/blog', '/en/history']) {
+    for (const route of [buildLocalizedBlogIndexRoute('en'), buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT), '/en/history']) {
       await page.setViewportSize({width: 1440, height: 980});
       await page.goto(route);
       await focusDesktopDestinationSettingsByKeyboard(page);
@@ -137,7 +143,7 @@ test.describe('Canonical accessibility smoke', () => {
     );
     await expectPageToBeAxeClean(page);
 
-    for (const route of ['/en/blog', '/en/history', buildLocalizedPrimaryTestRoute('en')]) {
+    for (const route of [buildLocalizedBlogIndexRoute('en'), buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT), '/en/history', buildLocalizedPrimaryTestRoute('en')]) {
       await page.goto(route);
       await expectPageToBeAxeClean(page);
     }
@@ -152,7 +158,7 @@ test.describe('Canonical accessibility smoke', () => {
     await blogCard.getByTestId('landing-grid-card-trigger').click();
     await blogCard.locator('[data-slot="primaryCTA"]').click();
 
-    await expect(page).toHaveURL(/\/en\/blog$/u);
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeVisible();
     await expectPageToBeAxeClean(page);
   });

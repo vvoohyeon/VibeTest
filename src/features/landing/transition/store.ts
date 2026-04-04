@@ -3,7 +3,6 @@ export type LandingTransitionResultReason =
   | 'DUPLICATE_LOCALE'
   | 'DESTINATION_TIMEOUT'
   | 'DESTINATION_LOAD_ERROR'
-  | 'BLOG_FALLBACK_EMPTY'
   | 'UNKNOWN';
 
 export interface PendingLandingTransition {

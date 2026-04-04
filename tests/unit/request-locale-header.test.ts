@@ -19,6 +19,7 @@ describe('request locale header contract', () => {
     expect(getRequestLocaleHeaderValueFromPathname('/zt/history')).toBe('zt');
     expect(getRequestLocaleHeaderValueFromPathname('/ja/history')).toBe('ja');
     expect(getRequestLocaleHeaderValueFromPathname('/ru/blog')).toBe('ru');
+    expect(getRequestLocaleHeaderValueFromPathname('/ru/blog/ops-handbook')).toBe('ru');
     expect(getRequestLocaleHeaderValueFromPathname('/blog')).toBeNull();
     expect(getRequestLocaleHeaderValueFromPathname('/_not-found')).toBeNull();
   });

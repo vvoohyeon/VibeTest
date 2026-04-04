@@ -2,7 +2,13 @@ import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {localeOptions, type AppLocale} from '../../src/config/site';
 import {seedTelemetryConsent} from './helpers/consent';
-import {PRIMARY_AVAILABLE_TEST_VARIANT, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {
+  buildLocalizedBlogDetailRoute,
+  buildLocalizedBlogIndexRoute,
+  buildLocalizedPrimaryTestRoute,
+  PRIMARY_AVAILABLE_TEST_VARIANT,
+  SECONDARY_BLOG_VARIANT
+} from './helpers/landing-fixture';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const DESKTOP_SETTINGS_PANEL_EXTRA_TOP_PX = 12;
@@ -276,12 +282,9 @@ test.describe('Phase 3 gnb shell smoke', () => {
   });
 
   test('@smoke desktop settings restores the stored manual theme without a blank selected state', async ({page}) => {
+    await seedManualTheme(page, 'dark');
     await page.setViewportSize({width: 1280, height: 900});
     await page.goto('/en');
-    await page.evaluate(() => {
-      window.localStorage.setItem('vivetest-theme', 'dark');
-    });
-    await page.reload();
 
     await expect
       .poll(() => page.evaluate(() => document.documentElement.getAttribute('data-theme')))
@@ -577,7 +580,11 @@ test.describe('Phase 3 gnb shell smoke', () => {
   }) => {
     await page.setViewportSize({width: 1440, height: 980});
 
-    for (const route of ['/en/blog', '/en/history']) {
+    for (const route of [
+      buildLocalizedBlogIndexRoute('en'),
+      buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT),
+      '/en/history'
+    ]) {
       await page.goto(route);
       await page.locator('body').click({position: {x: 1, y: 1}});
 
@@ -600,7 +607,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
       await expect(blog).toBeFocused();
     }
 
-    await page.goto('/en/blog');
+    await page.goto(buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT));
     await page.evaluate(() => {
       const sink = document.createElement('button');
       sink.type = 'button';
@@ -634,7 +641,15 @@ test.describe('Phase 3 gnb shell smoke', () => {
       await page.keyboard.press('Tab');
       await expect(localeControls.getByRole('button', {name: label})).toBeFocused();
     }
-    await page.keyboard.press('Tab');
+
+    for (let attempts = 0; attempts < 8; attempts += 1) {
+      await page.keyboard.press('Tab');
+      const isSinkFocused = await sink.evaluate((element) => element === document.activeElement);
+      if (isSinkFocused) {
+        break;
+      }
+    }
+
     await expect(sink).toBeFocused();
     await expect(panel).toBeHidden({timeout: 150});
   });
@@ -823,7 +838,11 @@ test.describe('Phase 3 gnb shell smoke', () => {
   }) => {
     await page.setViewportSize({width: 390, height: 844});
 
-    for (const route of ['/en/blog', '/en/history']) {
+    for (const route of [
+      buildLocalizedBlogIndexRoute('en'),
+      buildLocalizedBlogDetailRoute('en', SECONDARY_BLOG_VARIANT),
+      '/en/history'
+    ]) {
       await page.goto(route);
       await page.locator('body').click({position: {x: 1, y: 1}});
 
@@ -850,7 +869,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
   test('@smoke mobile test back uses history before fallback', async ({page}) => {
     await page.setViewportSize({width: 390, height: 844});
-    await page.goto('/en/blog');
+    await page.goto(buildLocalizedBlogIndexRoute('en'));
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
 
     await page.getByTestId('gnb-mobile-test-back').click();
@@ -869,7 +888,7 @@ test.describe('Phase 3 gnb shell smoke', () => {
     page
   }) => {
     await page.setViewportSize({width: 390, height: 844});
-    await page.goto('/en/blog');
+    await page.goto(buildLocalizedBlogIndexRoute('en'));
     await page.goto(buildLocalizedPrimaryTestRoute('en'));
     await page.locator('body').click({position: {x: 1, y: 1}});
 

@@ -44,7 +44,7 @@ export function useLandingTransition({locale, onTransitionStart}: UseLandingTran
 
   const beginBlogTransition = useCallback(
     (card: LandingBlogCard) => {
-      const targetRoute = buildLocalizedPath(RouteBuilder.blog(), locale);
+      const targetRoute = buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale);
       const pendingTransition = beginLandingTransition({
         locale,
         route: pathname,

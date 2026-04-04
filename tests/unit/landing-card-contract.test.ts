@@ -80,7 +80,7 @@ describe('landing card slot contract', () => {
       (element) => element.getAttribute('data-slot')
     );
 
-    expect(orderedSlots).toEqual(['cardTitle', 'thumbnailOrIcon', 'cardSubtitle', 'tags']);
+    expect(orderedSlots).toEqual(['cardTitle', 'cardThumbnail', 'cardSubtitle', 'tags']);
     expect(doc.querySelector('.landing-grid-card-tags-gap')).not.toBeNull();
 
     const tags = doc.querySelector('[data-slot="tags"]');
@@ -124,7 +124,7 @@ describe('landing card slot contract', () => {
     const expandedDoc = renderDesktopExpandedCardDocument({card});
 
     expect(expandedDoc.querySelector('[data-slot="cardSubtitle"]')).toBeNull();
-    expect(expandedDoc.querySelector('[data-slot="thumbnailOrIcon"]')).toBeNull();
+    expect(expandedDoc.querySelector('[data-slot="cardThumbnail"]')).toBeNull();
     expect(expandedDoc.querySelector('[data-slot="tags"]')).toBeNull();
 
     expect(expandedDoc.querySelector('[data-slot="expandedSurface"]')).not.toBeNull();
@@ -177,14 +177,14 @@ describe('landing card slot contract', () => {
     expect(doc.querySelector('[data-slot="expandedSurface"]')).not.toBeNull();
     expect(doc.querySelector('[data-slot="cardSubtitleExpanded"]')).not.toBeNull();
     expect(doc.querySelector('[data-slot="cardSubtitle"]')).toBeNull();
-    expect(doc.querySelector('[data-slot="thumbnailOrIcon"]')).toBeNull();
+    expect(doc.querySelector('[data-slot="cardThumbnail"]')).toBeNull();
     expect(doc.querySelector('[data-slot="tags"]')).toBeNull();
 
     expect(doc.querySelectorAll('.landing-grid-card-meta-item')).toHaveLength(3);
 
     const cta = doc.querySelector('[data-slot="primaryCTA"]');
     expect(cta).not.toBeNull();
-    expect(cta?.getAttribute('href')).toBe('/en/blog');
+    expect(cta?.getAttribute('href')).toBe('/en/blog/ops-handbook');
 
     const metaValues = Array.from(doc.querySelectorAll('.landing-grid-card-meta-value')).map((element) =>
       element.textContent?.trim() ?? ''

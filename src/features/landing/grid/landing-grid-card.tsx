@@ -225,7 +225,7 @@ function NormalContentSlots({card, hasAssetMedia, includeSlotAttributes, subtitl
     <>
       <div
         className="landing-grid-card-thumbnail-slot"
-        data-slot={includeSlotAttributes ? 'thumbnailOrIcon' : undefined}
+        data-slot={includeSlotAttributes ? 'cardThumbnail' : undefined}
         aria-hidden="true"
       >
         <Image
@@ -424,7 +424,7 @@ function ExpandedCardBodyContent({
       {interactive ? (
         <Link
           className="landing-grid-card-primary-cta"
-          href={buildLocalizedPath(RouteBuilder.blog(), locale)}
+          href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)}
           data-slot="primaryCTA"
           data-motion-slot="primaryCTA"
           onClick={onPrimaryCtaClick}

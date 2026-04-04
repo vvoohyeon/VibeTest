@@ -1,6 +1,6 @@
 import {defaultLocale, isLocale, locales, type AppLocale} from '@/config/site';
 
-const allowlistPattern = [/^\/blog\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/?$/u] as const;
+const allowlistPattern = [/^\/blog\/?$/u, /^\/blog\/[^/]+\/?$/u, /^\/history\/?$/u, /^\/test\/[^/]+\/?$/u] as const;
 export const globalUnmatchedPath = '/_not-found';
 
 function matchesLocaleFamily(token: string, family: string): boolean {

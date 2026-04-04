@@ -6,6 +6,8 @@ type LocaleFreePathname = LocaleFreeRoute['pathname'];
 
 type LocalizedRoutePathFor<Pathname extends LocaleFreePathname> = Pathname extends '/'
   ? `/${AppLocale}`
+  : Pathname extends '/blog/[variant]'
+    ? `/${AppLocale}/blog/${string}`
   : Pathname extends '/test/[variant]'
     ? `/${AppLocale}/test/${string}`
     : `/${AppLocale}${Pathname}`;

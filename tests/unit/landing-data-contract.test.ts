@@ -4,7 +4,10 @@ import {describe, expect, it} from 'vitest';
 
 import {
   createLandingCatalog,
+  findLandingBlogCardByVariant,
+  findLandingCardByVariant,
   findLandingTestCardByVariant,
+  listEnterableBlogCards,
   normalizeAllLandingCards
 } from '../../src/features/landing/data/adapter';
 import {buildFixtureContractReport} from '../../src/features/landing/data/fixture-contract';
@@ -55,8 +58,7 @@ describe('landing fixture and adapter contract', () => {
     expect(opsHandbookBlog.title).toBe('안정적인 배포를 위한 운영 핸드북');
     expect(opsHandbookBlog.subtitle).toContain('사고 대응 태세');
     expect(opsHandbookBlog.tags).toEqual(['운영', '배포']);
-    expect('summary' in opsHandbookBlog.blog).toBe(false);
-    expect('primaryCTA' in opsHandbookBlog.blog).toBe(false);
+    expect(Object.keys(opsHandbookBlog.blog)).toEqual(['meta']);
     expect(catalogKr.some((card) => card.type === 'blog' && card.availability === 'unavailable')).toBe(false);
   });
 
@@ -132,8 +134,8 @@ describe('landing fixture and adapter contract', () => {
     expect(optedOutCatalog.some((card) => card.variant === 'creativity-profile')).toBe(true);
   });
 
-  it('fails closed when legacy or invalid identifier fields are present', () => {
-    const malformed: Array<Partial<RawLandingCard>> = [
+  it('fails closed when cards contain invalid variants or unexpected schema keys', () => {
+    const malformed: unknown[] = [
       {
         variant: '',
         type: 'test',
@@ -150,12 +152,12 @@ describe('landing fixture and adapter contract', () => {
             attempts: 1
           }
         }
-      } as unknown as Partial<RawLandingCard>,
+      },
       {
-        variant: 'legacy-unavailable',
+        variant: 'unexpected-top-level',
         type: 'test',
-        unavailable: true,
-        id: 'legacy-unavailable-test',
+        availability: 'available',
+        unexpectedKey: 'should-fail',
         test: {
           instruction: {en: 'legacy'},
           previewQuestion: {en: 'legacy'},
@@ -167,26 +169,44 @@ describe('landing fixture and adapter contract', () => {
             attempts: 1
           }
         }
-      } as unknown as Partial<RawLandingCard>,
+      },
       {
-        variant: 'broken-blog',
+        variant: 'unexpected-blog-payload',
         type: 'blog',
-        availability: 'unavailable',
+        availability: 'available',
+        title: {en: 'Broken blog'},
+        subtitle: {en: 'Broken subtitle'},
+        tags: {en: ['broken']},
         blog: {
-          articleId: 'legacy-blog-id'
+          meta: {
+            readMinutes: 1,
+            shares: 1,
+            views: 1
+          },
+          unexpectedNestedKey: 'should-fail'
         }
-      } as unknown as Partial<RawLandingCard>
+      }
     ];
 
     expect(() => normalizeAllLandingCards(malformed, 'en')).toThrow();
   });
 
   it('uses strict variant lookup without generating fallback test cards', () => {
-    const matchingCard = findLandingTestCardByVariant('ja', 'qmbti');
+    const matchingCard = findLandingCardByVariant('ja', 'qmbti');
+    const matchingTestCard = findLandingTestCardByVariant('ja', 'qmbti');
     const missingCard = findLandingTestCardByVariant('en', 'missing-variant');
 
     expect(matchingCard?.variant).toBe('qmbti');
+    expect(matchingTestCard?.variant).toBe('qmbti');
     expect(missingCard).toBeNull();
+  });
+
+  it('looks up blog cards by variant and preserves registry order for enterable blog listings', () => {
+    const blogCard = findLandingBlogCardByVariant('en', 'build-metrics');
+    const enterableBlogs = listEnterableBlogCards('en');
+
+    expect(blogCard?.variant).toBe('build-metrics');
+    expect(enterableBlogs.map((card) => card.variant)).toEqual(['ops-handbook', 'build-metrics', 'release-gate']);
   });
 
   it('assigns a distinct resolved instruction to every fixture test variant', () => {

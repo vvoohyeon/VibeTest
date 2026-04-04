@@ -1,8 +1,10 @@
 import {expect, test} from '@playwright/test';
 
 import {
+  buildLocalizedBlogDetailRoute,
   PRIMARY_AVAILABLE_TEST_VARIANT,
   PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY,
+  SECONDARY_BLOG_VARIANT,
   PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY,
   PRIMARY_OPT_OUT_TEST_VARIANT,
   TEST_VARIANT_INSTRUCTION_FIXTURES_EN,
@@ -367,7 +369,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     const blogCard = page.locator('[data-card-variant="ops-handbook"]');
     await blogCard.getByTestId('landing-grid-card-trigger').click();
     await blogCard.locator('[data-slot="primaryCTA"]').click();
-    await expect(page).toHaveURL(/\/en\/blog$/u);
+    await expect(page).toHaveURL(new RegExp(`${buildLocalizedBlogDetailRoute('en', 'ops-handbook')}$`, 'u'));
 
     await page.waitForTimeout(300);
     expect(requestCount).toBe(0);
@@ -417,7 +419,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(Math.abs(sourceCardRestoreCandidate - scrollBefore)).toBeGreaterThan(40);
     await blogCard.locator('[data-slot="primaryCTA"]').click();
 
-    await expect(page).toHaveURL(/\/en\/blog$/u);
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
     await expectSourceGnbOverlay(page, 'blog');
     await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
@@ -882,7 +884,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
       {
         transitionId: 'transition-load-error-1',
         sourceVariant: 'build-metrics',
-        targetRoute: '/en/blog',
+        targetRoute: buildLocalizedBlogDetailRoute('en', 'build-metrics'),
         targetType: 'blog',
         variant: 'build-metrics',
         startedAtMs: Date.now()

@@ -29,6 +29,16 @@ describe('proxy policy', () => {
 
     expect(
       resolveProxyDecision({
+        pathname: '/blog/ops-handbook',
+        acceptLanguage: 'zh-CN,zh;q=0.9'
+      })
+    ).toEqual({
+      action: 'redirect',
+      pathname: '/zs/blog/ops-handbook'
+    });
+
+    expect(
+      resolveProxyDecision({
         pathname: '/test/alpha',
         acceptLanguage: 'zh-TW,zh;q=0.9'
       })
@@ -71,6 +81,12 @@ describe('proxy policy', () => {
     expect(
       resolveProxyDecision({
         pathname: '/zs/blog'
+      })
+    ).toEqual({action: 'next'});
+
+    expect(
+      resolveProxyDecision({
+        pathname: '/zs/blog/ops-handbook'
       })
     ).toEqual({action: 'next'});
 

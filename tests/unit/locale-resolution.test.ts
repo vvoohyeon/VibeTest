@@ -69,6 +69,7 @@ describe('locale resolution helpers', () => {
     expect(parseLocalePrefix('/kr')).toBe('kr');
     expect(parseLocalePrefix('/zs')).toBe('zs');
     expect(parseLocalePrefix('/zt/blog')).toBe('zt');
+    expect(parseLocalePrefix('/zt/blog/ops-handbook')).toBe('zt');
     expect(parseLocalePrefix('/ja/history')).toBe('ja');
     expect(parseLocalePrefix('/ru/history')).toBe('ru');
     expect(parseLocalePrefix('/blog')).toBeNull();
@@ -80,6 +81,7 @@ describe('locale resolution helpers', () => {
 
   it('handles allowlisted locale-less paths and bypass paths', () => {
     expect(isLocaleLessAllowlistedPath('/blog')).toBe(true);
+    expect(isLocaleLessAllowlistedPath('/blog/ops-handbook')).toBe(true);
     expect(isLocaleLessAllowlistedPath('/history')).toBe(true);
     expect(isLocaleLessAllowlistedPath('/test/alpha')).toBe(true);
     expect(isLocaleLessAllowlistedPath('/test/alpha/question')).toBe(false);
@@ -87,6 +89,7 @@ describe('locale resolution helpers', () => {
 
     expect(isAppOwnedPath('/')).toBe(true);
     expect(isAppOwnedPath('/en/blog')).toBe(true);
+    expect(isAppOwnedPath('/en/blog/ops-handbook')).toBe(true);
     expect(isAppOwnedPath('/zs/blog')).toBe(true);
     expect(isAppOwnedPath('/test/alpha')).toBe(true);
     expect(isAppOwnedPath('/test/alpha/question')).toBe(false);
@@ -102,6 +105,7 @@ describe('locale resolution helpers', () => {
   it('prefixes locale to locale-free paths', () => {
     expect(withLocalePrefix('/', 'en')).toBe('/en');
     expect(withLocalePrefix('/blog', 'kr')).toBe('/kr/blog');
+    expect(withLocalePrefix('/blog/ops-handbook', 'kr')).toBe('/kr/blog/ops-handbook');
     expect(withLocalePrefix('/history', 'ja')).toBe('/ja/history');
     expect(withLocalePrefix('/history', 'ru')).toBe('/ru/history');
   });

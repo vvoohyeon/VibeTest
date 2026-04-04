@@ -8,6 +8,9 @@ export const PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY =
   `vivetest-landing-ingress:${PRIMARY_AVAILABLE_TEST_VARIANT}`;
 export const PRIMARY_OPT_OUT_TEST_VARIANT = 'energy-check';
 export const PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY = `vivetest-landing-ingress:${PRIMARY_OPT_OUT_TEST_VARIANT}`;
+export const PRIMARY_BLOG_VARIANT = 'ops-handbook';
+export const SECONDARY_BLOG_VARIANT = 'build-metrics';
+export const NON_ENTERABLE_BLOG_VARIANT = 'hidden-beta';
 
 export interface TestVariantInstructionFixture {
   variant: string;
@@ -34,4 +37,12 @@ export function buildLocalizedPrimaryTestRoute(locale: AppLocale): string {
 
 export function buildLocalizedPrimaryOptOutTestRoute(locale: AppLocale): string {
   return buildLocalizedTestRoute(locale, PRIMARY_OPT_OUT_TEST_VARIANT);
+}
+
+export function buildLocalizedBlogIndexRoute(locale: AppLocale): string {
+  return `/${locale}/blog`;
+}
+
+export function buildLocalizedBlogDetailRoute(locale: AppLocale, variant: string): string {
+  return `/${locale}/blog/${variant}`;
 }
