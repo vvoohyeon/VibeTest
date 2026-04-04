@@ -8,42 +8,55 @@ import type {
   VariantRegistryRuntimeLandingCard,
   VariantRegistrySourceBlogCard,
   VariantRegistrySourceCard,
+  VariantRegistrySourceInlineQ1Preview,
   VariantRegistrySourceTestCard
 } from '@/features/variant-registry/types';
 
 const LANDING_VARIANT_PATTERN = /^[a-z0-9-]+$/u;
 const SOURCE_CARD_ALLOWED_KEYS = new Set([
   'seq',
-  'variant',
   'type',
+  'variant',
   'attribute',
   'title',
   'subtitle',
   'tags',
-  'meta',
-  'debug',
-  'sample',
+  'durationM',
+  'sharedC',
+  'engagedC',
   'instruction',
   'previewQuestion',
-  'answerChoiceA',
-  'answerChoiceB'
+  'answerA',
+  'answerB'
 ]);
 const SOURCE_TEST_REQUIRED_KEYS = [
   'seq',
-  'variant',
   'type',
+  'variant',
   'attribute',
   'title',
   'subtitle',
   'tags',
-  'meta',
+  'durationM',
+  'sharedC',
+  'engagedC',
   'instruction',
   'previewQuestion',
-  'answerChoiceA',
-  'answerChoiceB'
+  'answerA',
+  'answerB'
 ] as const;
-const SOURCE_BLOG_REQUIRED_KEYS = ['seq', 'variant', 'type', 'attribute', 'title', 'subtitle', 'tags', 'meta'] as const;
-const SOURCE_META_ALLOWED_KEYS = new Set(['durationM', 'sharedC', 'engagedC']);
+const SOURCE_BLOG_REQUIRED_KEYS = [
+  'seq',
+  'type',
+  'variant',
+  'attribute',
+  'title',
+  'subtitle',
+  'tags',
+  'durationM',
+  'sharedC',
+  'engagedC'
+] as const;
 
 type LooseRecord = Record<string, unknown>;
 
@@ -96,18 +109,15 @@ function normalizeType(value: unknown, variant: string): 'test' | 'blog' {
   throw new Error(`Landing registry source "${variant}" must declare type "test" or "blog".`);
 }
 
-function normalizeMeta(value: unknown, variant: string): LandingMeta {
-  if (!isPlainRecord(value)) {
-    throw new Error(`Landing registry source "${variant}" must define meta.`);
-  }
+function normalizeAttribute(value: unknown, variant: string) {
+  return resolveAttribute(value, `Landing registry source "${variant}" attribute`);
+}
 
-  assertAllowedKeys(value, SOURCE_META_ALLOWED_KEYS, `Landing registry source "${variant}" meta`);
-  assertHasRequiredKeys(value, ['durationM', 'sharedC', 'engagedC'], `Landing registry source "${variant}" meta`);
-
+function normalizeSourceMeta(rawCard: LooseRecord): LandingMeta {
   return {
-    durationM: normalizeMetric(value.durationM),
-    sharedC: normalizeMetric(value.sharedC),
-    engagedC: normalizeMetric(value.engagedC)
+    durationM: normalizeMetric(rawCard.durationM),
+    sharedC: normalizeMetric(rawCard.sharedC),
+    engagedC: normalizeMetric(rawCard.engagedC)
   };
 }
 
@@ -142,19 +152,19 @@ function normalizeLocalizedStringList(value: unknown, context: string): Localize
 function normalizePreviewBridge(
   rawCard: LooseRecord,
   variant: string
-): InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge {
+): VariantRegistrySourceInlineQ1Preview {
   return {
     previewQuestion: normalizeLocalizedText(
       rawCard.previewQuestion,
       `Landing registry source "${variant}" previewQuestion`
     ) as LocalizedText,
-    answerChoiceA: normalizeLocalizedText(
-      rawCard.answerChoiceA,
-      `Landing registry source "${variant}" answerChoiceA`
+    answerA: normalizeLocalizedText(
+      rawCard.answerA,
+      `Landing registry source "${variant}" answerA`
     ) as LocalizedText,
-    answerChoiceB: normalizeLocalizedText(
-      rawCard.answerChoiceB,
-      `Landing registry source "${variant}" answerChoiceB`
+    answerB: normalizeLocalizedText(
+      rawCard.answerB,
+      `Landing registry source "${variant}" answerB`
     ) as LocalizedText
   };
 }
@@ -175,15 +185,13 @@ function normalizeSourceCard(rawCard: unknown, index: number): VariantRegistrySo
 
     const normalizedTestCard: VariantRegistrySourceTestCard = {
       seq,
-      variant,
       type,
-      attribute: resolveAttribute({attribute: rawCard.attribute, availability: rawCard.availability, unavailable: rawCard.unavailable, debug: rawCard.debug}),
+      variant,
+      attribute: normalizeAttribute(rawCard.attribute, variant),
       title: normalizeLocalizedText(rawCard.title, `Landing registry source "${variant}" title`) as LocalizedText,
       subtitle: normalizeLocalizedText(rawCard.subtitle, `Landing registry source "${variant}" subtitle`) as LocalizedText,
       tags: normalizeLocalizedStringList(rawCard.tags, `Landing registry source "${variant}" tags`),
-      meta: normalizeMeta(rawCard.meta, variant),
-      debug: rawCard.debug === true,
-      sample: rawCard.sample === true,
+      ...normalizeSourceMeta(rawCard),
       instruction: normalizeLocalizedText(rawCard.instruction, `Landing registry source "${variant}" instruction`),
       ...normalizePreviewBridge(rawCard, variant)
     };
@@ -195,15 +203,13 @@ function normalizeSourceCard(rawCard: unknown, index: number): VariantRegistrySo
 
   const normalizedBlogCard: VariantRegistrySourceBlogCard = {
     seq,
-    variant,
     type,
-    attribute: resolveAttribute({attribute: rawCard.attribute, availability: rawCard.availability, unavailable: rawCard.unavailable, debug: rawCard.debug}),
+    variant,
+    attribute: normalizeAttribute(rawCard.attribute, variant),
     title: normalizeLocalizedText(rawCard.title, `Landing registry source "${variant}" title`) as LocalizedText,
     subtitle: normalizeLocalizedText(rawCard.subtitle, `Landing registry source "${variant}" subtitle`) as LocalizedText,
     tags: normalizeLocalizedStringList(rawCard.tags, `Landing registry source "${variant}" tags`),
-    meta: normalizeMeta(rawCard.meta, variant),
-    debug: rawCard.debug === true,
-    sample: rawCard.sample === true
+    ...normalizeSourceMeta(rawCard)
   };
 
   return normalizedBlogCard;
@@ -228,6 +234,12 @@ function assertUniqueVariantAndSeq(sourceCards: ReadonlyArray<VariantRegistrySou
 }
 
 function buildRuntimeLandingCard(sourceCard: VariantRegistrySourceCard): VariantRegistryRuntimeLandingCard {
+  const meta = {
+    durationM: sourceCard.durationM,
+    sharedC: sourceCard.sharedC,
+    engagedC: sourceCard.engagedC
+  };
+
   if (sourceCard.type === 'test') {
     return {
       variant: sourceCard.variant,
@@ -236,11 +248,9 @@ function buildRuntimeLandingCard(sourceCard: VariantRegistrySourceCard): Variant
       title: sourceCard.title,
       subtitle: sourceCard.subtitle,
       tags: sourceCard.tags,
-      debug: sourceCard.debug === true,
-      sample: sourceCard.sample === true,
       test: {
         instruction: sourceCard.instruction,
-        meta: sourceCard.meta
+        meta
       }
     };
   }
@@ -252,10 +262,8 @@ function buildRuntimeLandingCard(sourceCard: VariantRegistrySourceCard): Variant
     title: sourceCard.title,
     subtitle: sourceCard.subtitle,
     tags: sourceCard.tags,
-    debug: sourceCard.debug === true,
-    sample: sourceCard.sample === true,
     blog: {
-      meta: sourceCard.meta
+      meta
     }
   };
 }
@@ -272,8 +280,8 @@ export function buildVariantRegistry(sourceCards: ReadonlyArray<unknown>): Varia
     if (sourceCard.type === 'test') {
       accumulator[sourceCard.variant] = {
         previewQuestion: sourceCard.previewQuestion,
-        answerChoiceA: sourceCard.answerChoiceA,
-        answerChoiceB: sourceCard.answerChoiceB
+        answerChoiceA: sourceCard.answerA,
+        answerChoiceB: sourceCard.answerB
       };
     }
 

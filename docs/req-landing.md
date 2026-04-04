@@ -803,7 +803,7 @@
 ### 12.6 Data Source Contract
 **Rule**: V1 데이터 소스는 fixture + adapter 구조를 강제한다.
 - 랜딩 fixture 최소: Test `4+`, Blog `3+`, unavailable Test `2+`, unavailable Blog `0`.
-- fixture 다양성 케이스 필수: 긴 텍스트, 빈 tags, debug/sample.
+- fixture 다양성 케이스 필수: 긴 텍스트, 빈 tags, debug fixture.
 - fixture에서 required 슬롯 누락은 금지한다.
 - 런타임 adapter는 required 누락에서 throw하지 않고 normalize + default 삽입으로 방어해야 한다.
 

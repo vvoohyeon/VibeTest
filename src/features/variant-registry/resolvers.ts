@@ -48,8 +48,6 @@ function resolveLandingCard(card: VariantRegistryRuntimeLandingCard, locale: App
       title,
       subtitle,
       tags,
-      debug: card.debug,
-      sample: card.sample,
       localeResolvedText: {
         title,
         subtitle,
@@ -72,8 +70,6 @@ function resolveLandingCard(card: VariantRegistryRuntimeLandingCard, locale: App
     title,
     subtitle,
     tags,
-    debug: card.debug,
-    sample: card.sample,
     localeResolvedText: {
       title,
       subtitle

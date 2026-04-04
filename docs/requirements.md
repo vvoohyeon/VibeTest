@@ -75,7 +75,7 @@ This product lets users take multiple kinds of short assessments (test variants/
   - The front/browsing face of a catalog card MUST NOT include any start/entry CTA.
   - Enterable test variants may be standard available items or consent-independent opt-out-capable items; both remain gated behind the same back-state CTA and instruction-step entry contracts.
   - Unavailable variants are visible but non-startable and labeled as unavailable/coming soon.
-  - Debug/sample variants must never appear in the production end-user catalog.
+  - Debug variants must never appear in the production end-user catalog.
 - **Confidence:** High
 
 ### REQ-F-002 — Test variant validation and error recovery
@@ -521,7 +521,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 
 - **REQ-F-001**
   - Evidence: `data/testMetadata.ts` (`testMetadataMap.available`, `getTestTypes("available")`), `pages/index.tsx` (card rendering and non-start behavior), `components/TestCard.tsx` (disabled interaction for unavailable tests).
-  - Discrepancy note: A debug/sample variant is marked available.
+  - Discrepancy note: A debug variant is marked available.
 
 - **REQ-F-002**
   - Evidence: `data/testMetadata.ts` (`validateTestType`), `lib/testHelpers.ts` (`getValidTestType` multi-stage fallback to default), `pages/test/index.tsx` (normalized test type usage).

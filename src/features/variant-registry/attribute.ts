@@ -17,25 +17,12 @@ export function isLandingCardAttribute(value: unknown): value is LandingCardAttr
   return value === 'available' || value === 'unavailable' || value === 'hide' || value === 'opt_out' || value === 'debug';
 }
 
-export function resolveAttribute(input: {
-  attribute?: unknown;
-  availability?: unknown;
-  unavailable?: unknown;
-  debug?: unknown;
-}): LandingCardAttribute {
-  if (isLandingCardAttribute(input.attribute)) {
-    return input.attribute;
+export function resolveAttribute(value: unknown, context = 'Landing card attribute'): LandingCardAttribute {
+  if (isLandingCardAttribute(value)) {
+    return value;
   }
 
-  if (input.unavailable === true || input.availability === 'unavailable') {
-    return 'unavailable';
-  }
-
-  if (input.debug === true) {
-    return 'debug';
-  }
-
-  return 'available';
+  throw new Error(`${context} must be one of available, unavailable, hide, opt_out, or debug.`);
 }
 
 export function deriveAvailability(attribute: AttributeLike | LandingCardAttribute): LandingAvailability {

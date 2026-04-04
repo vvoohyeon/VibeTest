@@ -20,7 +20,6 @@ export function buildFixtureContractReport(registry: VariantRegistry): FixtureCo
     .filter((card) => card.type === 'blog')
     .some((card) => resolveLocalizedTextForInspection(card.subtitle).length >= 220);
   const hasEmptyTags = registry.landingCards.some((card) => resolveLocalizedTagsForInspection(card.tags).length === 0);
-  const hasDebugSample = registry.landingCards.some((card) => card.debug === true || card.sample === true);
   const hasRequiredSlotOmission = registry.landingCards.some((card) => {
     if (card.type === 'blog') {
       return false;
@@ -40,7 +39,6 @@ export function buildFixtureContractReport(registry: VariantRegistry): FixtureCo
     hasLongTokenSubtitle,
     hasLongBlogSubtitle,
     hasEmptyTags,
-    hasDebugSample,
     hasRequiredSlotOmission
   };
 }

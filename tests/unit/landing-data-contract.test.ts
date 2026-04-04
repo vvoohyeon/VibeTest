@@ -5,6 +5,7 @@ import {describe, expect, it} from 'vitest';
 import {
   buildFixtureContractReport,
   buildVariantRegistry,
+  getVariantRegistrySourceFixture,
   isEnterableCard,
   loadVariantRegistry,
   resolveLandingBlogCardByVariant,
@@ -36,43 +37,46 @@ describe('landing registry and resolver contract', () => {
     expect(report.hasLongTokenSubtitle).toBe(true);
     expect(report.hasLongBlogSubtitle).toBe(true);
     expect(report.hasEmptyTags).toBe(true);
-    expect(report.hasDebugSample).toBe(true);
     expect(report.hasRequiredSlotOmission).toBe(false);
+  });
+
+  it('keeps fixture authoring order pinned to seq -> type -> variant -> attribute', () => {
+    const sourceRows = getVariantRegistrySourceFixture();
+
+    for (const sourceRow of sourceRows) {
+      expect(Object.keys(sourceRow).slice(0, 4)).toEqual(['seq', 'type', 'variant', 'attribute']);
+    }
   });
 
   it('sorts source rows by seq and drops seq from the exported runtime registry', () => {
     const sourceRows: VariantRegistrySourceCard[] = [
       {
         seq: 20,
-        variant: 'later-blog',
         type: 'blog',
+        variant: 'later-blog',
         attribute: 'available',
         title: {en: 'Later blog'},
         subtitle: {en: 'Later subtitle'},
         tags: {en: ['later']},
-        meta: {
-          durationM: 2,
-          sharedC: 4,
-          engagedC: 8
-        }
+        durationM: 2,
+        sharedC: 4,
+        engagedC: 8
       },
       {
         seq: 10,
-        variant: 'earlier-test',
         type: 'test',
+        variant: 'earlier-test',
         attribute: 'available',
         title: {en: 'Earlier test'},
         subtitle: {en: 'Earlier subtitle'},
         tags: {en: ['earlier']},
         instruction: {en: 'Earlier instruction'},
         previewQuestion: {en: 'Earlier preview'},
-        answerChoiceA: {en: 'Choice A'},
-        answerChoiceB: {en: 'Choice B'},
-        meta: {
-          durationM: 1,
-          sharedC: 2,
-          engagedC: 3
-        }
+        answerA: {en: 'Choice A'},
+        answerB: {en: 'Choice B'},
+        durationM: 1,
+        sharedC: 2,
+        engagedC: 3
       }
     ];
 
@@ -82,6 +86,12 @@ describe('landing registry and resolver contract', () => {
     expect(registry.testPreviewPayloadByVariant['earlier-test'].previewQuestion.en).toBe('Earlier preview');
     expect('seq' in registry.landingCards[0]).toBe(false);
     expect('seq' in registry.landingCards[1]).toBe(false);
+    expect('debug' in registry.landingCards[0]).toBe(false);
+    expect('sample' in registry.landingCards[0]).toBe(false);
+    expect('debug' in registry.landingCards[1]).toBe(false);
+    expect('sample' in registry.landingCards[1]).toBe(false);
+    expect(registry.landingCards[0].type === 'test' ? registry.landingCards[0].test.meta.durationM : null).toBe(1);
+    expect(registry.landingCards[1].type === 'blog' ? registry.landingCards[1].blog.meta.sharedC : null).toBe(4);
   });
 
   it('fails registry build when seq is missing, duplicated, or non-positive', () => {
@@ -95,13 +105,11 @@ describe('landing registry and resolver contract', () => {
       tags: {en: ['valid']},
       instruction: {en: 'Valid instruction'},
       previewQuestion: {en: 'Preview'},
-      answerChoiceA: {en: 'A'},
-      answerChoiceB: {en: 'B'},
-      meta: {
-        durationM: 1,
-        sharedC: 2,
-        engagedC: 3
-      }
+      answerA: {en: 'A'},
+      answerB: {en: 'B'},
+      durationM: 1,
+      sharedC: 2,
+      engagedC: 3
     };
 
     expect(() =>
@@ -141,6 +149,8 @@ describe('landing registry and resolver contract', () => {
 
     for (const runtimeCard of registry.landingCards) {
       expect(runtimeCard).not.toHaveProperty(legacyHeroFlagKey);
+      expect(runtimeCard).not.toHaveProperty('debug');
+      expect(runtimeCard).not.toHaveProperty('sample');
     }
   });
 
@@ -185,6 +195,11 @@ describe('landing registry and resolver contract', () => {
     expect(endUserCatalog.some((card) => card.variant === 'hidden-beta')).toBe(false);
     expect(qaCatalog.some((card) => card.variant === 'debug-sample')).toBe(true);
     expect(qaCatalog.some((card) => card.variant === 'hidden-beta')).toBe(true);
+
+    for (const card of [...endUserCatalog, ...qaCatalog]) {
+      expect(card).not.toHaveProperty('debug');
+      expect(card).not.toHaveProperty('sample');
+    }
   });
 
   it('filters available cards immediately when consent switches to OPTED_OUT while keeping opt_out and unavailable cards', () => {
@@ -209,13 +224,11 @@ describe('landing registry and resolver contract', () => {
           tags: {en: ['broken']},
           instruction: {en: 'Broken'},
           previewQuestion: {en: 'Broken'},
-          answerChoiceA: {en: 'A'},
-          answerChoiceB: {en: 'B'},
-          meta: {
-            durationM: 1,
-            sharedC: 1,
-            engagedC: 1
-          },
+          answerA: {en: 'A'},
+          answerB: {en: 'B'},
+          durationM: 1,
+          sharedC: 1,
+          engagedC: 1,
           unexpectedKey: 'should-fail'
         }
       ])
@@ -231,11 +244,9 @@ describe('landing registry and resolver contract', () => {
           title: {en: 'Broken blog'},
           subtitle: {en: 'Broken subtitle'},
           tags: {en: ['broken']},
-          meta: {
-            durationM: 1,
-            sharedC: 1,
-            engagedC: 1
-          },
+          durationM: 1,
+          sharedC: 1,
+          engagedC: 1,
           [legacyBlogTextKey]: 'should-fail'
         }
       ])
@@ -251,15 +262,57 @@ describe('landing registry and resolver contract', () => {
           title: {en: 'Legacy hero flag'},
           subtitle: {en: 'Should fail closed when layout metadata leaks into fixtures.'},
           tags: {en: ['legacy']},
-          meta: {
-            durationM: 1,
-            sharedC: 1,
-            engagedC: 1
-          },
+          durationM: 1,
+          sharedC: 1,
+          engagedC: 1,
           [legacyHeroFlagKey]: true
         }
       ])
     ).toThrow();
+
+    expect(() =>
+      buildVariantRegistry([
+        {
+          seq: 1,
+          type: 'test',
+          variant: 'legacy-sample-flag',
+          attribute: 'debug',
+          title: {en: 'Legacy sample'},
+          subtitle: {en: 'Legacy sample subtitle'},
+          tags: {en: []},
+          sample: true,
+          instruction: {en: 'Legacy sample instruction'},
+          previewQuestion: {en: 'Legacy sample preview'},
+          answerA: {en: 'A'},
+          answerB: {en: 'B'},
+          durationM: 1,
+          sharedC: 1,
+          engagedC: 1
+        }
+      ])
+    ).toThrow(/unexpected key "sample"/u);
+
+    expect(() =>
+      buildVariantRegistry([
+        {
+          seq: 1,
+          type: 'test',
+          variant: 'legacy-debug-flag',
+          attribute: 'debug',
+          title: {en: 'Legacy debug'},
+          subtitle: {en: 'Legacy debug subtitle'},
+          tags: {en: []},
+          debug: true,
+          instruction: {en: 'Legacy debug instruction'},
+          previewQuestion: {en: 'Legacy debug preview'},
+          answerA: {en: 'A'},
+          answerB: {en: 'B'},
+          durationM: 1,
+          sharedC: 1,
+          engagedC: 1
+        }
+      ])
+    ).toThrow(/unexpected key "debug"/u);
   });
 
   it('looks up cards strictly by variant and preserves enterable blog order', () => {

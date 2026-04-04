@@ -120,10 +120,69 @@ if (exists('src/features/landing/grid/landing-grid-card.tsx')) {
   }
 }
 
+const attributeOnlyRegistryChecks = [
+  {
+    path: 'src/features/variant-registry/types.ts',
+    message: 'Variant registry types must not expose legacy debug/sample boolean fields.',
+    pattern: /\b(debug|sample)\??:\s*boolean\b/u
+  },
+  {
+    path: 'src/features/variant-registry/builder.ts',
+    message: 'Variant registry builder must not normalize legacy debug/sample fields.',
+    pattern: /\b(?:rawCard|sourceCard)\.(?:debug|sample)\b/u
+  },
+  {
+    path: 'src/features/variant-registry/resolvers.ts',
+    message: 'Variant registry resolvers must not expose legacy debug/sample fields.',
+    pattern: /\bcard\.(?:debug|sample)\b/u
+  },
+  {
+    path: 'src/features/variant-registry/source-fixture.ts',
+    message: 'Variant registry source fixture must not declare sample/debug boolean keys.',
+    pattern: /^\s+(?:debug|sample):/mu
+  },
+  {
+    path: 'src/features/variant-registry/source-fixture.ts',
+    message: 'Variant registry source fixture must use answerA/answerB instead of answerChoiceA/answerChoiceB.',
+    pattern: /^\s+answerChoice[AB]:/mu
+  },
+  {
+    path: 'src/features/variant-registry/source-fixture.ts',
+    message: 'Variant registry source fixture must keep duration/shared/engaged metrics at the top level instead of meta.',
+    pattern: /^\s+meta:\s*\{/mu
+  },
+  {
+    path: 'src/features/variant-registry/builder.ts',
+    message: 'Variant registry builder must read source answers from answerA/answerB instead of answerChoiceA/answerChoiceB.',
+    pattern: /\brawCard\.answerChoice[AB]\b/u
+  },
+  {
+    path: 'src/features/variant-registry/builder.ts',
+    message: 'Variant registry builder must read source metrics from top-level fields instead of rawCard.meta.',
+    pattern: /\brawCard\.meta\b/u
+  }
+];
+
+for (const check of attributeOnlyRegistryChecks) {
+  if (!exists(check.path)) {
+    continue;
+  }
+
+  const file = read(check.path);
+  if (check.pattern.test(file)) {
+    fail(check.message);
+  }
+}
+
 for (const relativePath of activeDocs) {
   if (!exists(relativePath)) {
     fail(`Missing active contract doc: ${relativePath}.`);
     continue;
+  }
+
+  const file = read(relativePath);
+  if (/debug\/sample/u.test(file)) {
+    fail(`${relativePath} must describe debug fixtures without legacy debug/sample terminology.`);
   }
 }
 

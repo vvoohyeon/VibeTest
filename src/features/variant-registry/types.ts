@@ -26,22 +26,28 @@ export interface InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge {
   answerChoiceB: LocalizedText;
 }
 
+export interface VariantRegistrySourceInlineQ1Preview {
+  previewQuestion: LocalizedText;
+  answerA: LocalizedText;
+  answerB: LocalizedText;
+}
+
 interface VariantRegistrySourceCardCommon {
   seq: number;
-  variant: string;
   type: LandingContentType;
+  variant: string;
   attribute: LandingCardAttribute;
   title: LocalizedText;
   subtitle: LocalizedText;
   tags: LocalizedStringList;
-  meta: LandingMeta;
-  debug?: boolean;
-  sample?: boolean;
+  durationM: number;
+  sharedC: number;
+  engagedC: number;
 }
 
 export interface VariantRegistrySourceTestCard
   extends VariantRegistrySourceCardCommon,
-    InlineQ1PreviewIsTemporaryUntilQuestionsQ1MigrationBridge {
+    VariantRegistrySourceInlineQ1Preview {
   type: 'test';
   instruction: LocalizedText | string;
 }
@@ -59,8 +65,6 @@ interface VariantRegistryRuntimeCardCommon {
   title: LocalizedText;
   subtitle: LocalizedText;
   tags: LocalizedStringList;
-  debug: boolean;
-  sample: boolean;
 }
 
 export interface VariantRegistryRuntimeTestCard extends VariantRegistryRuntimeCardCommon {
@@ -102,8 +106,6 @@ export interface LandingCardCommon {
   subtitle: string;
   tags: string[];
   localeResolvedText: LocaleResolvedText;
-  debug: boolean;
-  sample: boolean;
 }
 
 export interface LandingTestCard extends LandingCardCommon {
@@ -141,6 +143,5 @@ export interface FixtureContractReport {
   hasLongTokenSubtitle: boolean;
   hasLongBlogSubtitle: boolean;
   hasEmptyTags: boolean;
-  hasDebugSample: boolean;
   hasRequiredSlotOmission: boolean;
 }
