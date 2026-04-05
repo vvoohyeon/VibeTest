@@ -11,9 +11,9 @@ This product lets users take multiple kinds of short assessments (test variants/
 - Provide basic admin/ops capabilities for insight monitoring and spreadsheet sync.
 
 ### Content and localization principles
-- Test content (questions, answers, scoring mappings, and result interpretation content) is sourced from a Google Sheets–managed dataset and synchronized into the product.
+- Test content (questions, answers, landing preview inputs, and result interpretation content) is sourced from Google Sheets–managed sources and synchronized into the product.
 - UI chrome (CTA labels, navigation, system messages, and error/loading text) uses standard i18n resources.
-- Test content localization is provided by adding per-language columns in the Sheets dataset; there is no country-specific variation in questions or scoring logic.
+- Test content localization is provided by adding per-language columns in the synchronized Sheets sources; there is no country-specific variation in questions or scoring logic.
 - The active language is selected by the user and applied consistently across UI and test content.
 - The initial localized document response must expose the active language in `<html lang>` at SSR time; client-side reconciliation may only act as a fallback after navigation.
 
@@ -128,8 +128,9 @@ This product lets users take multiple kinds of short assessments (test variants/
 - **Statement:** Test completion must occur only after all questions in the selected variant are answered.
 - **Rationale:** Prevents invalid or partial result computation.
 - **Acceptance criteria:**
-  - Progress is computed from answered count versus total question count.
-  - Completion transition is blocked until all required answers exist.
+  - Progress is computed from answered count versus total canonical question count.
+  - Completion transition is blocked until all required answers exist across the full canonical question set.
+  - Result derivation may use only the scoring-question subset even when progress/completion use the full canonical question set.
 - **Confidence:** High
 
 ### REQ-F-007 — Variant-specific derivation logic (by test family)
@@ -165,6 +166,7 @@ This product lets users take multiple kinds of short assessments (test variants/
     - `scoreStats` shape (axes/metrics, ranges, units/levels if applicable),
     - derived label format (`derivedType` token length and allowed values),
     - and derivation rules linking answers → scoreStats → derivedType.
+  - Schema authoring may be code-owned canonical registry / variant-to-schema mapping rather than Sheets-authored content, so long as the runtime remains schema-driven.
   - The product validates that any computed `scoreStats` matches the declared schema before rendering or sharing.
   - Non-released or experimental schemas must not appear in the production end-user catalog (see REQ-F-001).
 - **Confidence:** High
@@ -301,6 +303,8 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
   - `session_id` is transport-patched when consent/session are available; queued pre-sync events may originate with `session_id=null` before transport patching.
   - `card_answered` MUST include `source_variant`, `target_route`, and `landing_ingress_flag=true`.
   - `attempt_start` and `final_submit` MUST include `variant`, `question_index_1based`, `dwell_ms_accumulated`, and `landing_ingress_flag`.
+  - `question_index_1based` is canonical-index based, not user-facing `Q1/Q2` based.
+  - If `question_answered` is later activated, its `questionIndex` MUST also use canonical index rather than scoring-order UI labels.
   - `final_submit` MUST include `final_responses` using semantic `A|B` codes only.
   - `transition_id`, `result_reason`, and `final_q1_response` are reserved for internal transition logic and MUST NOT appear in public telemetry payloads.
 - **Confidence:** High
@@ -347,9 +351,9 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
   - Readiness status is queryable without exposing raw secrets.
   - Trigger endpoint returns structured success/failure payload.
   - API contracts distinguish method support and error states.
-  - Sync must validate the dataset schema (required columns, allowed values, per-variant constraints such as odd question counts per axis) before activating new content.
-  - If validation fails, the system MUST not partially activate invalid content; it must surface a clear operator error and keep the last known-good dataset active.
-  - The dataset may evolve by adding new language columns. If a selected language column is missing or empty for a specific content field, the system MUST fall back to the default language content rather than failing the end-user flow.
+  - Sync must validate the synchronized source schema (required columns, allowed values, per-variant constraints such as odd question counts per axis) before activating new content.
+  - If validation fails, the system MUST not partially activate invalid content; it must surface a clear operator error and keep the last known-good synchronized sources active.
+  - The synchronized sources may evolve by adding new language columns. If a selected language column is missing or empty for a specific content field, the system MUST fall back to the default language content rather than failing the end-user flow.
 - **Confidence:** High
 
 ### REQ-F-021 — Recoverable error UX
@@ -395,11 +399,11 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Confidence:** High
 
 ### REQ-F-026 — Localization split (UI i18n vs Sheets-based content)
-- **Statement:** UI chrome strings must use standard i18n resources, while test content localization must be provided via per-language columns in the synchronized Sheets dataset.
+- **Statement:** UI chrome strings must use standard i18n resources, while test content localization must be provided via per-language columns in the synchronized Sheets sources.
 - **Rationale:** Keeps UI translation decoupled from content operations and ensures consistent content updates via Sheets.
 - **Acceptance criteria:**
   - UI CTAs/system messages are served from i18n resources.
-  - Questions/answers/result interpretation are served from the synced dataset using the user-selected language columns.
+  - Questions/answers/result interpretation are served from the synced sources using the user-selected language columns.
   - There is no country-specific branching of question sets or scoring logic.
 - **Confidence:** High
 
@@ -411,10 +415,11 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Confidence:** Medium
 
 ### REQ-F-028 — Instant-start first question contract (landing test cards)
-- **Statement:** For enterable test items entered from the landing catalog, the card back MUST present exactly two answer choices that act as the entry CTAs, and selecting one MUST both initiate entry into the test flow and commit the first answer (Q1) for that run.
+- **Statement:** For enterable test items entered from the landing catalog, the card back MUST present exactly two answer choices that act as the entry CTAs, and selecting one MUST both initiate entry into the test flow and commit the first scoring question (`first scoring question`) answer for that run.
 - **Acceptance criteria:**
   - No separate “Start test” CTA is required on the landing card once the two answer-choice CTAs are present.
-  - If an instruction step exists in the product flow, it MUST NOT invalidate or overwrite the committed Q1 answer captured at entry; the first unanswered question presented after entry MUST reflect that Q1 is already answered.
+  - If an instruction step exists in the product flow, it MUST NOT invalidate or overwrite the committed first scoring question answer captured at entry.
+  - If profile/qualifier steps exist, they MAY appear before the next runtime scoring question even though the landing CTA already committed the first scoring question.
 - **Confidence:** Medium
 
 ### REQ-F-029 — Catalog front/back title consistency
@@ -497,7 +502,7 @@ If a lower-trust global document and an active landing/test SSOT differ, the act
 - **Question:** ordered prompt with two answer options.
 - **Answer Option:** display label + dimension contribution.
 - **Session:** id, variant, status, start/last activity timestamps.
-- **Response Set:** ordered answers, progress, completion state.
+- **Response Set:** ordered answers, progress, completion state. Progress/completion use the full canonical question set; derivation uses the scoring subset.
 - **Result:** finalized `derivedType` (variant-defined label token) and `scoreStats` (schema-defined axes/metrics), with profile/content rendered from the latest mapping at view time.
 - **Share Payload:** encoded minimal result data for portable reconstruction of the full result view. URL structure: `/result/{variant}/{type}?{base64Payload}`. `variant` and `type` (derivedType token) are URL path segments. The base64 payload contains `scoreStats` and `shared` (boolean). `scoringSchemaId` is not included; `variant` serves as the sole schema identifier. Optional `nickname` may be included only when the user explicitly opts in at share time.
 - **History Entry:** a per-run record containing runId, createdAt, testVariantId, derivedType, and the stored share URL string; presentation data (variant/type) is reconstructed from the URL payload. The UI may optionally provide a grouped view keyed by (testVariantId, derivedType).

@@ -205,14 +205,14 @@ Source: `src/features/variant-registry/source-fixture.ts`
 
 Current fixture inventory:
 - 10 total cards (7 test, 3 blog)
-- Test card types: 2 `available`, 1 `opt_out`, 2 `unavailable`, 1 `hide`, 1 `debug`
-- Blog card types: 3 `available`
+- Test card attributes: 2 `available`, 1 `opt_out`, 2 `unavailable`, 1 `hide`, 1 `debug`
+- Blog card attributes: 3 `available`
 - Publicly enterable test variant ids: `qmbti`, `rhythm-b`, `energy-check`
 - Blog variants: `ops-handbook`, `build-metrics`, `release-gate`
 
 `src/features/variant-registry/attribute.ts` now owns `attribute` normalization and the helper surface that matters to the rest of the app: `deriveAvailability()`, `isEnterableCard()`, `isCatalogVisibleCard()`, and `isUnavailablePresentation()`.
 
-`src/features/variant-registry/resolvers.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, and drops `seq` from the exported runtime registry. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
+`src/features/variant-registry/resolvers.ts` centralizes locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
 
 The current builder still relies on fixture-backed localized copy and the temporary bridge where inline Q1 preview is temporary until Questions Q1 migration. That bridge is now isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly.
 
