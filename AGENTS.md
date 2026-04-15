@@ -191,6 +191,16 @@
 - `motion` 패키지는 설치되어 있지만 현재 `src` / `tests`에서 사용하지 않는다. [임시: 2026-04-15 기준]
 - Tailwind v4 패키지는 설치되어 있지만 현재 런타임 styling 중심은 `src/app/globals.css`다. [임시: 2026-04-15 기준]
 
+### UX 위험 집중 구역
+아래 파일·서브시스템은 사용성·접근성·반응성·성능·디자인 일관성에 직접 영향을 준다.
+수정 전에 Template A의 "영향 받는 범위"에 UX 영향을 명시적으로 적는다.
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — 1582줄 상태 머신. 포커스·키보드·hover 타이머·모바일 셸·리듀스드 모션 전체를 오케스트레이션한다.
+- `src/features/landing/gnb/site-gnb.tsx` — ~791줄. 키보드 탐색 순서, 포커스 반환, 테마 전환, 로케일 전환을 담당한다.
+- `src/features/landing/shell/page-shell.tsx` — 전 로케일 라우트의 공유 런타임 컨트롤러. GNB, TransitionGnbOverlay, TelemetryConsentBanner를 마운트한다.
+- `public/theme-bootstrap.js` — hydration 이전 테마 부트스트랩. 변경 시 테마 깜빡임 회귀 위험.
+- `src/features/landing/telemetry/consent-source.ts` — 동의 게이트 단일 소스. Vercel analytics와 telemetry의 공통 진입점이다.
+- `src/features/landing/transition/` — 전환 핸드셰이크와 sessionStorage 계약. 타임아웃·취소·scroll restore 시맨틱에 민감하다.
+
 ### 주석 규칙
 - 한국어 주석은 선택적으로 사용한다.
 - 허용 / 권장 대상: 비직관적 계약, 타이밍 제약, 예외 처리 이유, 브라우저 / 상태 경합
@@ -218,6 +228,7 @@
 
 영향 받는 범위:
 - [파일 또는 subsystem]
+- UX 영향: [사용성·접근성·반응성·성능·디자인 일관성 중 해당 항목, 없으면 '없음']
 ```
 
 ## 8. Template B: Implementation Plan
@@ -242,6 +253,13 @@
 영향 범위:
 - [사용자 영향 또는 계약 영향]
 
+인접 영향 검토:
+- 공유 컴포넌트 (shell, GNB): [영향 여부]
+- 로컬라이제이션 (src/messages, src/i18n): [영향 여부]
+- 접근성 (a11y-smoke 대상 여부): [영향 여부]
+- 상태 처리 (transition / telemetry / consent 계약): [영향 여부]
+- 핵심 사용자 플로우 (landing → test 진입, 동의 흐름): [영향 여부]
+
 예상 사이드 이펙트:
 - [회귀 포인트]
 
@@ -263,10 +281,14 @@
 - [변경 2]
 
 동기화한 문서:
-- [path]
+- [path 또는 해당 없음]
 
 검증 결과:
 - [실행한 명령과 결과]
+
+회귀 커버리지 확인:
+- 동작 변경 또는 버그 수정 포함 여부: [예 / 아니오]
+- 추가 또는 갱신한 테스트: [path 또는 해당 없음]
 
 baseline 부재로 생략된 검증:
 - [생략한 항목과 이유]
@@ -292,6 +314,7 @@ PR 메모:
   - `blog detail` / `subtitle continuity`: `tests/unit/blog-server-model.test.ts`, `tests/unit/landing-card-contract.test.ts`
   - `AGENTS.md`: 파일 경로, 명령어, locale set, representative anchor, baseline 상태를 현재 저장소와 다시 대조한다.
   - `AGENTS.md` 섹션 11의 갱신 트리거 항목에 해당하면 관련 계약 문서와 `AGENTS.md`를 코드와 동시에 갱신한다.
+- 동작 변경이나 버그 수정을 포함한 경우, 관련 회귀 시나리오의 테스트 커버리지가 추가 또는 갱신되었는지 확인한다.
 
 ## 11. 문서 유지보수 원칙
 - 아래 변경이 생기면 `AGENTS.md`를 함께 갱신한다.
@@ -308,7 +331,7 @@ PR 메모:
   - 골드 스탠다드 파일 교체
   - 디렉토리 책임 변경
   - 같은 실수가 코드 리뷰나 에이전트 실행에서 2회 이상 반복
-- 전역 행동 규칙은 넣지 않는다.
+- 역질문 기준, 오케스트레이션 전략, 작업 태도 규칙은 Custom Instructions에 귀속한다. 이 파일에 넣지 않는다.
 - 이 저장소에서만 필요한 사실과 명령어만 유지한다.
 - 임시 운영 상태는 날짜와 함께 적는다.
 
