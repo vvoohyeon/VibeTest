@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {useEffect} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import type {AppLocale} from '@/config/site';
 import {buildLocalizedPath} from '@/i18n/localized-path';
@@ -30,14 +30,21 @@ export function BlogDestinationClient({
   article = null
 }: BlogDestinationClientProps) {
   const pathname = usePathname();
+  const pendingTransitionToCompleteRef = useRef<string | null>(null);
+  const [destinationReadyPath, setDestinationReadyPath] = useState<string | null>(null);
 
   useEffect(() => {
     const pendingTransition = readPendingLandingTransition();
     if (!pendingTransition) {
+      pendingTransitionToCompleteRef.current = null;
+      queueMicrotask(() => {
+        setDestinationReadyPath(pathname);
+      });
       return;
     }
 
     if (pendingTransition.targetType !== 'blog' || pendingTransition.targetRoute !== pathname) {
+      pendingTransitionToCompleteRef.current = null;
       terminatePendingLandingTransition({
         signal: 'transition_fail',
         resultReason: 'DESTINATION_LOAD_ERROR'
@@ -45,16 +52,32 @@ export function BlogDestinationClient({
       return;
     }
 
+    pendingTransitionToCompleteRef.current = pendingTransition.transitionId;
+    queueMicrotask(() => {
+      setDestinationReadyPath(pathname);
+    });
+  }, [pathname]);
+
+  useEffect(() => {
+    if (destinationReadyPath !== pathname || pendingTransitionToCompleteRef.current === null) {
+      return;
+    }
+
+    const expectedTransitionId = pendingTransitionToCompleteRef.current;
     const frame = window.requestAnimationFrame(() => {
-      completePendingLandingTransition({
-        targetType: 'blog'
-      });
+        const completed = completePendingLandingTransition({
+          targetType: 'blog'
+        });
+
+        if (completed?.transitionId === expectedTransitionId) {
+          pendingTransitionToCompleteRef.current = null;
+        }
     });
 
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [pathname]);
+  }, [destinationReadyPath, pathname]);
 
   return (
     <section className="landing-shell-card blog-shell-card" data-testid="blog-shell-card">

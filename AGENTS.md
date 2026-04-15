@@ -120,8 +120,10 @@
 - test flow / domain: `npm test -- tests/unit/test-domain-variant-validation.test.ts tests/unit/test-domain-question-model.test.ts tests/unit/test-domain-derivation.test.ts tests/unit/test-domain-type-segment.test.ts tests/unit/test-entry-policy.test.ts tests/unit/test-question-bootstrap.test.ts`, `npx playwright test tests/e2e/consent-smoke.spec.ts`
 
 ### `qa:rules` 제외 메모
-- 2026-04-15 기준 현재 workspace에서는 Phase 11 PNG baseline이 비어 있어 `npm run qa:rules`가 기본 Done 항목이 아니다.
-- 확인된 결손: theme-matrix PNG baseline 168개, Safari ghosting PNG baseline 5개
+- 2026-04-16 기준 Phase 11 visual smoke baseline은 로컬 QA 자산으로 정리되었다.
+- Playwright screenshot baseline은 `tests/e2e/*-snapshots/` 아래 로컬 PNG로 저장하며, Git tracked completeness는 요구하지 않는다.
+- visual smoke helper는 missing baseline을 같은 경로에 자동 생성하고, baseline이 이미 있으면 기존 PNG와 비교한다.
+- `npm run qa:rules`는 Phase 11까지 통과하며, 현재는 `check-variant-registry-contracts.mjs`의 legacy identifier 문서 drift에서 실패한다.
 - `npm run qa:gate`는 release / flake 확인용의 무거운 파이프라인이다.
 
 ## 5. 골드 스탠다드 참조
@@ -303,7 +305,7 @@ PR 메모:
 
 ## 10. Done의 로컬 정의
 - 기본 Done 게이트 순서: **'로컬 실행 명령어'** 섹션의 기본 게이트를 따른다.
-- `qa:rules`는 기본 Done에서 제외한다. baseline이 복구되기 전에는 release-surface 참고 명령으로만 취급한다.
+- `qa:rules`는 기본 Done에서 제외한다. release-surface 전체를 보는 참고 명령으로 유지한다.
 - `qa:gate:once` / `qa:gate`는 기본 Done보다 무겁다. release 직전 또는 flake 확인이 필요할 때만 올린다.
 - 영향 범위 추가 체크:
   - `proxy` / `i18n` / `route-builder` / `localized-path`: routing / locale unit test + `tests/e2e/routing-smoke.spec.ts`

@@ -179,10 +179,33 @@
 - `Checkpoint 3`: Batch 5~6 완료 후
 - `Checkpoint 4`: Batch 7 착수 전 최종 범위 확인
 
+## 4.1 Checkpoint 2 착수 전 하드닝 메모
+
+- 2026-04-16 기준 현재 트랙은 `Checkpoint 1 구현 하드닝`과 `Checkpoint 2 착수 전 보강`만 수행한다.
+- 따라서 `Batch 3~4`의 실제 Tailwind migration 구현은 아직 시작하지 않는다.
+- 이번 트랙의 목적은 아래 3가지만 고정하는 것이다.
+  - `Checkpoint 1`에서 옮긴 shell/hero/consent surface의 계약 보존 확인
+  - `Checkpoint 2`에서 건드릴 test/GNB surface의 보호 대상 명시
+  - `Checkpoint 1·2` sign-off를 직접 흔들 수 있는 transition timing / regression gate 보강
+- 2026-04-16 구현 메모:
+  - `Checkpoint 1`에서 추가한 utility class가 DOM에는 존재하지만, `@tailwindcss/postcss` 미연결 상태라 build output에 selector가 생성되지 않는 회귀를 확인했다.
+  - 이번 hardening에서는 최소 `postcss.config.mjs`만 추가해 Batch 2 shell/hero/consent utility를 다시 활성화한다.
+  - 우측 vertical empty space의 마지막 정상 기준선은 `778dbf6f3e16f28ee34c68831b173ac86b55970b`의 “전역 gutter 예약 없음 + body canvas paint” 구조였다.
+  - 따라서 이번 fix는 `scrollbar-gutter: stable`를 유지한 채 seam을 덮는 방식이 아니라, Tailwind Checkpoint 1 변경은 보존하면서 `globals.css`의 scroll/canvas 기준선을 그 커밋 구조로 되돌리는 방식으로 정리한다.
+  - `gnb-smoke`, `consent-smoke`, `state-smoke`에 추가한 Checkpoint 1 보호 테스트는 유지하되, `state-smoke`의 root canvas 계약은 `html` paint가 아니라 `body` canvas ownership과 gutter 비예약 상태를 검증하도록 재정렬한다.
+
+## 4.2 현재 분리 추적 중인 follow-up
+
+- `registry fixture drift`는 현재 workspace에서 여전히 확인되지만, `Checkpoint 1·2` Tailwind hardening의 직접 구현 범위는 아니다.
+- `theme-matrix / Safari baseline` closure는 2026-04-16에 복구되었고, 현재는 참고 자산으로 사용할 수 있다.
+- 이 항목들은 별도 follow-up 문서에서 재현 명령과 함께 추적한다.
+- 추적 문서: [docs/checkpoint-1-2-follow-ups.md](/Users/woohyeon/Local/ViveTest/docs/checkpoint-1-2-follow-ups.md)
+- 현재 트랙에서는 해당 항목을 새 회귀와 구분해서 기록만 하고, 직접 수정 대상에 포함하지 않는다.
+
 ## 5. Batch 진행 보드
 
-- [ ] Batch 1 완료
-- [ ] Batch 2 완료
+- [x] Batch 1 완료
+- [x] Batch 2 완료
 - [ ] Batch 3 완료
 - [ ] Batch 4 완료
 - [ ] Batch 5 완료
@@ -193,7 +216,7 @@
 
 ### Batch 1 — Tailwind 진입점 검증과 `globals.css` 책임 분리
 
-- 상태: `[ ] 완료`
+- 상태: `[x] 완료`
 - 목표:
   - 현재 Next/Tailwind v4 빌드 경로를 검증한다.
   - `globals.css`를 `tokens / base / residual selector surface` 구조로 재구획한다.
@@ -208,6 +231,14 @@
   - 1차 시도는 `@import "tailwindcss"`만으로 가능한지 확인한다.
   - 이 경로가 실제 빌드에서 동작하지 않을 때만 최소 `postcss.config.*`를 도입한다.
   - `tailwind.config.*`는 content scan 또는 theme extension이 실제로 필요해질 때까지 도입하지 않는다.
+- preflight 충돌 점검 우선 대상:
+  - `a`
+  - `button`
+  - `input`
+  - `select`
+  - `textarea`
+  - `body`
+  - 위 surface는 최종 잔류 base/reset 후보로 유지한다.
 - 구현 순서:
   - 1. 현재 `globals.css` 상단에 Tailwind 진입을 붙인다.
   - 2. token/base/residual section comment를 먼저 만든다.
@@ -231,14 +262,16 @@
   - `npm run build`
 - 수동 확인:
   - `/en`, `/kr`에서 hydration 전 theme bootstrap이 정상인지 확인
+  - `/en`, `/kr`의 초기 SSR 응답에서 `html[lang]`가 locale별로 올바르게 유지되는지 확인
 - 완료 체크:
-  - [ ] Tailwind 진입 방식이 확정됐다.
-  - [ ] `globals.css`가 token/base/residual section으로 재정렬됐다.
-  - [ ] 시각 변화 없이 build가 유지됐다.
+  - [x] Tailwind 진입 방식이 확정됐다.
+  - [x] `globals.css`가 token/base/residual section으로 재정렬됐다.
+  - [x] selector 삭제 없이 section 분리만 먼저 완료됐다.
+  - [x] 시각 변화 없이 build가 유지됐다.
 
 ### Batch 2 — Shared Shell, Hero, Consent Banner의 저위험 이전
 
-- 상태: `[ ] 완료`
+- 상태: `[x] 완료`
 - 목표:
   - `page-shell`, `page-shell-main`, `landing-hero`, consent banner의 정적 layout/button surface를 Tailwind로 이전한다.
   - shared shell이 마운트하는 transition/telemetry 경계는 그대로 유지한다.
@@ -249,13 +282,16 @@
   - [src/app/[locale]/page.tsx](/Users/woohyeon/Local/ViveTest/src/app/[locale]/page.tsx:1)
   - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)
 - `globals.css` 제거 후보:
-  - `.page-shell-main`
+  - `.page-shell-main` CSS selector
   - `.landing-hero`
   - `.telemetry-consent-banner*` 중 정적 layout/button 규칙
 - TSX로 이동할 class 책임:
   - `page-shell-main` max-width / padding / responsive inset
   - hero grid / gap / heading size / body width
   - consent banner container / actions wrap / button surface
+- landmark 유지 결정:
+  - `.page-shell-main` 클래스명 자체는 유지한다.
+  - 이유: 현재 test/hook가 이 landmark를 전제로 하므로 CSS selector를 제거하더라도 DOM class hook은 유지한다.
 - 전역에 남길 class 책임:
   - `.telemetry-consent-banner-spacer`
   - `.telemetry-consent-banner-layer`
@@ -275,6 +311,7 @@
   - [src/features/landing/telemetry/consent-source.ts](/Users/woohyeon/Local/ViveTest/src/features/landing/telemetry/consent-source.ts:1)
   - `LandingRuntime`
   - blog/history/test route의 `PageShell` 마운트 순서
+  - `TransitionGnbOverlay → SiteGnb → main.page-shell-main → TelemetryConsentBanner` 순서를 고정한다.
 - 예상 회귀 포인트:
   - main top padding
   - consent spacer height
@@ -287,9 +324,10 @@
   - `npm test -- tests/unit/landing-telemetry-validation.test.ts tests/unit/landing-telemetry-runtime.test.ts tests/unit/landing-transition-store.test.ts`
   - `node scripts/qa/check-phase10-transition-contracts.mjs`
   - `node scripts/qa/check-phase11-telemetry-contracts.mjs`
-  - `npx playwright test tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts`
+  - `npx playwright test tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts tests/e2e/gnb-smoke.spec.ts`
 - 수동 확인:
   - `/en`
+  - `/kr`
   - `/en/blog`
   - `/en/blog/ops-handbook`
   - `/en/history`
@@ -298,9 +336,10 @@
   - `theme-matrix`의 `landing-normal`, `test-instruction`
   - baseline이 있는 환경이면 비차단 참고 실행
 - 완료 체크:
-  - [ ] shell/hero/consent banner 정적 스타일이 Tailwind로 이동했다.
-  - [ ] transition/telemetry contract는 변경되지 않았다.
-  - [ ] blog/history/test route에서도 shell spacing 비회귀가 확인됐다.
+  - [x] shell/hero/consent banner 정적 스타일이 Tailwind로 이동했다.
+  - [x] transition/telemetry contract는 변경되지 않았다.
+  - [x] blog/history/test route에서도 shell spacing 비회귀가 확인됐다.
+  - [x] route-local consent banner / dialog / popup은 새로 도입되지 않았다.
 
 ### Batch 3 — Test Shell, Instruction Overlay, CTA Surface 이전
 
@@ -308,6 +347,9 @@
 - 목표:
   - instruction overlay, question panel, result panel, CTA/answer button의 정적 UI를 Tailwind로 이전한다.
   - instruction overlay 계약과 ingress 분기를 유지한다.
+- 착수 전 고정 메모:
+  - `Checkpoint 2`의 실제 migration은 아직 시작하지 않았다.
+  - 이번 트랙에서는 Batch 3의 보호 대상과 검증 기준만 보강한다.
 - 수정 대상:
   - [src/features/test/instruction-overlay.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/instruction-overlay.tsx:1)
   - [src/features/test/test-question-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/test-question-client.tsx:1)
@@ -315,10 +357,16 @@
 - 범위 주의:
   - `.landing-shell-card`는 test/blog/history가 공유하므로 이 batch에서 전역 제거 대상으로 바로 다루지 않는다.
   - test-specific class만 우선 옮기고, shared shell card는 별도 후속 batch에서 정리한다.
+  - `test-shell-header`, `test-shell-stage`, `test-progress` landmark는 유지 대상으로 먼저 고정한다.
 - `globals.css` 제거 후보:
   - `.test-*` 중 정적 panel/grid/button 규칙
 - TSX에서 utility로 옮길 대상:
+  - `.test-instruction-overlay`
   - `.test-instruction-card`
+  - `.test-instruction-divider`
+  - `.test-instruction-note`
+  - `.test-shell-header`
+  - `.test-shell-stage`
   - `.test-question-panel`
   - `.test-result-panel`
   - `.test-answer-grid`
@@ -345,6 +393,9 @@
   - route-local consent banner/dialog 재도입 금지
   - `data-testid`
   - `aria-hidden`
+  - `test-progress`
+  - `test-stage`
+  - `test-instruction-overlay`
   - instruction overlay mount timing
   - entry-policy action wiring
 - 예상 회귀 포인트:
@@ -370,6 +421,9 @@
 - 목표:
   - GNB shell, desktop/mobile layout, trigger/button/chip의 정적 스타일을 Tailwind로 이전한다.
   - settings panel geometry와 theme wording 계약은 유지한다.
+- 착수 전 고정 메모:
+  - 이번 트랙에서는 Batch 4 actual migration을 시작하지 않는다.
+  - GNB surface는 validation target과 residual selector 경계만 먼저 고정한다.
 - 수정 대상:
   - [src/features/landing/gnb/site-gnb.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/gnb/site-gnb.tsx:1)
   - [src/features/landing/gnb/components/settings-controls.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/gnb/components/settings-controls.tsx:1)
@@ -820,6 +874,6 @@
 
 ## 12. 비고
 
-- 현재 workspace에서는 Phase 11 baseline 결손 때문에 `theme-matrix`, `Safari ghosting`은 기본 Done 게이트가 아니다.
+- 현재 workspace에서는 Phase 11 baseline이 복구되어 `theme-matrix`, `Safari ghosting`을 참고 자산으로 사용할 수 있다.
 - 다만 theme/GNB/landing grid 관련 batch에서는 비차단 참고 확인 대상으로 계속 유지한다.
 - 구현 중 스크립트 이름, representative anchor, baseline 상태, manifest closure가 바뀌면 이 문서와 `AGENTS.md` 및 관련 계약 문서를 같은 변경셋에서 갱신한다.

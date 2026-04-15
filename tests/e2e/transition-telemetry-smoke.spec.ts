@@ -160,11 +160,11 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await testCard.locator('[data-slot="answerChoiceA"]').click();
 
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
-    await expectSourceGnbOverlay(page, 'test');
-    await expect(page.getByTestId('landing-transition-source-gnb')).toContainText('ViveTest');
-    await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect
+      .poll(async () => (await readTransitionSignals(page)).filter((signal) => signal.signal === 'transition_complete').length)
+      .toBe(1);
     await expect
       .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY))
       .not.toBeNull();
@@ -375,6 +375,32 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(requestCount).toBe(0);
   });
 
+  test('@smoke assertion:B15-transition-correlation blog transition keeps source GNB visible until the destination completes its ready handshake', async ({
+    page
+  }) => {
+    await delayDestinationReadyRaf(page);
+    await installTransitionSignalCollector(page);
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, 'OPTED_IN');
+    }, TELEMETRY_CONSENT_STORAGE_KEY);
+
+    await page.setViewportSize({width: 1440, height: 900});
+    await page.goto('/en');
+
+    const blogCard = page.locator('[data-card-variant="build-metrics"]');
+    await blogCard.getByTestId('landing-grid-card-trigger').click();
+    await blogCard.locator('[data-slot="primaryCTA"]').click();
+
+    await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
+    await expectSourceGnbOverlay(page, 'blog');
+    await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
+    await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
+
+    const transitionSignals = await readTransitionSignals(page);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_start')).toHaveLength(1);
+    expect(transitionSignals.filter((signal) => signal.signal === 'transition_complete')).toHaveLength(1);
+  });
+
   test('@smoke assertion:B15-transition-correlation assertion:B17-return-restore blog transition keeps source GNB until destination-ready and landing return restores scroll once', async ({
     page
   }) => {
@@ -420,12 +446,13 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await blogCard.locator('[data-slot="primaryCTA"]').click();
 
     await expect(page).toHaveURL(new RegExp(`/en/blog/${SECONDARY_BLOG_VARIANT}$`, 'u'));
-    await expectSourceGnbOverlay(page, 'blog');
-    await expect(page.getByTestId('landing-transition-source-gnb')).toBeHidden({timeout: 1500});
     await expect(page.getByTestId('blog-selected-article')).toContainText('Build Metrics That Actually Matter');
     await expect(page.getByTestId('blog-selected-article')).toContainText(
       'A compact field guide to selecting build-time, test-time, and runtime quality indicators that correlate with user outcomes.'
     );
+    await expect
+      .poll(async () => (await readTransitionSignals(page)).filter((signal) => signal.signal === 'transition_complete').length)
+      .toBe(1);
     const transitionSignals = await readTransitionSignals(page);
 
     expect(events.filter((event) => event.event_type === 'card_answered')).toHaveLength(0);

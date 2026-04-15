@@ -54,7 +54,58 @@ async function expectNoLegacyInstructionUi(page: Page) {
   await expect(page.getByTestId('test-dialog-confirm-button')).toHaveCount(0);
 }
 
+async function readConsentBannerLayoutMetrics(page: Page) {
+  return page.evaluate(() => {
+    const banner = document.querySelector<HTMLElement>('[data-testid="telemetry-consent-banner"]');
+    const message = document.querySelector<HTMLElement>('.telemetry-consent-banner-message');
+    const actions = document.querySelector<HTMLElement>('.telemetry-consent-banner-actions');
+
+    if (!banner || !message || !actions) {
+      throw new Error('Expected telemetry consent banner landmarks to be present.');
+    }
+
+    const bannerStyle = getComputedStyle(banner);
+    const messageStyle = getComputedStyle(message);
+    const actionsStyle = getComputedStyle(actions);
+    const bannerRect = banner.getBoundingClientRect();
+
+    return {
+      banner: {
+        display: bannerStyle.display,
+        maxWidth: bannerStyle.maxWidth,
+        flexWrap: bannerStyle.flexWrap,
+        width: bannerRect.width
+      },
+      message: {
+        flexBasis: messageStyle.flexBasis
+      },
+      actions: {
+        display: actionsStyle.display,
+        justifyContent: actionsStyle.justifyContent
+      }
+    };
+  });
+}
+
 test.describe('Instruction consent contract smoke', () => {
+  test('@smoke landing unknown consent keeps the desktop consent banner flex and max-width contract', async ({page}) => {
+    await clearTelemetryConsent(page);
+    await page.setViewportSize({width: 1600, height: 1000});
+    await page.goto('/en');
+
+    await expect(page.getByTestId('telemetry-consent-banner')).toBeVisible();
+
+    const metrics = await readConsentBannerLayoutMetrics(page);
+
+    expect(metrics.banner.display).toBe('flex');
+    expect(metrics.banner.maxWidth).toBe('1280px');
+    expect(metrics.banner.flexWrap).toBe('nowrap');
+    expect(metrics.banner.width).toBeCloseTo(1280, 0);
+    expect(metrics.message.flexBasis).toBe('520px');
+    expect(metrics.actions.display).toBe('flex');
+    expect(metrics.actions.justifyContent).toBe('flex-end');
+  });
+
   test('@smoke assertion:B20-instruction-contract-display landing UNKNOWN available shows variant instruction with divider/note and Deny and Abandon returns home without instructionSeen', async ({
     page
   }) => {

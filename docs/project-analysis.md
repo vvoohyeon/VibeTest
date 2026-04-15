@@ -4,12 +4,13 @@
 
 This repository is a localized Next.js App Router application. Its real technical center of gravity is a landing-to-destination interaction system plus a fixture-backed, policy-driven test-entry shell, not the full assessment product described in `docs/requirements.md`. The codebase is best understood as a V1 front-end interaction prototype with mature contract coverage in landing, transition, consent, and telemetry seams, plus a separate pure test-domain foundation that is only partially wired into the user-facing runtime.
 
-**Workspace verification (2026-04-04):**
+**Workspace verification (2026-04-16):**
 
-- `npm test -- --run`: 34 unit test files / 144 tests — passes
-- `npx playwright test --grep @smoke --list`: 271 smoke tests in 9 files — listed
-- `npm run qa:rules`: fails at Phase 11 because theme-matrix and Safari ghosting PNG baselines are absent
-- Snapshot baseline status: theme-matrix and Safari ghosting PNG baselines are absent in the current workspace; only 2 `state-smoke` PNGs are present
+- `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/theme-matrix-smoke.spec.ts tests/e2e/safari-hover-ghosting.spec.ts`: 174 tests — passes
+- `node scripts/qa/check-phase11-telemetry-contracts.mjs`: passes
+- `npm run qa:rules`: Phase 11 passes, then stops at `check-variant-registry-contracts.mjs` because legacy identifiers remain in `docs/req-landing.md`, `docs/req-test-plan.md`, and `docs/requirements.md`
+- `npm test`: 34 unit test files / 145 tests, 4 known failures — `tests/unit/landing-data-contract.test.ts`, `tests/unit/landing-question-bank.test.ts`
+- Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required.
 
 **Implementation phase status (2026-04-06):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
 
@@ -313,7 +314,7 @@ Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of tru
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 
-Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces around representative routes and states. The manifest currently encodes 168 theme-matrix cases (96 layout + 72 state), and the Safari suite defines 5 WebKit-only snapshot names, but the corresponding PNG baselines are absent from the current workspace.
+Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces around representative routes and states. The manifest currently encodes 168 theme-matrix cases (96 layout + 72 state), and the Safari suite defines 5 WebKit-only snapshot names. Their corresponding PNG baselines are now present in the current workspace.
 
 ### 7.3 Custom QA Scripts (`scripts/qa/`)
 
@@ -338,7 +339,7 @@ Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces aro
 
 Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`; the remaining test-flow blockers 24~30 still mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence surfaces. The registry remains the machine-readable source for the current evidence kind and file mapping.
 
-As of 2026-04-04, `npm run qa:rules` stops at `check-phase11-telemetry-contracts.mjs` because the expected theme-matrix and Safari ghosting PNG baselines are missing from the workspace.
+As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.mjs` after baseline restoration and currently stops at `check-variant-registry-contracts.mjs` because legacy identifiers remain in `docs/req-landing.md`, `docs/req-test-plan.md`, and `docs/requirements.md`.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 

@@ -1,3 +1,6 @@
+@import "tailwindcss";
+
+/* Tokens / Theme */
 :root {
   color-scheme: light dark;
   --bg: #f5f7f7;
@@ -103,12 +106,9 @@ html[data-theme='dark'] {
   --dialog-shadow: 0 24px 54px rgb(0 0 0 / 42%);
 }
 
+/* Base / Reset */
 * {
   box-sizing: border-box;
-}
-
-html {
-  scrollbar-gutter: stable;
 }
 
 html,
@@ -141,10 +141,7 @@ a {
   text-decoration: none;
 }
 
-.page-shell {
-  min-height: 100vh;
-}
-
+/* Shared Shell Residual Selectors */
 .telemetry-consent-banner-spacer {
   flex: 0 0 auto;
 }
@@ -161,108 +158,6 @@ a {
   pointer-events: none;
 }
 
-.telemetry-consent-banner {
-  width: min(1280px, 100%);
-  border: 1px solid var(--surface-divider);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
-  box-shadow: var(--surface-shadow);
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  pointer-events: auto;
-}
-
-.telemetry-consent-banner-message {
-  flex: 1 1 520px;
-  min-width: 0;
-  margin: 0;
-  color: var(--muted-ink);
-  font-size: 0.96rem;
-}
-
-.telemetry-consent-banner-actions {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.telemetry-consent-banner-button,
-.telemetry-consent-banner-link {
-  border: 0;
-  background: transparent;
-  color: var(--text-strong);
-  font: inherit;
-}
-
-.telemetry-consent-banner-button {
-  min-height: 42px;
-  border: 1px solid var(--interactive-neutral-border);
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 600;
-  padding: 10px 14px;
-  transition:
-    border-color 140ms ease,
-    background-color 140ms ease,
-    box-shadow 140ms ease,
-    color 140ms ease;
-}
-
-.telemetry-consent-banner-button-accent {
-  border-color: var(--interactive-accent-border);
-  background: var(--interactive-accent-bg);
-  box-shadow: var(--interactive-accent-shadow);
-}
-
-.telemetry-consent-banner-button-accent:hover {
-  border-color: var(--interactive-accent-border-strong);
-  background: var(--interactive-accent-bg-hover);
-}
-
-.telemetry-consent-banner-button-accent:active {
-  background: var(--interactive-accent-bg-pressed);
-}
-
-.telemetry-consent-banner-button-neutral {
-  background: var(--interactive-neutral-bg);
-}
-
-.telemetry-consent-banner-button-neutral:hover {
-  border-color: var(--interactive-neutral-border-strong);
-  background: var(--interactive-neutral-bg-hover);
-}
-
-.telemetry-consent-banner-button-neutral:active {
-  background: var(--interactive-neutral-bg-pressed);
-}
-
-.telemetry-consent-banner-button:focus-visible,
-.telemetry-consent-banner-link:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--focus-ring-inner),
-    0 0 0 4px var(--focus-ring-outer);
-}
-
-.telemetry-consent-banner-link {
-  color: var(--muted-ink);
-  cursor: pointer;
-  padding: 8px 2px;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.18em;
-}
-
-.telemetry-consent-banner-link:hover {
-  color: var(--text-strong);
-}
-
 .landing-transition-source-gnb {
   position: fixed;
   inset: 0 0 auto;
@@ -270,61 +165,7 @@ a {
   pointer-events: none;
 }
 
-.page-shell-main {
-  max-width: 1280px;
-  margin-inline: auto;
-  padding: 80px 16px 24px;
-}
-
-@media (width >= 768px) {
-  .page-shell-main {
-    padding: 88px 24px 32px;
-  }
-}
-
-@media (width >= 768px) and (width <= 899px) {
-  .page-shell-main {
-    padding-inline: 20px;
-  }
-}
-
-@media (width < 720px) {
-  .telemetry-consent-banner {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 14px;
-    padding: 14px;
-  }
-
-  .telemetry-consent-banner-message,
-  .telemetry-consent-banner-actions {
-    flex-basis: 100%;
-  }
-
-  .telemetry-consent-banner-actions {
-    justify-content: flex-start;
-  }
-}
-
-.landing-hero {
-  display: grid;
-  gap: 12px;
-  padding: 20px 0 16px;
-}
-
-.landing-hero h1 {
-  margin: 0;
-  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.landing-hero p {
-  max-width: 70ch;
-  margin: 0;
-  color: var(--muted-ink);
-}
-
+/* Landing Grid Residual Selectors */
 .landing-grid-shell {
   position: relative;
   padding-bottom: 20px;

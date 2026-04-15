@@ -33,19 +33,18 @@
 npm test -- tests/unit/landing-data-contract.test.ts tests/unit/landing-question-bank.test.ts
 ```
 
-## 2. Theme Matrix / Safari Baseline 부재
+## 2. Theme Matrix / Safari Baseline Closure
 
-### 현재 증상
+### 해결 상태
 
-- `node scripts/qa/check-phase11-telemetry-contracts.mjs`가 PNG baseline 부재로 실패한다.
-- 확인된 범주:
-  - theme-matrix PNG baseline 168개 부재
-  - Safari ghosting PNG baseline 5개 부재
+- 2026-04-16 기준 `theme-matrix` PNG baseline 168개와 Safari ghosting PNG baseline 5개가 복구되었다.
+- `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/theme-matrix-smoke.spec.ts tests/e2e/safari-hover-ghosting.spec.ts`가 PASS한다.
+- `node scripts/qa/check-phase11-telemetry-contracts.mjs`가 PASS한다.
 
-### Checkpoint 1·2와 분리하는 이유
+### 기록 유지 이유
 
-- 이 항목은 visual asset closure 문제다.
-- 현재 hardening 트랙은 runtime contract와 transition timing 안정화가 목적이며, baseline 생성/복구는 별도 screenshot session이 더 적합하다.
+- 이 항목은 해결되었지만, 이후 fixture/runtime drift 또는 visual 변경으로 baseline 재생성이 다시 필요해질 수 있다.
+- 따라서 해결 시점과 검증 명령만 남기고, 활성 follow-up 목록에서는 제외한다.
 
 ### 최소 재현 명령
 
@@ -55,5 +54,5 @@ node scripts/qa/check-phase11-telemetry-contracts.mjs
 
 ## 3. 운영 메모
 
-- `Checkpoint 1·2` 트랙에서는 위 항목을 "새 회귀 없음" 기준으로만 감시한다.
-- 다음 세션에서 이 문서를 시작점으로 삼아 `registry drift`와 `baseline closure`를 별도 작업으로 분리한다.
+- `Checkpoint 1·2` 트랙에서는 baseline closure를 solved 상태로 유지하고, 새 회귀 여부만 감시한다.
+- 다음 세션에서는 이 문서를 시작점으로 삼아 `registry drift`를 별도 작업으로 분리한다.

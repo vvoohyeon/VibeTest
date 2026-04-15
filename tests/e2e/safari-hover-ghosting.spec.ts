@@ -1,7 +1,8 @@
-import {expect, test, type Locator, type Page} from '@playwright/test';
+import {expect, test, type Locator, type Page, type TestInfo} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
+import {expectBufferToMatchLocalSnapshot} from './helpers/local-snapshot';
 
 const DESKTOP_VIEWPORT = {width: 1440, height: 980} as const;
 const STAGE_SHADOW_BLEED_X_PX = 72;
@@ -166,12 +167,13 @@ async function expectSteadyExpandedShadowSnapshot(input: {
   page: Page;
   card: Locator;
   snapshotName: string;
+  testInfo: TestInfo;
 }) {
   const settledBox = await settleDesktopExpandedCard(input.page, input.card);
   const screenshot = await input.page.screenshot({
     clip: buildStageClip(settledBox)
   });
-  expect(screenshot).toMatchSnapshot(input.snapshotName);
+  await expectBufferToMatchLocalSnapshot(screenshot, input.snapshotName, input.testInfo);
 }
 
 async function readDesktopExpandedOverlayMetrics(card: Locator) {
@@ -230,7 +232,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     await page.goto('/en');
   });
 
-  test('@smoke row1 same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}) => {
+  test('@smoke row1 same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}, testInfo) => {
     const firstCard = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     const firstCardBox = await runHoverOutCollapseCycles({
       page,
@@ -245,10 +247,10 @@ test.describe('Safari hover-out ghosting regression', () => {
     const screenshot = await page.screenshot({
       clip: buildStageClip(firstCardBox)
     });
-    expect(screenshot).toMatchSnapshot('hover-out-row1-settled.png');
+    await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-row1-settled.png', testInfo);
   });
 
-  test('@smoke lower-row same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}) => {
+  test('@smoke lower-row same-card hover-out collapse keeps cleanup-pending bounded to the desktop stage', async ({page}, testInfo) => {
     const lowerRowCard = page.locator('[data-card-variant="build-metrics"]');
     const lowerRowCardBox = await runHoverOutCollapseCycles({
       page,
@@ -263,7 +265,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     const screenshot = await page.screenshot({
       clip: buildStageClip(lowerRowCardBox)
     });
-    expect(screenshot).toMatchSnapshot('hover-out-lower-row-settled.png');
+    await expectBufferToMatchLocalSnapshot(screenshot, 'hover-out-lower-row-settled.png', testInfo);
   });
 
   test('@smoke row1 handoff source skips close and cleanup phases', async ({page}) => {
@@ -280,7 +282,7 @@ test.describe('Safari hover-out ghosting regression', () => {
     await expect(secondCard).toHaveAttribute('data-card-state', 'expanded');
   });
 
-  test('@smoke row1 steady expanded short card stays content-fit without leaking the in-flow shell', async ({page}) => {
+  test('@smoke row1 steady expanded short card stays content-fit without leaking the in-flow shell', async ({page}, testInfo) => {
     const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
     await settleDesktopExpandedCard(page, card);
     const overlayMetrics = await readDesktopExpandedOverlayMetrics(card);
@@ -292,21 +294,23 @@ test.describe('Safari hover-out ghosting regression', () => {
     await expectSteadyExpandedShadowSnapshot({
       page,
       card,
-      snapshotName: 'steady-row1-short-expanded-content-fit.png'
+      snapshotName: 'steady-row1-short-expanded-content-fit.png',
+      testInfo
     });
   });
 
-  test('@smoke lower-row steady expanded shadow keeps a full envelope', async ({page}) => {
+  test('@smoke lower-row steady expanded shadow keeps a full envelope', async ({page}, testInfo) => {
     await expectSteadyExpandedShadowSnapshot({
       page,
       card: page.locator('[data-card-variant="build-metrics"]'),
-      snapshotName: 'steady-lower-row-expanded-shadow.png'
+      snapshotName: 'steady-lower-row-expanded-shadow.png',
+      testInfo
     });
   });
 
   test('@smoke desktop settings panel removes the top seam without shifting the current theme button', async ({
     page
-  }) => {
+  }, testInfo) => {
     const {trigger, panel} = await openDesktopSettingsPanel(page);
     const currentButton = page.getByTestId('desktop-gnb-theme-controls').locator('button[disabled]');
 
@@ -346,6 +350,6 @@ test.describe('Safari hover-out ghosting regression', () => {
     const screenshot = await page.screenshot({
       clip: buildSettingsPanelClip(panelBox!)
     });
-    expect(screenshot).toMatchSnapshot('settings-panel-top-seam-free.png');
+    await expectBufferToMatchLocalSnapshot(screenshot, 'settings-panel-top-seam-free.png', testInfo);
   });
 });
