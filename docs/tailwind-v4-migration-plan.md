@@ -12,8 +12,9 @@
 ## 2. 현재 기준 검증 사실
 
 - `tailwindcss@4.1.0`, `@tailwindcss/postcss@4.1.0`는 설치되어 있다.
-- 현재 저장소에는 `postcss.config.*`, `tailwind.config.*`, `@import "tailwindcss"`가 없다.
-- 현재 스타일 중심은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)이며 총 `2288`줄이다.
+- [postcss.config.mjs](/Users/woohyeon/Local/ViveTest/postcss.config.mjs:1)가 존재하며 `@tailwindcss/postcss`를 연결한다.
+- [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) 첫 줄에는 `@import "tailwindcss";`가 있다. 현재도 `tailwind.config.*`는 없다.
+- 현재 스타일 중심은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)이며 총 `1395`줄이다.
 - [src/app/layout.tsx](/Users/woohyeon/Local/ViveTest/src/app/layout.tsx:1)는 전역 CSS를 `import './globals.css'`로 로드하고, `beforeInteractive`로 [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)를 주입한다.
 - [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)는 hydration 이전에 `vivetest-theme`를 읽어 `documentElement.dataset.theme`를 설정한다.
 - [src/features/landing/shell/page-shell.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/shell/page-shell.tsx:1)는 모든 localized route에 공통으로 `TransitionGnbOverlay`, `SiteGnb`, `main.page-shell-main`, `TelemetryConsentBanner`를 마운트한다.
@@ -24,29 +25,31 @@
 - representative anchor SSOT는 [tests/e2e/helpers/landing-fixture.ts](/Users/woohyeon/Local/ViveTest/tests/e2e/helpers/landing-fixture.ts:1)의 `qmbti`, `energy-check`, `ops-handbook`이다.
 - theme-matrix closure SSOT는 [tests/e2e/theme-matrix-manifest.json](/Users/woohyeon/Local/ViveTest/tests/e2e/theme-matrix-manifest.json:1)이다.
 - `Language ⋅ Theme` wording family는 `src/messages/*.json`과 GNB smoke에서 이미 고정돼 있다.
+- [tests/e2e/routing-smoke.spec.ts](/Users/woohyeon/Local/ViveTest/tests/e2e/routing-smoke.spec.ts:1)는 blog index/detail 분리, invalid/non-enterable blog redirect, segment/global not-found 분리를 이미 검증한다.
 - `npm run build`는 2026-04-16 기준 현재 workspace에서 GREEN이다.
 
 ## 2.1 현재 `globals.css` 소유 구간 맵
 
 | 대략 구간 | 현재 소유 surface | 핵심 내용 | 주 담당 batch |
 |---|---|---|---|
-| 1~112 | token/theme | `:root`, `html[data-theme='dark']`, color/system token | Batch 1, Batch 7 |
-| 113~147 | base | `body`, font, anchor, form font inherit | Batch 1, Batch 7 |
-| 148~304 | consent/shell 공통 | consent banner, `page-shell-main`, hero spacing | Batch 2 |
-| 328~1528 | landing grid/card | grid, card shell, state selector, reduced-motion, keyframes, unavailable overlay, mobile transient shell | Batch 5~6, Batch 7 |
-| 1538~1788 | shared shell/test/blog | `.landing-shell-card`, `.test-*`, `.blog-*`, mobile instruction override | Batch 3, Batch 7 |
-| 1802~2244 | GNB/theme | sticky shell, desktop/mobile layout, settings geometry, chips, mobile panel | Batch 4, Batch 7 |
-| 2245~끝 | not-found/placeholder | `.nf-shell`, `.placeholder-shell` | Batch 7 |
+| 1~107 | token/theme | `:root`, `html[data-theme='dark']`, color/system token | Batch 1, Batch 7 |
+| 109~142 | base/reset | `body`, font, anchor, form font inherit | Batch 1, Batch 7 |
+| 144~166 | consent/transition global residual | consent banner layer/spacer, transition source | Batch 2 |
+| 168~1105 | landing grid/card | grid, card shell, state selector, reduced-motion, keyframes, unavailable overlay, mobile transient shell | Batch 5~6, Batch 7 |
+| 1107~1231 | shared shell/test/blog | `.landing-shell-card`, `.test-*`, `.blog-*` | Batch 3, Batch 7 |
+| 1233~1377 | GNB/theme | sticky shell, settings geometry, chips, mobile panel | Batch 4, Batch 7 |
+| 1379~끝 | not-found/placeholder | `.nf-shell`, `.placeholder-shell` | Batch 7 |
 
 ## 2.2 코드베이스 재검토 없이 착수하기 위한 핵심 앵커
 
 ### Tailwind 진입
 
-- 현재 repo에는 Tailwind 패키지만 있고 실제 진입점은 없다.
-- 따라서 구현 시작 시 `tailwind` 문법을 바로 TSX에 쓰기 전에 `globals.css`에 Tailwind 진입을 연결해야 한다.
-- 첫 시도는 `@import "tailwindcss"`만으로 한다.
-- 이 방식이 실제 build에서 실패하거나 utility가 해석되지 않을 때만 최소 `postcss.config.*`를 추가한다.
+- Tailwind 진입은 이미 연결되어 있다.
+  - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)의 `@import "tailwindcss";`
+  - [postcss.config.mjs](/Users/woohyeon/Local/ViveTest/postcss.config.mjs:1)의 `@tailwindcss/postcss`
+- 따라서 Batch 7은 Tailwind build path를 새로 여는 batch가 아니라, 이미 연결된 진입점을 유지하면서 residual/static surface를 줄이는 batch다.
 - `tailwind.config.*`는 content scan 또는 theme extension이 실제로 필요해질 때까지 도입하지 않는다.
+- 진입 방식 회귀가 의심될 때만 build output에서 utility selector 생성 여부를 다시 확인한다.
 
 ### Theme/bootstrap 경계
 
@@ -157,6 +160,8 @@
 ### Shared shell/blog/not-found 경계
 
 - `.landing-shell-card`는 현재 test/blog/history가 공유한다.
+- Batch 7에서 `.landing-shell-card`를 제거하거나 축소할 때는 [src/features/test/test-question-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/test-question-client.tsx:361), [src/features/landing/blog/blog-destination-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/blog/blog-destination-client.tsx:83), [src/app/[locale]/history/page.tsx](/Users/woohyeon/Local/ViveTest/src/app/[locale]/history/page.tsx:23)의 local shell ownership을 같은 batch 안에서 닫아야 한다.
+- 특히 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1107)의 `.landing-shell-card h1/h2/p` reset과 muted paragraph rule을 globals에서 제거하려면, 위 consumer들이 spacing/text tone을 직접 소유해야 한다.
 - `.blog-*`, `.nf-shell`, `.placeholder-shell`은 1차 migration 핵심 경로는 아니지만 최종 Tailwind 정리에 포함돼야 한다.
 - 따라서 이들은 Batch 7의 explicit cleanup 대상으로 관리한다.
 
@@ -179,20 +184,18 @@
 - `Checkpoint 3`: Batch 5~6 완료 후
 - `Checkpoint 4`: Batch 7 착수 전 최종 범위 확인
 
-## 4.1 Checkpoint 2 착수 전 하드닝 메모
+## 4.1 Checkpoint 2 상태 동기화 메모
 
-- 2026-04-16 기준 현재 트랙은 `Checkpoint 1 구현 하드닝`과 `Checkpoint 2 착수 전 보강`만 수행한다.
-- 따라서 `Batch 3~4`의 실제 Tailwind migration 구현은 아직 시작하지 않는다.
-- 이번 트랙의 목적은 아래 3가지만 고정하는 것이다.
+- 2026-04-16 기준 현재 codebase에는 `Checkpoint 1` hardening 이후 `Batch 3~4` utility migration도 이미 반영되어 있다.
+- 이번 sync의 목적은 아래 3가지를 현재 코드 기준으로 다시 고정하는 것이다.
   - `Checkpoint 1`에서 옮긴 shell/hero/consent surface의 계약 보존 확인
-  - `Checkpoint 2`에서 건드릴 test/GNB surface의 보호 대상 명시
-  - `Checkpoint 1·2` sign-off를 직접 흔들 수 있는 transition timing / regression gate 보강
+  - `Checkpoint 2`의 test/GNB utility migration 실반영 상태를 문서에 동기화
+  - `Checkpoint 1·2` sign-off를 직접 흔들 수 있는 transition timing / regression gate를 유지
 - 2026-04-16 구현 메모:
-  - `Checkpoint 1`에서 추가한 utility class가 DOM에는 존재하지만, `@tailwindcss/postcss` 미연결 상태라 build output에 selector가 생성되지 않는 회귀를 확인했다.
-  - 이번 hardening에서는 최소 `postcss.config.mjs`만 추가해 Batch 2 shell/hero/consent utility를 다시 활성화한다.
+  - `Checkpoint 1`에서 추가한 utility class가 DOM에는 존재하지만, `@tailwindcss/postcss` 미연결 상태라 build output에 selector가 생성되지 않는 회귀를 확인했고, 최소 `postcss.config.mjs` 연결로 복구했다.
   - 우측 vertical empty space의 마지막 정상 기준선은 `778dbf6f3e16f28ee34c68831b173ac86b55970b`의 “전역 gutter 예약 없음 + body canvas paint” 구조였다.
-  - 따라서 이번 fix는 `scrollbar-gutter: stable`를 유지한 채 seam을 덮는 방식이 아니라, Tailwind Checkpoint 1 변경은 보존하면서 `globals.css`의 scroll/canvas 기준선을 그 커밋 구조로 되돌리는 방식으로 정리한다.
-  - `gnb-smoke`, `consent-smoke`, `state-smoke`에 추가한 Checkpoint 1 보호 테스트는 유지하되, `state-smoke`의 root canvas 계약은 `html` paint가 아니라 `body` canvas ownership과 gutter 비예약 상태를 검증하도록 재정렬한다.
+  - 따라서 fix는 `scrollbar-gutter: stable` 위 seam 덮기가 아니라, Tailwind Checkpoint 1 변경은 보존하면서 `globals.css`의 scroll/canvas 기준선을 그 커밋 구조로 되돌리는 방식으로 정리했다.
+  - `gnb-smoke`, `consent-smoke`, `state-smoke`에 추가한 Checkpoint 1 보호 테스트는 유지하고, `state-smoke`의 root canvas 계약은 `html` paint가 아니라 `body` canvas ownership과 gutter 비예약 상태를 검증하도록 재정렬했다.
 
 ## 4.2 현재 분리 추적 중인 follow-up
 
@@ -206,11 +209,20 @@
 
 - [x] Batch 1 완료
 - [x] Batch 2 완료
-- [ ] Batch 3 완료
-- [ ] Batch 4 완료
-- [ ] Batch 5 완료
+- [x] Batch 3 완료
+- [x] Batch 4 완료
+- [x] Batch 5 완료
 - [ ] Batch 6 완료
 - [ ] Batch 7 완료
+
+## 5.1 Checkpoint 4 재감사 메모
+
+- 2026-04-16 재검토 기준 `Batch 6 완료` 보드는 reopened 상태로 되돌린다.
+- 근거:
+  - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:246)의 `.landing-grid-card-trigger` base layout이 아직 글로벌에 남아 있다.
+  - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:182)의 `.landing-grid-card` base/static shell도 아직 일부 글로벌에 남아 있다.
+  - 본문 [Batch 6] 섹션의 완료 체크가 여전히 미체크 상태다.
+- 따라서 `Batch 7`은 최종 cleanup batch이지만, 착수 전 전제는 "reopened Batch 6 sign-off를 먼저 닫는다"로 고정한다.
 
 ## 6. Batch 상세 계획
 
@@ -224,9 +236,9 @@
 - 수정 대상:
   - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)
   - 필요 시에만 `postcss.config.*`
-- 현재 관찰된 사실:
-  - Tailwind 패키지는 설치되어 있으나 실제 import/config 진입점은 아직 없다.
-  - 따라서 이 batch의 핵심 의사결정은 "설치 여부 확인"이 아니라 "최소 진입점을 어떤 방식으로 연결할지 확정"이다.
+- Batch 1 착수 시 관찰된 사실:
+  - Tailwind 패키지는 설치되어 있었지만, 당시에는 실제 import/config 진입점이 없었다.
+  - 따라서 이 batch의 핵심 의사결정은 "설치 여부 확인"이 아니라 "최소 진입점을 어떤 방식으로 연결할지 확정"이었다.
 - 권장 접근:
   - 1차 시도는 `@import "tailwindcss"`만으로 가능한지 확인한다.
   - 이 경로가 실제 빌드에서 동작하지 않을 때만 최소 `postcss.config.*`를 도입한다.
@@ -343,13 +355,14 @@
 
 ### Batch 3 — Test Shell, Instruction Overlay, CTA Surface 이전
 
-- 상태: `[ ] 완료`
+- 상태: `[x] 완료`
+- 2026-04-16 구현 메모:
+  - `InstructionOverlay`와 `TestQuestionClient`의 instruction card, question/result panel, button/grid/action row static surface는 TSX utility class로 이동했다.
+  - `.landing-shell-card` 공유 범위는 유지하고, selected/hover/focus/disabled 상태는 기존 `.test-*` 글로벌 selector에 남겨 Batch 7 cleanup 대상으로 분리했다.
+  - 이번 sync에서 `test-instruction-note` 색상 토큰 drift를 `var(--muted-ink)` 기준으로 정리하고, `test-shell-header`, `test-shell-stage`, `test-nav-row`, `test-result-actions` landmark의 utility ownership을 명시했다.
 - 목표:
   - instruction overlay, question panel, result panel, CTA/answer button의 정적 UI를 Tailwind로 이전한다.
   - instruction overlay 계약과 ingress 분기를 유지한다.
-- 착수 전 고정 메모:
-  - `Checkpoint 2`의 실제 migration은 아직 시작하지 않았다.
-  - 이번 트랙에서는 Batch 3의 보호 대상과 검증 기준만 보강한다.
 - 수정 대상:
   - [src/features/test/instruction-overlay.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/instruction-overlay.tsx:1)
   - [src/features/test/test-question-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/test-question-client.tsx:1)
@@ -411,19 +424,20 @@
 - 참고 확인:
   - `qmbti`, `energy-check` 기준 `test-instruction`, `test-question`, `test-result`
 - 완료 체크:
-  - [ ] test panel/button 정적 스타일이 Tailwind로 이동했다.
-  - [ ] instruction contract와 CTA branch가 유지됐다.
-  - [ ] mobile overlay full-screen layout이 비회귀다.
+  - [x] test panel/button 정적 스타일이 Tailwind로 이동했다.
+  - [x] instruction contract와 CTA branch가 유지됐다.
+  - [x] mobile overlay full-screen layout이 비회귀다.
 
 ### Batch 4 — GNB와 Theme Surface의 정적 이전
 
-- 상태: `[ ] 완료`
+- 상태: `[x] 완료`
+- 2026-04-16 구현 메모:
+  - `site-gnb.tsx`와 `settings-controls.tsx`에서 header/inner/column/link/trigger/back/menu/chip base style이 utility constant로 이동했다.
+  - `globals.css`에는 elevated state, settings panel geometry, chip state variable, mobile closing selector만 residual surface로 남겨 Checkpoint 2 경계를 고정했다.
+  - `Language ⋅ Theme` wording, theme preview chip surface, desktop/mobile focus choreography 계약은 그대로 유지한다.
 - 목표:
   - GNB shell, desktop/mobile layout, trigger/button/chip의 정적 스타일을 Tailwind로 이전한다.
   - settings panel geometry와 theme wording 계약은 유지한다.
-- 착수 전 고정 메모:
-  - 이번 트랙에서는 Batch 4 actual migration을 시작하지 않는다.
-  - GNB surface는 validation target과 residual selector 경계만 먼저 고정한다.
 - 수정 대상:
   - [src/features/landing/gnb/site-gnb.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/gnb/site-gnb.tsx:1)
   - [src/features/landing/gnb/components/settings-controls.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/gnb/components/settings-controls.tsx:1)
@@ -502,13 +516,16 @@
   - `mobile-history-menu-open`
   - Safari ghosting의 settings panel 대표 상태
 - 완료 체크:
-  - [ ] GNB 정적 surface가 Tailwind로 이동했다.
-  - [ ] theme wording과 theme preview surface contract가 유지됐다.
-  - [ ] desktop/mobile menu/settings geometry 비회귀가 확인됐다.
+  - [x] GNB 정적 surface가 Tailwind로 이동했다.
+  - [x] theme wording과 theme preview surface contract가 유지됐다.
+  - [x] desktop/mobile menu/settings geometry 비회귀가 확인됐다.
 
 ### Batch 5 — Landing Grid 잔류 CSS 후보 분리
 
-- 상태: `[ ] 완료`
+- 상태: `[x] 완료`
+- 2026-04-16 구현 메모:
+  - `globals.css`의 landing grid/card 구간을 `Landing Grid Static Surface`와 `Landing Grid Residual Selectors` comment block으로 재분류했다.
+  - Batch 6 이동 후보는 shell/layout/title/subtitle/tags/preview/meta/CTA base 쪽으로 고정하고, stage geometry, unavailable overlay, keyframes, reduced-motion, text probe는 global residual로 유지했다.
 - 목표:
   - 본격 이전 전, landing grid/card CSS를 `Tailwind로 이동할 정적 규칙`과 `globals.css에 잔류할 상태 규칙`으로 분리한다.
 - 수정 대상:
@@ -557,9 +574,9 @@
   - `landing-blog-expanded`
   - Safari ghosting representative landing state
 - 완료 체크:
-  - [ ] 정적 규칙과 residual selector가 명시적으로 분리됐다.
-  - [ ] reduced-motion / focus / Safari workaround 후보가 고정됐다.
-  - [ ] 다음 batch의 이동 범위가 class/selector 단위로 명확해졌다.
+  - [x] 정적 규칙과 residual selector가 명시적으로 분리됐다.
+  - [x] reduced-motion / focus / Safari workaround 후보가 고정됐다.
+  - [x] 다음 batch의 이동 범위가 class/selector 단위로 명확해졌다.
 
 ### Batch 6 — Landing Grid/Card의 저위험 정적 스타일 이전
 
@@ -630,6 +647,9 @@
   - meta truncation
   - expanded width contract
   - hover/focus visual continuity
+- Checkpoint 4 재감사 기준 잔여 확인:
+  - `.landing-grid-card-trigger` base layout이 아직 globals에 남아 있다.
+  - `.landing-grid-card` normal static shell의 일부 ownership이 아직 TSX / globals 사이에 분산돼 있다.
 - 실행 순서:
   - 1. container/row/card base layout utility 이동
   - 2. normal content slot utility 이동
@@ -668,6 +688,7 @@
 - 수정 대상:
   - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)
   - 직전 batch에서 수정한 component 파일들
+  - [src/features/test/test-question-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/test/test-question-client.tsx:1)
   - [src/features/landing/blog/blog-destination-client.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/blog/blog-destination-client.tsx:1)
   - [src/app/[locale]/history/page.tsx](/Users/woohyeon/Local/ViveTest/src/app/[locale]/history/page.tsx:1)
   - [src/app/not-found.tsx](/Users/woohyeon/Local/ViveTest/src/app/not-found.tsx:1)
@@ -683,12 +704,13 @@
   - Safari workaround
 - Batch 7에서 함께 정리할 비핵심 static surface:
   - `.landing-shell-card`
+  - `.landing-shell-card h1/h2/p` reset + muted paragraph rule
   - `.blog-*`
   - `.nf-shell`
   - `.placeholder-shell`
 - 실행 순서:
   - 1. 이전 batch에서 남긴 static selector 잔여분 제거
-  - 2. shared shell/blog/not-found static utility 이동
+  - 2. shared shell/test/blog/history/not-found static utility 이동
   - 3. `globals.css`를 token/base/residual selector 전용으로 재정렬
   - 4. 문서 동기화 필요 여부 확인
 - 문서 동기화 규칙:
@@ -710,7 +732,10 @@
   - `node scripts/qa/check-phase10-transition-contracts.mjs`
   - `node scripts/qa/check-phase11-telemetry-contracts.mjs`
   - `npm test -- tests/unit/landing-telemetry-validation.test.ts tests/unit/landing-telemetry-runtime.test.ts tests/unit/landing-transition-store.test.ts tests/unit/test-entry-policy.test.ts tests/unit/test-question-bootstrap.test.ts`
-  - `npx playwright test tests/e2e/grid-smoke.spec.ts tests/e2e/state-smoke.spec.ts tests/e2e/gnb-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts`
+  - `npx playwright test tests/e2e/grid-smoke.spec.ts tests/e2e/state-smoke.spec.ts tests/e2e/gnb-smoke.spec.ts tests/e2e/a11y-smoke.spec.ts tests/e2e/consent-smoke.spec.ts tests/e2e/transition-telemetry-smoke.spec.ts tests/e2e/routing-smoke.spec.ts`
+- 알려진 병행 blocker:
+  - `registry fixture drift`는 [docs/checkpoint-1-2-follow-ups.md](/Users/woohyeon/Local/ViveTest/docs/checkpoint-1-2-follow-ups.md:12)에 별도 추적 중이다.
+  - 따라서 Batch 7 구현에서는 full `npm test` 결과를 이 pre-existing baseline과 비교해 신규 Tailwind regression과 분리 기록한다. drift fix는 이 batch에 섞지 않는다.
 - 비차단 참고 확인:
   - theme-matrix
   - Safari ghosting
@@ -857,20 +882,23 @@
 
 ## 10. 다음 세션 착수 체크리스트
 
-- [ ] Batch 1 범위만 먼저 열고 Tailwind 진입을 확정한다.
-- [ ] `globals.css` section 분리 전에는 selector 삭제를 하지 않는다.
-- [ ] Batch 2부터 route 공통 shell 영향 범위를 함께 검증한다.
-- [ ] Batch 3에서는 `.landing-shell-card` 공유 범위를 건드리지 않고 test 전용 class만 우선 이동한다.
-- [ ] Batch 4에서는 settings panel geometry를 전역 유지 상태로 먼저 둔다.
-- [ ] Batch 5에서 residual/static 분리 없이 Batch 6으로 바로 가지 않는다.
+- [x] Batch 1 범위만 먼저 열고 Tailwind 진입을 확정했다.
+- [x] `globals.css` section 분리 전에는 selector 삭제를 하지 않았다.
+- [x] Batch 2부터 route 공통 shell 영향 범위를 함께 검증했다.
+- [x] Batch 3에서는 `.landing-shell-card` 공유 범위를 건드리지 않고 test 전용 class를 먼저 이동했다.
+- [x] Batch 4에서는 settings panel geometry를 전역 유지 상태로 먼저 두었다.
+- [x] Batch 5에서 residual/static 분리를 먼저 마쳤다.
+- [x] Batch 7 scope에 `src/features/test/test-question-client.tsx`와 shared shell consumer 정리를 다시 포함했다.
+- [x] Batch 7 검증 계획에 `tests/e2e/routing-smoke.spec.ts`를 다시 포함했다.
 
 ## 11. 다음 세션 착수 권장 순서
 
-- 첫 구현 세션은 `Batch 1~2`를 한 묶음으로 진행한다.
-- 이때 첫 번째 구현 전 확인 항목은 아래 3개다.
-- [ ] Tailwind 진입 방식이 `@import "tailwindcss"`만으로 가능한지 확인한다.
-- [ ] `globals.css` residual selector 후보를 먼저 라벨링한다.
-- [ ] shell/consent surface에서 route 공통 영향 범위를 다시 확인한다.
+- 다음 구현 세션은 reopened `Batch 6` 잔여 정적 surface sign-off를 먼저 닫고, 그 다음 `Batch 7` cleanup을 연다.
+- `Batch 7` 착수 전 확인 항목은 아래 4개다.
+- [x] Tailwind 진입 방식은 `@import "tailwindcss"` + `postcss.config.mjs` 기준으로 확정돼 있다.
+- [x] `globals.css` residual selector 후보 라벨링은 Batch 5에서 완료됐다.
+- [ ] landing grid/card의 대표 anchor(`qmbti`, `energy-check`, `ops-handbook`)와 expanded/focus continuity smoke를 다시 확인한다.
+- [x] shared shell consumer(`src/features/test/test-question-client.tsx`, blog, history)와 routing/not-found QA(`tests/e2e/routing-smoke.spec.ts`)가 Batch 7 범위/검증 계획에 반영돼 있다.
 
 ## 12. 비고
 

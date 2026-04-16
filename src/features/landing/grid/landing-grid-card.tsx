@@ -192,6 +192,38 @@ function resolveTransformOriginClassName(originX: '0%' | '50%' | '100%'): string
   }
 }
 
+function joinClassNames(...classNames: Array<string | false | null | undefined>): string {
+  return classNames.filter(Boolean).join(' ');
+}
+
+const LANDING_GRID_CARD_ROOT_CLASSNAME =
+  'landing-grid-card relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)]';
+const LANDING_GRID_CARD_CONTENT_CLASSNAME =
+  'landing-grid-card-content relative z-[1] flex h-full min-h-full min-w-0 flex-col justify-start';
+const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
+  'landing-grid-card-title relative z-[3] m-0 text-[1.04rem] leading-[1.35] [overflow-wrap:anywhere]';
+const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
+  'landing-grid-card-subtitle min-w-0 overflow-hidden text-ellipsis text-[0.92rem] leading-[1.4] text-[var(--muted-ink)] [overflow-wrap:anywhere]';
+const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
+  'landing-grid-card-thumbnail-slot relative mt-[var(--landing-card-base-gap)] aspect-[6/1] w-full min-w-0 shrink-0 overflow-hidden rounded-[10px] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
+const LANDING_GRID_CARD_TAGS_CLASSNAME =
+  'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-1.5 overflow-hidden p-0';
+const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0 flex-[0_1_auto]';
+const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
+  'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-transparent bg-[var(--chip-bg)] px-2.5 py-1 text-[0.74rem] leading-[1.2]';
+const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME = 'landing-grid-card-preview-question m-0 text-[var(--muted-ink)]';
+const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
+const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
+  'landing-grid-card-answer-choice overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
+const LANDING_GRID_CARD_META_GRID_CLASSNAME = 'landing-grid-card-meta-grid m-0 grid grid-cols-3 gap-2';
+const LANDING_GRID_CARD_META_ITEM_CLASSNAME = 'landing-grid-card-meta-item m-0 grid min-w-0 gap-0.5';
+const LANDING_GRID_CARD_META_LABEL_CLASSNAME =
+  'landing-grid-card-meta-label m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.74rem] text-[var(--muted-ink)]';
+const LANDING_GRID_CARD_META_VALUE_CLASSNAME =
+  'landing-grid-card-meta-value m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.86rem] font-semibold';
+const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME =
+  'landing-grid-card-primary-cta inline-flex min-h-10 max-w-full min-w-0 self-start items-center justify-center overflow-hidden rounded-full border border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] px-4 py-2 text-[0.84rem] font-bold tracking-[0.01em] whitespace-nowrap text-[var(--text-strong)] text-ellipsis shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
+
 interface NormalContentSlotsProps {
   card: LandingCard;
   hasAssetMedia: boolean;
@@ -215,7 +247,11 @@ function LandingCardSubtitleText({
   return (
     <p
       ref={textRef}
-      className={`landing-grid-card-subtitle landing-grid-card-subtitle-${clamp}`}
+      className={joinClassNames(
+        LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME,
+        `landing-grid-card-subtitle-${clamp}`,
+        clamp === 'normal' ? 'mt-[var(--landing-card-base-gap)] shrink-0 line-clamp-2' : 'm-0 line-clamp-4'
+      )}
       data-slot={slot}
       data-motion-slot={motionSlot}
     >
@@ -228,12 +264,12 @@ function NormalContentSlots({card, hasAssetMedia, includeSlotAttributes, subtitl
   return (
     <>
       <div
-        className="landing-grid-card-thumbnail-slot"
+        className={LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME}
         data-slot={includeSlotAttributes ? 'cardThumbnail' : undefined}
         aria-hidden="true"
       >
         <Image
-          className="landing-grid-card-thumbnail"
+          className="landing-grid-card-thumbnail object-cover"
           src={resolveVariantMediaSource(card.variant, hasAssetMedia)}
           alt=""
           fill
@@ -252,14 +288,14 @@ function NormalContentSlots({card, hasAssetMedia, includeSlotAttributes, subtitl
       <div className="landing-grid-card-tags-gap" aria-hidden="true" />
 
       <ul
-        className="landing-grid-card-tags"
+        className={LANDING_GRID_CARD_TAGS_CLASSNAME}
         data-slot={includeSlotAttributes ? 'tags' : undefined}
         data-tag-count={card.tags.length}
         aria-label="Card tags"
       >
         {card.tags.map((tag) => (
-          <li key={`${card.variant}-${tag}`} className="landing-grid-card-tag-item">
-            <span className="landing-grid-card-tag-chip">{tag}</span>
+          <li key={`${card.variant}-${tag}`} className={LANDING_GRID_CARD_TAG_ITEM_CLASSNAME}>
+            <span className={LANDING_GRID_CARD_TAG_CHIP_CLASSNAME}>{tag}</span>
           </li>
         ))}
       </ul>
@@ -274,19 +310,25 @@ function ExpandedBlogSubtitleContinuity({
 }) {
   return (
     <p
-      className="landing-grid-card-subtitle landing-grid-card-subtitle-expanded landing-grid-card-subtitle-expanded-continuity"
+      className={joinClassNames(
+        LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME,
+        'landing-grid-card-subtitle-expanded landing-grid-card-subtitle-expanded-continuity m-0 grid gap-0 text-clip'
+      )}
       data-slot="cardSubtitleExpanded"
       data-motion-slot="subtitle"
     >
-      <span className="landing-grid-card-subtitle-expanded-lead" data-subtitle-layer="lead">
-        <span className="landing-grid-card-subtitle-expanded-line" data-subtitle-line="1">
+      <span className="landing-grid-card-subtitle-expanded-lead grid gap-0" data-subtitle-layer="lead">
+        <span className="landing-grid-card-subtitle-expanded-line block min-w-0" data-subtitle-line="1">
           {split.line1Text}
         </span>
-        <span className="landing-grid-card-subtitle-expanded-line" data-subtitle-line="2">
+        <span className="landing-grid-card-subtitle-expanded-line block min-w-0" data-subtitle-line="2">
           {split.line2Text}
         </span>
       </span>
-      <span className="landing-grid-card-subtitle-expanded-overflow" data-subtitle-layer="overflow">
+      <span
+        className="landing-grid-card-subtitle-expanded-overflow min-w-0 [overflow-wrap:anywhere] line-clamp-2 empty:hidden"
+        data-subtitle-layer="overflow"
+      >
         {split.overflowText}
       </span>
     </p>
@@ -322,7 +364,7 @@ function ExpandedCardBodyContent({
     return (
       <div className="landing-grid-card-mobile-body" {...bodyProps}>
         <p
-          className="landing-grid-card-preview-question"
+          className={LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME}
           data-slot={interactive ? 'previewQuestion' : undefined}
           data-motion-slot="preview"
         >
@@ -330,13 +372,13 @@ function ExpandedCardBodyContent({
         </p>
 
         <div
-          className="landing-grid-card-answer-grid"
+          className={LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME}
           data-slot={interactive ? 'answerChoices' : undefined}
           data-motion-slot="answerChoices"
         >
           <button
             type="button"
-            className="landing-grid-card-answer-choice"
+            className={LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME}
             data-slot={interactive ? 'answerChoiceA' : undefined}
             onClick={(event) => {
               if (interactive) {
@@ -350,7 +392,7 @@ function ExpandedCardBodyContent({
           </button>
           <button
             type="button"
-            className="landing-grid-card-answer-choice"
+            className={LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME}
             data-slot={interactive ? 'answerChoiceB' : undefined}
             onClick={(event) => {
               if (interactive) {
@@ -365,21 +407,21 @@ function ExpandedCardBodyContent({
         </div>
 
         <dl
-          className="landing-grid-card-meta-grid"
+          className={LANDING_GRID_CARD_META_GRID_CLASSNAME}
           data-slot={interactive ? 'meta' : undefined}
           data-motion-slot="meta"
         >
-          <div className="landing-grid-card-meta-item">
-            <dt className="landing-grid-card-meta-label">{copy.metaEstimated}</dt>
-            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.durationM)}</dd>
+          <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+            <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaEstimated}</dt>
+            <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.test.meta.durationM)}</dd>
           </div>
-          <div className="landing-grid-card-meta-item">
-            <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.sharedC)}</dd>
+          <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+            <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaShares}</dt>
+            <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.test.meta.sharedC)}</dd>
           </div>
-          <div className="landing-grid-card-meta-item">
-            <dt className="landing-grid-card-meta-label">{copy.metaAttempts}</dt>
-            <dd className="landing-grid-card-meta-value">{formatMetaValue(card.test.meta.engagedC)}</dd>
+          <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+            <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaAttempts}</dt>
+            <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.test.meta.engagedC)}</dd>
           </div>
         </dl>
       </div>
@@ -409,27 +451,27 @@ function ExpandedCardBodyContent({
       )}
 
       <dl
-        className="landing-grid-card-meta-grid"
+        className={LANDING_GRID_CARD_META_GRID_CLASSNAME}
         data-slot={interactive ? 'meta' : undefined}
         data-motion-slot="meta"
       >
-        <div className="landing-grid-card-meta-item">
-          <dt className="landing-grid-card-meta-label">{copy.metaReadTime}</dt>
-          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.durationM)}</dd>
+        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaReadTime}</dt>
+          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.blog.meta.durationM)}</dd>
         </div>
-        <div className="landing-grid-card-meta-item">
-          <dt className="landing-grid-card-meta-label">{copy.metaShares}</dt>
-          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.sharedC)}</dd>
+        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaShares}</dt>
+          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.blog.meta.sharedC)}</dd>
         </div>
-        <div className="landing-grid-card-meta-item">
-          <dt className="landing-grid-card-meta-label">{copy.metaViews}</dt>
-          <dd className="landing-grid-card-meta-value">{formatMetaValue(card.blog.meta.engagedC)}</dd>
+        <div className={LANDING_GRID_CARD_META_ITEM_CLASSNAME}>
+          <dt className={LANDING_GRID_CARD_META_LABEL_CLASSNAME}>{copy.metaViews}</dt>
+          <dd className={LANDING_GRID_CARD_META_VALUE_CLASSNAME}>{formatMetaValue(card.blog.meta.engagedC)}</dd>
         </div>
       </dl>
 
       {interactive ? (
         <Link
-          className="landing-grid-card-primary-cta"
+          className={LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME}
           href={buildLocalizedPath(RouteBuilder.blogArticle(card.variant), locale)}
           data-slot="primaryCTA"
           data-motion-slot="primaryCTA"
@@ -438,7 +480,11 @@ function ExpandedCardBodyContent({
           {copy.readMore}
         </Link>
       ) : (
-        <span className="landing-grid-card-primary-cta" aria-hidden="true" data-motion-slot="primaryCTA">
+        <span
+          className={LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME}
+          aria-hidden="true"
+          data-motion-slot="primaryCTA"
+        >
           {copy.readMore}
         </span>
       )}
@@ -454,10 +500,10 @@ interface DesktopExpandedTitleProps {
 function DesktopExpandedTitle({line1Text, overflowText}: DesktopExpandedTitleProps) {
   return (
     <>
-      <span className="landing-grid-card-expanded-title-line1" data-title-layer="line1">
+      <span className="landing-grid-card-expanded-title-line1 block min-w-0" data-title-layer="line1">
         {line1Text}
       </span>
-      <span className="landing-grid-card-expanded-title-overflow" data-title-layer="overflow">
+      <span className="landing-grid-card-expanded-title-overflow block min-w-0 empty:hidden" data-title-layer="overflow">
         {overflowText}
       </span>
     </>
@@ -537,7 +583,7 @@ export function LandingGridCard({
 
   return (
     <div
-      className={`landing-grid-card ${transformOriginClassName}`}
+      className={joinClassNames(LANDING_GRID_CARD_ROOT_CLASSNAME, transformOriginClassName)}
       data-testid="landing-grid-card"
       data-card-variant={card.variant}
       data-card-seq={typeof sequence === 'number' ? sequence : undefined}
@@ -611,9 +657,17 @@ export function LandingGridCard({
         onKeyDown={onKeyDown}
         onClick={onClick}
       >
-        <div className="landing-grid-card-content">
+        <div className={LANDING_GRID_CARD_CONTENT_CLASSNAME}>
           {isMobileExpanded ? null : (
-            <h2 ref={normalTitleRef} className="landing-grid-card-title landing-grid-card-title-normal" data-slot="cardTitle">
+            <h2
+              ref={normalTitleRef}
+              className={joinClassNames(
+                LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
+                'landing-grid-card-title-normal min-w-0 overflow-hidden text-ellipsis',
+                isMobileViewport ? 'block overflow-visible text-clip' : 'line-clamp-1'
+              )}
+              data-slot="cardTitle"
+            >
               {card.title}
             </h2>
           )}
@@ -659,7 +713,13 @@ export function LandingGridCard({
                   />
                   <div className="landing-grid-card-expanded-surface" data-slot="expandedSurface">
                     <div className="landing-grid-card-expanded" data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
-                      <h2 className="landing-grid-card-title landing-grid-card-expanded-title" data-slot="cardTitleExpanded">
+                      <h2
+                        className={joinClassNames(
+                          LANDING_GRID_CARD_TITLE_BASE_CLASSNAME,
+                          'landing-grid-card-expanded-title grid min-w-0 gap-0'
+                        )}
+                        data-slot="cardTitleExpanded"
+                      >
                         <DesktopExpandedTitle
                           line1Text={desktopTitleSplit.line1Text}
                           overflowText={desktopTitleSplit.overflowText}

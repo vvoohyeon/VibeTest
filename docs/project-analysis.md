@@ -391,4 +391,4 @@ As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.m
 **Tech stack notes:**
 - `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`
 - `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract
-- Tailwind v4 packages installed but runtime is primarily `src/app/globals.css`
+- Tailwind v4 entry is active via `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`, but runtime styling is still split between utilities and residual `src/app/globals.css`; final cleanup is tracked in `docs/tailwind-v4-migration-plan.md`

@@ -435,7 +435,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
   return (
     <section
       ref={shellRef}
-      className="landing-grid-shell"
+      className="landing-grid-shell relative pb-5"
       aria-label="Landing Catalog Grid"
       data-testid="landing-grid-shell"
       data-grid-tier={plan.tier}
@@ -465,14 +465,18 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
           onPointerCancel={mobileBackdropBindings.onPointerCancel}
         />
       ) : null}
-      <div ref={containerRef} className="landing-grid-container" data-testid="landing-grid-container">
+      <div
+        ref={containerRef}
+        className="landing-grid-container relative grid gap-[15px] md:gap-4"
+        data-testid="landing-grid-container"
+      >
         {plan.rows.map((row) => {
           const rowSnapshot = baselineState.snapshots.get(`row-${row.rowIndex}`);
 
           return (
             <div
               key={row.rowIndex}
-              className="landing-grid-row"
+              className="landing-grid-row grid items-stretch gap-[15px] md:gap-4 [grid-template-columns:repeat(var(--landing-grid-columns),minmax(0,1fr))]"
               data-testid={`landing-grid-row-${row.rowIndex}`}
               data-row-index={row.rowIndex}
               data-row-role={row.role}

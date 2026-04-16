@@ -49,6 +49,8 @@ interface QuestionBootstrapState {
 
 const testPanelSurfaceClassName =
   'rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)]';
+const testShellHeaderClassName = 'test-shell-header grid gap-1';
+const testShellStageClassName = 'test-shell-stage relative';
 const testQuestionPanelClassName = `test-question-panel ${testPanelSurfaceClassName} grid gap-[14px]`;
 const testResultPanelClassName = `test-result-panel ${testPanelSurfaceClassName}`;
 const testButtonBaseClassName =
@@ -57,7 +59,11 @@ const testPrimaryButtonClassName = `${testButtonBaseClassName} test-primary-butt
 const testSecondaryButtonClassName = `${testButtonBaseClassName} test-secondary-button [background:var(--interactive-neutral-bg-strong)]`;
 const testAnswerButtonClassName =
   `${testButtonBaseClassName} test-answer-button justify-start text-left [background:var(--interactive-neutral-bg-soft)]`;
-const testActionRowClassName = 'flex flex-wrap gap-[10px]';
+const testNavRowClassName = 'test-nav-row flex flex-wrap gap-[10px]';
+const testResultActionsClassName = 'test-result-actions flex flex-wrap gap-[10px]';
+const testAnswerGridClassName = 'test-answer-grid grid gap-[10px]';
+const testResultGridClassName = 'test-result-grid m-0 grid gap-2';
+const testResultRowClassName = 'test-result-row flex justify-between gap-3';
 const testResultActionButtonClassName = `${testPrimaryButtonClassName} min-w-[132px]`;
 const testResultSecondaryActionButtonClassName = `${testSecondaryButtonClassName} min-w-[132px]`;
 
@@ -357,29 +363,29 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       data-testid="test-shell-card"
       data-entry-status={redirecting ? 'redirecting' : isBooting ? 'booting' : started ? 'started' : 'ready'}
     >
-      <header className="test-shell-header">
+      <header className={testShellHeaderClassName}>
         <div>
           <h1 className="m-0">{card.title}</h1>
-          <p className="m-0" data-testid="test-progress">
+          <p className="m-0 text-[var(--muted-ink)]" data-testid="test-progress">
             {t('progress', {current: runtimeState.currentQuestionIndex, total: totalQuestions})}
           </p>
         </div>
       </header>
 
-      <div className="test-shell-stage relative" data-testid="test-stage">
+      <div className={testShellStageClassName} data-testid="test-stage">
         {submitted ? (
           <div className={testResultPanelClassName} data-testid="test-result-panel">
             <h2 className="m-0">{t('resultLabel')}</h2>
             <p className="m-0">{t('resultBody')}</p>
-            <dl className="test-result-grid m-0 grid gap-2">
+            <dl className={testResultGridClassName}>
               {questions.map((question) => (
-                <div key={question.id} className="test-result-row flex justify-between gap-3">
+                <div key={question.id} className={testResultRowClassName}>
                   <dt className="m-0">{question.id.toUpperCase()}</dt>
                   <dd className="m-0">{runtimeState.answers[question.id]}</dd>
                 </div>
               ))}
             </dl>
-            <div className={testActionRowClassName}>
+            <div className={testResultActionsClassName}>
               <Link className={testResultActionButtonClassName} href={landingPath}>
                 {t('goHome')}
               </Link>
@@ -419,7 +425,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               data-testid="test-question-panel"
             >
               <h2 className="m-0">{currentQuestion.prompt}</h2>
-              <div className="test-answer-grid grid gap-[10px]">
+              <div className={testAnswerGridClassName}>
                 <button
                   type="button"
                   className={testAnswerButtonClassName}
@@ -444,7 +450,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 </button>
               </div>
 
-              <div className={testActionRowClassName}>
+              <div className={testNavRowClassName}>
                 <button
                   type="button"
                   className={testSecondaryButtonClassName}

@@ -165,18 +165,7 @@ a {
   pointer-events: none;
 }
 
-/* Landing Grid Residual Selectors */
-.landing-grid-shell {
-  position: relative;
-  padding-bottom: 20px;
-}
-
-.landing-grid-container {
-  display: grid;
-  gap: 16px;
-  position: relative;
-}
-
+/* Landing Grid Residual Selectors — keep global through Batch 6 */
 .landing-grid-mobile-backdrop {
   position: fixed;
   inset: 0;
@@ -190,38 +179,22 @@ a {
   opacity: 0;
 }
 
-.landing-grid-row {
-  --landing-grid-columns: 1;
-  display: grid;
-  grid-template-columns: repeat(var(--landing-grid-columns), minmax(0, 1fr));
-  gap: 16px;
-  align-items: stretch;
-}
-
 .landing-grid-card {
-  --landing-card-base-gap: 8px;
-  --landing-card-comp-gap: 0px;
   --landing-card-radius: 16px;
   --landing-card-stage-shadow-bleed-x: 72px;
   --landing-card-stage-shadow-bleed-top: 56px;
   --landing-card-stage-shadow-bleed-bottom: 192px;
-  --landing-card-origin-x: 50%;
   --landing-card-origin-y: 0%;
   --landing-card-shell-scale: 1.04;
   --landing-card-shell-inline-scale: 1;
   --landing-card-shell-extra-start: 0%;
   --landing-card-shell-extra-end: 0%;
   --landing-card-motion-ms: 280ms;
-  min-width: 0;
-  min-height: 176px;
-  border-radius: var(--landing-card-radius);
   background: color-mix(in srgb, var(--panel-solid) 90%, transparent);
   box-shadow: var(--card-shadow);
-  position: relative;
-  overflow: visible;
-  isolation: isolate;
 }
 
+/* Landing Grid Residual Selectors — keep stateful scale/origin/focus handling global */
 .landing-grid-shell[data-grid-column-mode='desktop-wide'] .landing-grid-row:not([data-row-index='0']) > .landing-grid-card,
 .landing-grid-shell[data-grid-column-mode='desktop-medium'] .landing-grid-row:not([data-row-index='0']) > .landing-grid-card {
   --landing-card-shell-inline-scale: 1.0576923077;
@@ -292,25 +265,16 @@ a {
   outline: none;
 }
 
+/* Landing Grid Residual Selectors — expanded trigger hand-off stays global */
 .landing-grid-card[data-expanded-layer='desktop-overlay'] > .landing-grid-card-trigger {
   pointer-events: none;
-}
-
-.landing-grid-card-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  min-width: 0;
-  height: 100%;
-  min-height: 100%;
-  position: relative;
-  z-index: 1;
 }
 
 .landing-grid-card-shell-ghost {
   visibility: hidden;
 }
 
+/* Landing Grid Residual Selectors — keep desktop stage geometry and Safari/hover ghosting runtime global */
 .landing-grid-card-desktop-stage {
   position: absolute;
   inset: 0;
@@ -338,34 +302,7 @@ a {
   -webkit-backface-visibility: hidden;
 }
 
-.landing-grid-card-title {
-  margin: 0;
-  font-size: 1.04rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  position: relative;
-  z-index: 3;
-}
-
-.landing-grid-card-title-normal {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.landing-grid-card:not([data-card-viewport-tier='mobile']) .landing-grid-card-title-normal {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  line-clamp: 1;
-}
-
-.landing-grid-card[data-card-viewport-tier='mobile'] .landing-grid-card-title-normal {
-  display: block;
-  overflow: visible;
-  text-overflow: clip;
-}
-
+/* Landing Grid Residual Selectors — absolute continuity probe must stay global */
 .landing-grid-card-text-probe {
   position: fixed;
   top: -10000px;
@@ -383,120 +320,11 @@ a {
   text-overflow: clip;
 }
 
-.landing-grid-card-subtitle {
-  color: var(--muted-ink);
-  font-size: 0.92rem;
-  line-height: 1.4;
-  min-width: 0;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  text-overflow: ellipsis;
-}
-
-.landing-grid-card-subtitle-normal {
-  flex: 0 0 auto;
-  margin: var(--landing-card-base-gap) 0 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-clamp: 2;
-}
-
-.landing-grid-card-subtitle-expanded {
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  line-clamp: 4;
-}
-
-.landing-grid-card-subtitle-expanded-continuity {
-  display: grid;
-  gap: 0;
-  text-overflow: clip;
-}
-
-.landing-grid-card-subtitle-expanded-lead {
-  display: grid;
-  gap: 0;
-}
-
-.landing-grid-card-subtitle-expanded-line,
-.landing-grid-card-subtitle-expanded-overflow {
-  display: block;
-  min-width: 0;
-}
-
-.landing-grid-card-subtitle-expanded-line:empty,
-.landing-grid-card-subtitle-expanded-overflow:empty {
-  display: none;
-}
-
-.landing-grid-card-subtitle-expanded-overflow {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-clamp: 2;
-}
-
-.landing-grid-card-thumbnail-slot {
-  flex: 0 0 auto;
-  margin-top: var(--landing-card-base-gap);
-  width: 100%;
-  min-width: 0;
-  aspect-ratio: 6 / 1;
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--chip-bg) 85%, transparent);
-}
-
-.landing-grid-card-thumbnail {
-  object-fit: cover;
-}
-
 .landing-grid-card-tags-gap {
-  flex: 0 0 auto;
   height: calc(var(--landing-card-base-gap) + var(--landing-card-comp-gap));
 }
 
-.landing-grid-card-tags {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-  min-height: 28px;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.landing-grid-card-tag-item {
-  min-width: 0;
-  flex: 0 1 auto;
-}
-
-.landing-grid-card-tag-chip {
-  display: block;
-  max-width: 100%;
-  border-radius: 999px;
-  border: 1px solid var(--chip-border);
-  border-color: transparent;
-  background: var(--chip-bg);
-  padding: 4px 10px;
-  font-size: 0.74rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+/* Landing Grid Residual Selectors — keep stage geometry and Safari/hover ghosting runtime global */
 .landing-grid-card-expanded-layer {
   position: absolute;
   inset:
@@ -645,23 +473,7 @@ a {
   animation-delay: 160ms;
 }
 
-.landing-grid-card-expanded-title {
-  margin: 0;
-  display: grid;
-  gap: 0;
-  min-width: 0;
-}
-
-.landing-grid-card-expanded-title-line1,
-.landing-grid-card-expanded-title-overflow {
-  display: block;
-  min-width: 0;
-}
-
-.landing-grid-card-expanded-title-overflow:empty {
-  display: none;
-}
-
+/* Landing Grid Residual Selectors — mobile expanded/transient runtime remains global in Batch 6 */
 .landing-grid-card-mobile-close {
   position: relative;
   border: 1px solid var(--chip-border);
@@ -854,37 +666,11 @@ a {
   animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) linear both;
 }
 
-.landing-grid-card-preview-question {
-  margin: 0;
-  color: var(--muted-ink);
-}
-
-.landing-grid-card-answer-grid {
-  display: grid;
-  gap: 8px;
-}
-
 .landing-grid-card-answer-choice {
-  border: 1px solid var(--interactive-neutral-border);
-  border-radius: 12px;
-  /* Keep fill on the button itself so hover-out never exposes the expanded card surface. */
-  background-color: var(--landing-answer-bg-rest);
-  background-image: none;
-  color: var(--interactive-neutral-ink);
   cursor: pointer;
-  padding: 10px 12px;
-  text-align: left;
-  line-height: 1.4;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  transition:
-    border-color 140ms ease,
-    background-color 140ms ease,
-    box-shadow 140ms ease,
-    color 140ms ease;
 }
 
+/* Landing Grid Residual Selectors — interactive pseudo states and unavailable overlay stay global */
 .landing-grid-card-answer-choice:disabled {
   cursor: default;
 }
@@ -910,70 +696,11 @@ a {
     0 0 0 4px var(--focus-ring-outer);
 }
 
-.landing-grid-card-meta-grid {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.landing-grid-card-meta-item {
-  margin: 0;
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.landing-grid-card-meta-label {
-  margin: 0;
-  color: var(--muted-ink);
-  font-size: 0.74rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.landing-grid-card-meta-value {
-  margin: 0;
-  font-weight: 600;
-  font-size: 0.86rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.landing-grid-card-primary-cta {
-  display: inline-flex;
-  align-self: start;
-  align-items: center;
-  justify-content: center;
-  max-width: 100%;
-  border-radius: 999px;
-  border: 1px solid var(--interactive-accent-border);
-  background: var(--interactive-accent-bg);
-  box-shadow:
-    inset 0 0 0 1px var(--interactive-accent-outline),
-    var(--interactive-accent-shadow);
-  color: var(--text-strong);
-  min-height: 40px;
-  padding: 8px 16px;
-  font-weight: 700;
-  font-size: 0.84rem;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition:
-    border-color 140ms ease,
-    background-color 140ms ease,
-    box-shadow 140ms ease,
-    color 140ms ease;
-}
-
 a.landing-grid-card-primary-cta {
   cursor: pointer;
 }
 
+/* Landing Grid Residual Selectors — CTA pseudo states and unavailable overlay stay global */
 a.landing-grid-card-primary-cta:hover {
   border-color: var(--interactive-accent-border-strong);
   background: var(--interactive-accent-bg-hover);
@@ -1042,6 +769,7 @@ span.landing-grid-card-primary-cta {
   opacity: 1;
 }
 
+/* Landing Grid Residual Selectors — motion/reduced-motion contracts stay global */
 @keyframes landing-card-shell-expand {
   from {
     transform: scale(1);
@@ -1664,11 +1392,4 @@ span.landing-grid-card-primary-cta {
   gap: 12px;
   padding: 24px;
   text-align: center;
-}
-
-@media (width <= 767px) {
-  .landing-grid-container,
-  .landing-grid-row {
-    gap: 15px;
-  }
 }
