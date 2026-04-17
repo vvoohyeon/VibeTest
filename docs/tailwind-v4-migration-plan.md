@@ -14,7 +14,7 @@
 - `tailwindcss@4.1.0`, `@tailwindcss/postcss@4.1.0`는 설치되어 있다.
 - [postcss.config.mjs](/Users/woohyeon/Local/ViveTest/postcss.config.mjs:1)가 존재하며 `@tailwindcss/postcss`를 연결한다.
 - [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1) 첫 줄에는 `@import "tailwindcss";`가 있다. 현재도 `tailwind.config.*`는 없다.
-- 현재 스타일 중심은 [src/app/globals.css](/Users/woohyeon/Local/ViveTest/src/app/globals.css:1)이며 총 `1395`줄이다.
+- 현재 스타일 중심은 [src/app/globals.css](/Users/b-m-2022001/Local/ViveTest/src/app/globals.css:1)이며, 2026-04-17 globals follow-up 이후에도 단일 파일을 유지한 채 총 `793`줄이다.
 - [src/app/layout.tsx](/Users/woohyeon/Local/ViveTest/src/app/layout.tsx:1)는 전역 CSS를 `import './globals.css'`로 로드하고, `beforeInteractive`로 [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)를 주입한다.
 - [public/theme-bootstrap.js](/Users/woohyeon/Local/ViveTest/public/theme-bootstrap.js:1)는 hydration 이전에 `vivetest-theme`를 읽어 `documentElement.dataset.theme`를 설정한다.
 - [src/features/landing/shell/page-shell.tsx](/Users/woohyeon/Local/ViveTest/src/features/landing/shell/page-shell.tsx:1)는 모든 localized route에 공통으로 `TransitionGnbOverlay`, `SiteGnb`, `main.page-shell-main`, `TelemetryConsentBanner`를 마운트한다.
@@ -824,7 +824,6 @@
   - settings panel absolute geometry
   - pseudo-element seam removal
   - mobile panel close transition
-  - theme preview chip surface selector
 - `SettingsControls`는 `aria-pressed`, `disabled`, `data-chip-surface`, `data-theme-option`이 styling과 smoke assertion에 모두 쓰인다.
 
 ### 8.5 `src/features/landing/grid/*`
@@ -853,7 +852,51 @@
   - `mobileTransientShell`
   - `mobileTransientPanel`
   - `unavailableOverlay`
-- title/subtitle continuity split 훅이 class 기반 probe를 사용하므로, text measurement path를 바꾸려면 별도 refactor로 취급한다.
+- title/subtitle continuity split 훅은 DOM에 직접 생성한 measurement probe를 사용하므로, text measurement path를 바꾸려면 별도 refactor로 취급한다.
+
+### 8.7 2026-04-17 `globals.css` follow-up 결정 로그
+
+- 이번 follow-up의 시작 기준은 [src/app/globals.css](/Users/b-m-2022001/Local/ViveTest/src/app/globals.css:1) `1240`줄이었다.
+- 이번 follow-up의 종료 기준은 같은 파일 `793`줄이며, **파일 분할 없이 단일 파일 유지**를 고정했다.
+
+#### 이번 세션에서 확정한 의사결정
+
+- `globals.css`는 계속 단일 파일로 유지한다.
+- 전역 CSS의 역할은 `token / 최소 base / ancestor data-state selector / keyframe / reduced-motion / pseudo-element geometry`로 제한한다.
+- 단일 소비처가 있는 정적 레이아웃/기본 인터랙션 스타일은 가능하면 각 TSX의 Tailwind utility/class 상수로 회수한다.
+- Tailwind Preflight와 중복되는 reset은 globals에서 제거한다.
+- `data-*`, `aria-*`, `data-testid`, DOM landmark는 유지하고 style ownership만 이동한다.
+
+#### 이번 세션에서 local ownership으로 회수한 영역
+
+- shared shell의 consent spacer/layer와 transition GNB overlay
+- landing grid mobile backdrop의 정적 base
+- landing grid card의 root custom property 기본값, shell ghost, expanded shell base, mobile transient shell base, unavailable overlay base
+- test/instruction runtime의 primary/secondary/answer button 상태 스타일
+- GNB의 elevated shell state, settings root custom properties, theme/locale chip 상태 스타일, mobile closing state
+- title/subtitle continuity probe의 base style
+
+#### 이번 세션에서 전역에 남기기로 결정한 영역
+
+- landing grid/card의 ancestor `data-*` 조합 selector
+- desktop stage / mobile transient motion keyframe과 slot animation selector
+- reduced-motion 대응 branch
+- `.gnb-settings-panel`의 absolute geometry와 pseudo-element seam 처리
+- hover/focus continuity와 unavailable overlay의 ancestor-driven state selector
+- `landing-grid-card-trigger`, `landing-grid-card-tags-gap`, CTA cursor policy처럼 현재 QA contract가 전역 명시를 요구하는 최소 selector
+
+#### 이번 세션에서 일부러 보류한 이슈
+
+- `landing-shell-card`, blog/history/not-found 계열의 residual static surface 정리는 이번 범위에서 제외했다.
+- `gnb-settings-panel`은 pseudo-element와 absolute geometry 비중이 커서 globals에 잔류시켰다.
+- landing grid의 animation selector를 utility로 완전히 치환하는 작업은 상태 조합이 많아 별도 후속 리팩터 범위로 보류했다.
+- hover 관련 moved utility는 Tailwind variant 경로를 사용한다. touch 환경에서 hover semantic 차이가 관찰되면 arbitrary variant 또는 residual selector 복구를 검토한다.
+
+#### 재진입 조건
+
+- `grid-smoke`, `state-smoke`, `gnb-smoke`, `a11y-smoke`, `consent-smoke`가 현재 변경 기준으로 GREEN일 것
+- Safari/ghosting 회귀가 없을 것
+- 다음 단계에서 globals를 더 줄일 때도 `single file` 원칙을 유지할 것
 
 ### 8.6 theme-matrix / Safari ghosting 참고 기준
 

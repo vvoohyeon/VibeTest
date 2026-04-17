@@ -38,6 +38,8 @@ import {useLandingTransition} from '@/features/landing/transition/use-landing-tr
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
 const INITIAL_GRID_INLINE_SIZE = CONTAINER_MAX_WIDTH - TABLET_DESKTOP_SIDE_PADDING * 2;
+const LANDING_GRID_MOBILE_BACKDROP_CLASSNAME =
+  'landing-grid-mobile-backdrop fixed inset-0 z-10 bg-[var(--overlay-scrim-medium)] touch-pan-y [transition:opacity_180ms_ease] data-[state=CLOSING]:opacity-0';
 
 export const LANDING_GRID_PLAN_CHANGED_EVENT = 'landing:grid-plan-changed';
 
@@ -456,7 +458,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
     >
       {mobileBackdropBindings.active ? (
         <div
-          className="landing-grid-mobile-backdrop"
+          className={LANDING_GRID_MOBILE_BACKDROP_CLASSNAME}
           data-testid="landing-grid-mobile-backdrop"
           data-state={mobileBackdropBindings.state}
           onPointerDown={mobileBackdropBindings.onPointerDown}

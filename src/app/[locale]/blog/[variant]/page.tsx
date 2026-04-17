@@ -1,3 +1,4 @@
+import type {Metadata} from 'next';
 import {notFound, redirect} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 
@@ -7,6 +8,25 @@ import {getBlogDetailPageModel} from '@/features/landing/blog/server-model';
 import {PageShell} from '@/features/landing/shell';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{locale: string; variant: string}>;
+}): Promise<Metadata> {
+  const {locale, variant} = await params;
+
+  if (!isLocale(locale)) {
+    return {
+      title: 'ViveTest'
+    };
+  }
+
+  const pageModel = getBlogDetailPageModel(locale, variant);
+  return {
+    title: pageModel?.article.title ?? 'ViveTest'
+  };
+}
 
 export default async function BlogArticlePage({
   params

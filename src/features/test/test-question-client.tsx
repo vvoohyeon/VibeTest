@@ -55,12 +55,16 @@ const testShellHeaderClassName = 'test-shell-header grid gap-1';
 const testShellStageClassName = 'test-shell-stage relative';
 const testQuestionPanelClassName = `test-question-panel ${testPanelSurfaceClassName} grid gap-[14px]`;
 const testResultPanelClassName = `test-result-panel ${testPanelSurfaceClassName}`;
+const testButtonFocusRingClassName =
+  'focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
 const testButtonBaseClassName =
-  'inline-flex min-h-[46px] cursor-pointer items-center justify-center rounded-[14px] border border-[var(--interactive-neutral-border)] px-[14px] py-3 text-center font-semibold leading-[1.35] text-[var(--text-strong)] [font:inherit] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease]';
-const testPrimaryButtonClassName = `${testButtonBaseClassName} test-primary-button`;
-const testSecondaryButtonClassName = `${testButtonBaseClassName} test-secondary-button [background:var(--interactive-neutral-bg-strong)]`;
+  `inline-flex min-h-[46px] cursor-pointer items-center justify-center rounded-[14px] border px-[14px] py-3 text-center font-semibold leading-[1.35] text-[var(--text-strong)] [font:inherit] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease] disabled:cursor-default disabled:opacity-[0.58] ${testButtonFocusRingClassName}`;
+const testPrimaryButtonClassName =
+  `${testButtonBaseClassName} border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] hover:border-[var(--interactive-accent-border-strong)] hover:bg-[var(--interactive-accent-bg-hover)] hover:-translate-y-px active:bg-[var(--interactive-accent-bg-pressed)] active:translate-y-0 focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
+const testSecondaryButtonClassName =
+  `${testButtonBaseClassName} border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg-strong)] hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)]`;
 const testAnswerButtonClassName =
-  `${testButtonBaseClassName} test-answer-button justify-start text-left [background:var(--interactive-neutral-bg-soft)]`;
+  `${testButtonBaseClassName} justify-start border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg-soft)] text-left hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)] data-[selected=true]:border-[var(--interactive-accent-border)] data-[selected=true]:bg-[var(--interactive-accent-bg)] data-[selected=true]:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] data-[selected=true]:hover:border-[var(--interactive-accent-border-strong)] data-[selected=true]:hover:bg-[var(--interactive-accent-bg-hover)] data-[selected=true]:hover:-translate-y-px data-[selected=true]:active:bg-[var(--interactive-accent-bg-pressed)] data-[selected=true]:active:translate-y-0 data-[selected=true]:focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
 const testNavRowClassName = 'test-nav-row flex flex-wrap gap-[10px]';
 const testResultActionsClassName = 'test-result-actions flex flex-wrap gap-[10px]';
 const testAnswerGridClassName = 'test-answer-grid grid gap-[10px]';

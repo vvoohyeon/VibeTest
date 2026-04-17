@@ -11,6 +11,8 @@ interface TransitionGnbOverlayProps {
   currentRoute: LocaleFreeRoute;
 }
 
+const TRANSITION_GNB_OVERLAY_CLASSNAME = 'landing-transition-source-gnb pointer-events-none fixed inset-x-0 top-0 z-[1300]';
+
 export function TransitionGnbOverlay({locale, context}: TransitionGnbOverlayProps) {
   const pendingTransition = usePendingLandingTransition();
 
@@ -20,7 +22,7 @@ export function TransitionGnbOverlay({locale, context}: TransitionGnbOverlayProp
 
   return (
     <div
-      className="landing-transition-source-gnb"
+      className={TRANSITION_GNB_OVERLAY_CLASSNAME}
       data-testid="landing-transition-source-gnb"
       aria-hidden="true"
       inert

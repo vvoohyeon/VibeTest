@@ -4,10 +4,14 @@ const instructionActionRowClassName = 'flex flex-wrap gap-[10px]';
 const instructionCardClassName =
   'test-instruction-card grid gap-[14px] rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)] max-[767px]:min-h-full max-[767px]:w-full max-[767px]:content-start max-[767px]:rounded-none max-[767px]:pt-[88px]';
 const instructionNoteClassName = 'test-instruction-note m-0 leading-[1.5] text-[var(--muted-ink)]';
+const instructionButtonFocusRingClassName =
+  'focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
 const instructionButtonBaseClassName =
-  'inline-flex min-h-[46px] cursor-pointer items-center justify-center rounded-[14px] border border-[var(--interactive-neutral-border)] px-[14px] py-3 text-center font-semibold leading-[1.35] text-[var(--text-strong)] [font:inherit] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease]';
-const instructionPrimaryButtonClassName = `${instructionButtonBaseClassName} test-primary-button`;
-const instructionSecondaryButtonClassName = `${instructionButtonBaseClassName} test-secondary-button [background:var(--interactive-neutral-bg-strong)]`;
+  `inline-flex min-h-[46px] cursor-pointer items-center justify-center rounded-[14px] border px-[14px] py-3 text-center font-semibold leading-[1.35] text-[var(--text-strong)] [font:inherit] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease] disabled:cursor-default disabled:opacity-[0.58] ${instructionButtonFocusRingClassName}`;
+const instructionPrimaryButtonClassName =
+  `${instructionButtonBaseClassName} border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] hover:border-[var(--interactive-accent-border-strong)] hover:bg-[var(--interactive-accent-bg-hover)] hover:-translate-y-px active:bg-[var(--interactive-accent-bg-pressed)] active:translate-y-0 focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
+const instructionSecondaryButtonClassName =
+  `${instructionButtonBaseClassName} border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg-strong)] hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)]`;
 
 interface InstructionOverlayProps {
   title: string;

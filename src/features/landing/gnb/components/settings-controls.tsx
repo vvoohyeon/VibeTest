@@ -16,7 +16,30 @@ const settingsLabelClassName =
   'gnb-settings-label text-[0.78rem] font-bold uppercase tracking-[0.03em] text-[var(--muted-ink)]';
 const chipRowClassName = 'gnb-chip-row flex flex-wrap gap-2';
 const chipBaseClassName =
-  "gnb-chip inline-flex cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease]";
+  "gnb-chip inline-flex cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)] disabled:cursor-default disabled:opacity-70 [--gnb-chip-bg:var(--interactive-neutral-bg)] [--gnb-chip-border:var(--interactive-neutral-border)] [--gnb-chip-ink:var(--interactive-neutral-ink)] [--gnb-chip-hover-bg:var(--landing-answer-bg-hover)] [--gnb-chip-hover-border:var(--landing-answer-border-hover)] [--gnb-chip-hover-shadow:var(--landing-answer-shadow-hover)]";
+const chipSelectedStateClassName = 'border-transparent bg-[var(--interactive-accent-bg-strong)] [box-shadow:none]';
+const chipUnselectedStateClassName =
+  'hover:border-[var(--gnb-chip-hover-border)] hover:bg-[var(--gnb-chip-hover-bg)] hover:shadow-[var(--gnb-chip-hover-shadow)]';
+const chipThemePreviewLightClassName =
+  '[--gnb-chip-bg:var(--theme-preview-light-bg)] [--gnb-chip-border:var(--theme-preview-light-border)] [--gnb-chip-ink:var(--theme-preview-light-ink)] [--gnb-chip-hover-bg:var(--theme-preview-light-hover-bg)] [--gnb-chip-hover-border:var(--theme-preview-light-hover-border)] [--gnb-chip-hover-shadow:var(--theme-preview-light-hover-shadow)]';
+const chipThemePreviewDarkClassName =
+  '[--gnb-chip-bg:var(--theme-preview-dark-bg)] [--gnb-chip-border:var(--theme-preview-dark-border)] [--gnb-chip-ink:var(--theme-preview-dark-ink)] [--gnb-chip-hover-bg:var(--theme-preview-dark-hover-bg)] [--gnb-chip-hover-border:var(--theme-preview-dark-hover-border)] [--gnb-chip-hover-shadow:var(--theme-preview-dark-hover-shadow)]';
+
+function joinClassNames(...classNames: Array<string | false | null | undefined>): string {
+  return classNames.filter(Boolean).join(' ');
+}
+
+function resolveChipSurfaceClassName(surface: 'theme-preview-light' | 'theme-preview-dark' | undefined): string | undefined {
+  if (surface === 'theme-preview-light') {
+    return chipThemePreviewLightClassName;
+  }
+
+  if (surface === 'theme-preview-dark') {
+    return chipThemePreviewDarkClassName;
+  }
+
+  return undefined;
+}
 
 interface SettingsControlLabels {
   theme: string;
@@ -86,7 +109,11 @@ export function SettingsControls({
               <button
                 key={theme}
                 type="button"
-                className={themeChipClassName}
+                className={joinClassNames(
+                  themeChipClassName,
+                  resolveChipSurfaceClassName(chipSurface),
+                  isCurrentTheme ? chipSelectedStateClassName : chipUnselectedStateClassName
+                )}
                 aria-pressed={isCurrentTheme}
                 aria-label={themeLabel}
                 title={themeLabel}
@@ -112,7 +139,10 @@ export function SettingsControls({
               <button
                 key={code}
                 type="button"
-                className={localeChipClassName}
+                className={joinClassNames(
+                  localeChipClassName,
+                  isCurrentLocale ? chipSelectedStateClassName : chipUnselectedStateClassName
+                )}
                 aria-pressed={isCurrentLocale}
                 disabled={isCurrentLocale}
                 onClick={isCurrentLocale ? undefined : () => onLocaleChange(code)}

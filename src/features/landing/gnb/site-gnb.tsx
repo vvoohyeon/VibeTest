@@ -52,7 +52,7 @@ interface OutsideGesture {
 type LandingKeyboardEntryMode = 'card-first' | 'gnb';
 
 const gnbShellClassName =
-  'gnb-shell sticky top-0 z-[1100] bg-[var(--surface)] [backdrop-filter:blur(12px)] [-webkit-backdrop-filter:blur(12px)]';
+  'gnb-shell sticky top-0 z-[1100] bg-[var(--surface)] [backdrop-filter:blur(12px)] [-webkit-backdrop-filter:blur(12px)] data-[elevated=true]:shadow-[var(--surface-shadow)] data-[elevated=false]:border-b data-[elevated=false]:border-[var(--surface-divider)]';
 const gnbInnerClassName = 'gnb-inner mx-auto flex max-w-[1280px] items-center px-4 md:px-6 min-[768px]:max-[899px]:px-5';
 const gnbDesktopInnerClassName = `${gnbInnerClassName} gnb-desktop hidden h-16 md:flex`;
 const gnbMobileInnerClassName = `${gnbInnerClassName} gnb-mobile flex h-14 md:hidden`;
@@ -65,7 +65,8 @@ const gnbDesktopLinkClassName =
   'text-[0.96rem] text-[var(--muted-ink)] [transition-duration:140ms] [transition-property:color] [transition-timing-function:ease] hover:text-[var(--link-ink)]';
 const gnbInteractiveButtonBaseClassName =
   'inline-flex cursor-pointer items-center justify-center rounded-full border border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg)] px-3 py-[7px] text-[0.88rem] font-semibold text-[var(--interactive-neutral-ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)] focus-visible:outline-none focus-visible:[box-shadow:0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
-const gnbSettingsRootClassName = 'gnb-settings-root relative flex items-stretch';
+const gnbSettingsRootClassName =
+  'gnb-settings-root relative flex items-stretch [--gnb-settings-trigger-size:40px] [--gnb-settings-trigger-icon-size:18px] [--gnb-settings-panel-base-width:324px] [--gnb-settings-panel-extra-top:12px] [--gnb-settings-panel-inner-left:15px] [--gnb-settings-panel-extra-right:var(--gnb-settings-panel-inner-left)] [--gnb-settings-panel-inner-bottom:15px]';
 const gnbSettingsTriggerClassName =
   `${gnbInteractiveButtonBaseClassName} gnb-settings-trigger h-[var(--gnb-settings-trigger-size)] w-[var(--gnb-settings-trigger-size)] shrink-0 !p-0`;
 const gnbSettingsTriggerIconClassName =
@@ -76,9 +77,9 @@ const gnbDesktopTimerClassName = 'gnb-desktop-timer m-0 font-semibold tabular-nu
 const gnbMobileTimerClassName = 'gnb-mobile-timer m-0 font-semibold tabular-nums text-[var(--muted-ink)]';
 const gnbMobileLayerClassName = 'gnb-mobile-layer fixed inset-0 z-[1200]';
 const gnbMobileBackdropClassName =
-  'gnb-mobile-backdrop absolute inset-0 bg-[var(--overlay-scrim-strong)] [transition:opacity_180ms_ease]';
+  'gnb-mobile-backdrop absolute inset-0 bg-[var(--overlay-scrim-strong)] [transition:opacity_180ms_ease] data-[state=closing]:opacity-0';
 const gnbMobilePanelClassName =
-  'gnb-mobile-panel absolute right-0 top-0 flex h-screen max-h-screen w-[min(87vw,340px)] flex-col gap-5 overflow-y-auto border-l border-[var(--surface-divider)] bg-[var(--panel-solid)] px-4 pt-[72px] pb-[calc(32px+env(safe-area-inset-bottom,0px))] opacity-100 shadow-[var(--sheet-shadow)] overscroll-contain [height:100dvh] [max-height:100dvh] [-webkit-overflow-scrolling:touch] [transform:translateX(0)] [transition:transform_180ms_ease,opacity_180ms_ease]';
+  'gnb-mobile-panel absolute right-0 top-0 flex h-screen max-h-screen w-[min(87vw,340px)] flex-col gap-5 overflow-y-auto border-l border-[var(--surface-divider)] bg-[var(--panel-solid)] px-4 pt-[72px] pb-[calc(32px+env(safe-area-inset-bottom,0px))] opacity-100 shadow-[var(--sheet-shadow)] overscroll-contain [height:100dvh] [max-height:100dvh] [-webkit-overflow-scrolling:touch] [transform:translateX(0)] [transition:transform_180ms_ease,opacity_180ms_ease] data-[state=closing]:translate-x-[12px] data-[state=closing]:opacity-0';
 const gnbMobileLinksClassName = 'gnb-mobile-links grid gap-[14px]';
 const gnbMobileLinkClassName = 'text-base font-semibold';
 const gnbMobileSettingsClassName = 'gnb-mobile-settings mt-auto grid gap-3';
@@ -781,6 +782,7 @@ export function SiteGnb({locale, context, currentRoute}: SiteGnbProps) {
           <div
             className={gnbMobileBackdropClassName}
             data-testid="gnb-mobile-backdrop"
+            data-state={mobileMenuState}
             onPointerDown={mobileMenuBackdropPointerDown}
             onPointerMove={mobileMenuBackdropPointerMove}
             onPointerUp={mobileMenuBackdropPointerEnd}

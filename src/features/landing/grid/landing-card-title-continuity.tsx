@@ -60,7 +60,20 @@ function isSameSplit(left: LandingCardMeasuredTextSplit, right: LandingCardMeasu
 function buildTextProbe(textElement: HTMLElement): HTMLElement {
   const probe = document.createElement(textElement.tagName.toLowerCase());
   const computedStyle = window.getComputedStyle(textElement);
-  probe.className = 'landing-grid-card-text-probe';
+  probe.style.position = 'fixed';
+  probe.style.top = '-10000px';
+  probe.style.left = '0';
+  probe.style.display = 'block';
+  probe.style.minWidth = '0';
+  probe.style.maxWidth = 'none';
+  probe.style.margin = '0';
+  probe.style.padding = '0';
+  probe.style.visibility = 'hidden';
+  probe.style.pointerEvents = 'none';
+  probe.style.contain = 'layout style paint';
+  probe.style.whiteSpace = 'normal';
+  probe.style.overflowWrap = 'anywhere';
+  probe.style.textOverflow = 'clip';
   probe.style.width = `${textElement.getBoundingClientRect().width}px`;
   probe.style.font = computedStyle.font;
   probe.style.fontFamily = computedStyle.fontFamily;

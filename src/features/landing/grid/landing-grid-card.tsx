@@ -183,12 +183,12 @@ function resolveVariantMediaSource(variant: string, hasAssetMedia: boolean): str
 function resolveTransformOriginClassName(originX: '0%' | '50%' | '100%'): string {
   switch (originX) {
     case '0%':
-      return 'landing-grid-card-origin-start';
+      return '[--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:calc((var(--landing-card-shell-inline-scale)-1)*100%)]';
     case '100%':
-      return 'landing-grid-card-origin-end';
+      return '[--landing-card-shell-extra-start:calc((var(--landing-card-shell-inline-scale)-1)*100%)] [--landing-card-shell-extra-end:0%]';
     case '50%':
     default:
-      return 'landing-grid-card-origin-center';
+      return '[--landing-card-shell-extra-start:calc((var(--landing-card-shell-inline-scale)-1)*50%)] [--landing-card-shell-extra-end:calc((var(--landing-card-shell-inline-scale)-1)*50%)]';
   }
 }
 
@@ -197,7 +197,7 @@ function joinClassNames(...classNames: Array<string | false | null | undefined>)
 }
 
 const LANDING_GRID_CARD_ROOT_CLASSNAME =
-  'landing-grid-card relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
+  'landing-grid-card relative isolate min-h-44 min-w-0 overflow-visible rounded-[var(--landing-card-radius)] [background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)] [--landing-card-radius:16px] [--landing-card-stage-shadow-bleed-x:72px] [--landing-card-stage-shadow-bleed-top:56px] [--landing-card-stage-shadow-bleed-bottom:192px] [--landing-card-origin-y:0%] [--landing-card-shell-scale:1.04] [--landing-card-shell-inline-scale:1] [--landing-card-shell-extra-start:0%] [--landing-card-shell-extra-end:0%] [--landing-card-motion-ms:280ms]';
 const LANDING_GRID_CARD_CONTENT_CLASSNAME =
   'landing-grid-card-content relative z-[1] flex h-full min-h-full min-w-0 flex-col justify-start';
 const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
@@ -216,7 +216,7 @@ const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME = 'landing-grid-card-preview-question m-0 text-[var(--muted-ink)]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
 const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
-  'landing-grid-card-answer-choice cursor-pointer overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
+  'landing-grid-card-answer-choice cursor-pointer overflow-visible rounded-[12px] border border-[var(--interactive-neutral-border)] bg-[var(--landing-answer-bg-rest)] bg-none px-3 py-2.5 text-left leading-[1.4] whitespace-normal text-[var(--interactive-neutral-ink)] text-clip transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease] disabled:cursor-default hover:border-[var(--landing-answer-border-hover)] hover:bg-[var(--landing-answer-bg-hover)] hover:bg-none hover:shadow-[var(--landing-answer-shadow-hover)] active:border-[var(--interactive-accent-border)] active:bg-[var(--landing-answer-bg-pressed)] active:bg-none active:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent-solid)_16%,transparent)] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
 const LANDING_GRID_CARD_META_GRID_CLASSNAME = 'landing-grid-card-meta-grid m-0 grid grid-cols-3 gap-2';
 const LANDING_GRID_CARD_META_ITEM_CLASSNAME = 'landing-grid-card-meta-item m-0 grid min-w-0 gap-0.5';
 const LANDING_GRID_CARD_META_LABEL_CLASSNAME =
@@ -225,9 +225,22 @@ const LANDING_GRID_CARD_META_VALUE_CLASSNAME =
   'landing-grid-card-meta-value m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.86rem] font-semibold';
 const LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME =
   'landing-grid-card-primary-cta inline-flex min-h-10 max-w-full min-w-0 self-start items-center justify-center overflow-hidden rounded-full border border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] px-4 py-2 text-[0.84rem] font-bold tracking-[0.01em] whitespace-nowrap text-[var(--text-strong)] text-ellipsis shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] transition-[border-color,background-color,box-shadow,color] duration-[140ms] [transition-timing-function:ease]';
-const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME = `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-pointer`;
+const LANDING_GRID_CARD_PRIMARY_CTA_CLASSNAME =
+  `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-pointer hover:border-[var(--interactive-accent-border-strong)] hover:bg-[var(--interactive-accent-bg-hover)] hover:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow-hover)] active:bg-[var(--interactive-accent-bg-pressed)] active:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
 const LANDING_GRID_CARD_PRIMARY_CTA_STATIC_CLASSNAME = `${LANDING_GRID_CARD_PRIMARY_CTA_BASE_CLASSNAME} cursor-default`;
 const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 grid min-w-0 gap-[10px] p-4';
+const LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME = 'landing-grid-card-shell-ghost invisible';
+const LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME = 'landing-grid-card-desktop-stage absolute inset-0 z-[3] pointer-events-none';
+const LANDING_GRID_CARD_EXPANDED_LAYER_CLASSNAME =
+  'landing-grid-card-expanded-layer pointer-events-none absolute z-[1] [inset:var(--landing-card-stage-shadow-bleed-top)_var(--landing-card-stage-shadow-bleed-x)_var(--landing-card-stage-shadow-bleed-bottom)_var(--landing-card-stage-shadow-bleed-x)]';
+const LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME =
+  'landing-grid-card-expanded-shell-frame relative left-0 min-h-full min-w-0 w-full pointer-events-none will-change-[left,width] [backface-visibility:hidden] [-webkit-backface-visibility:hidden]';
+const LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME =
+  'landing-grid-card-expanded-shell relative min-h-full min-w-0 w-full pointer-events-none [transform:scale(var(--landing-card-shell-scale))] [transform-origin:var(--landing-card-origin-x)_var(--landing-card-origin-y)] will-change-transform [backface-visibility:hidden] [-webkit-backface-visibility:hidden]';
+const LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME =
+  'landing-grid-card-expanded-shadow pointer-events-none absolute inset-0 z-0 rounded-[var(--landing-card-radius)] [box-shadow:var(--card-shadow-expanded-mid),var(--card-shadow-expanded-far)]';
+const LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME =
+  'landing-grid-card-expanded-surface relative z-[1] min-h-full w-full rounded-[var(--landing-card-radius)] [background:color-mix(in_srgb,var(--panel-solid)_96%,transparent)] [box-shadow:0_0_0_1px_color-mix(in_srgb,var(--surface-divider)_92%,transparent)] pointer-events-auto';
 const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
   'landing-grid-card-mobile-close relative inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
 const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
@@ -240,6 +253,18 @@ const LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME =
   'landing-grid-card-mobile-header sticky top-0 z-[4] flex items-start justify-between gap-3 bg-[color-mix(in_srgb,var(--panel-solid)_96%,transparent)] pt-4 pb-[14px]';
 const LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME = 'landing-grid-card-title landing-grid-card-mobile-title flex-1 min-w-0';
 const LANDING_GRID_CARD_MOBILE_BODY_CLASSNAME = 'landing-grid-card-mobile-body grid min-w-0 gap-[10px]';
+const LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME =
+  'landing-grid-card-mobile-transient-shell fixed left-[var(--landing-mobile-card-left,0px)] top-[var(--landing-mobile-anchor-top,0px)] z-[21] max-h-[calc(100dvh-116px)] max-w-full w-[var(--landing-mobile-card-width,100vw)] overflow-hidden rounded-[var(--landing-card-radius)] [box-shadow:var(--card-shadow-expanded-mid),var(--card-shadow-expanded-far)] pointer-events-none isolate';
+const LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME =
+  'landing-grid-card-mobile-transient-panel pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[var(--panel-solid)]';
+const LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME =
+  'landing-grid-card-mobile-transient-surface relative z-[1] grid min-w-0 max-h-[calc(100dvh-116px)] gap-0 overflow-hidden px-4 pb-4';
+const LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME =
+  `${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header relative z-[1] bg-transparent`;
+const LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_CLASSNAME =
+  'landing-grid-card-unavailable-overlay pointer-events-none absolute inset-0 z-[2] flex items-start justify-end rounded-[inherit] p-3 opacity-100 [background:var(--unavailable-overlay-gradient)] [transition:opacity_140ms_ease]';
+const LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME =
+  'landing-grid-card-unavailable-badge rounded-full border border-[var(--unavailable-badge-border)] bg-[var(--unavailable-badge-bg)] px-[10px] py-1 text-[0.72rem] leading-[1.2] tracking-[0.01em] text-[var(--unavailable-badge-ink)]';
 
 interface NormalContentSlotsProps {
   card: LandingCard;
@@ -699,7 +724,7 @@ export function LandingGridCard({
           )}
 
           {isDesktopExpanded ? (
-            <div className="landing-grid-card-shell-ghost" aria-hidden="true">
+            <div className={LANDING_GRID_CARD_SHELL_GHOST_CLASSNAME} aria-hidden="true">
               <NormalContentSlots
                 card={card}
                 hasAssetMedia={hasAssetMedia}
@@ -713,22 +738,22 @@ export function LandingGridCard({
 
       {!isMobileViewport && !isUnavailable ? (
         <div
-          className="landing-grid-card-desktop-stage"
+          className={LANDING_GRID_CARD_DESKTOP_STAGE_CLASSNAME}
           data-testid="landing-grid-card-desktop-stage"
           data-slot="desktopStage"
           data-phase={desktopStagePhase}
           aria-hidden={showDesktopExpandedShell ? undefined : 'true'}
         >
           {showDesktopExpandedShell ? (
-            <div className="landing-grid-card-expanded-layer" data-slot="expandedLayer">
-              <div className="landing-grid-card-expanded-shell-frame">
-                <div className="landing-grid-card-expanded-shell" data-slot="expandedShell">
+            <div className={LANDING_GRID_CARD_EXPANDED_LAYER_CLASSNAME} data-slot="expandedLayer">
+              <div className={LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME}>
+                <div className={LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME} data-slot="expandedShell">
                   <div
-                    className="landing-grid-card-expanded-shadow"
+                    className={LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME}
                     data-slot="expandedShadowPlate"
                     aria-hidden="true"
                   />
-                  <div className="landing-grid-card-expanded-surface" data-slot="expandedSurface">
+                  <div className={LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME} data-slot="expandedSurface">
                     <div className={LANDING_GRID_CARD_EXPANDED_CLASSNAME} data-slot="expandedBody" onKeyDown={onExpandedBodyKeyDown}>
                       <h2
                         className={joinClassNames(
@@ -791,14 +816,14 @@ export function LandingGridCard({
 
       {showMobileTransientShell ? (
         <div
-          className="landing-grid-card-mobile-transient-shell"
+          className={LANDING_GRID_CARD_MOBILE_TRANSIENT_SHELL_CLASSNAME}
           data-slot="mobileTransientShell"
           data-state={mobileTransientMode}
           aria-hidden="true"
         >
-          <div className="landing-grid-card-mobile-transient-panel" data-slot="mobileTransientPanel" />
-          <div className="landing-grid-card-mobile-transient-surface">
-            <div className={`${LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} landing-grid-card-mobile-transient-header`}>
+          <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_PANEL_CLASSNAME} data-slot="mobileTransientPanel" />
+          <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_SURFACE_CLASSNAME}>
+            <div className={LANDING_GRID_CARD_MOBILE_TRANSIENT_HEADER_CLASSNAME}>
               <h2 className={LANDING_GRID_CARD_MOBILE_TITLE_CLASSNAME} data-slot="cardTitleTransient">
                 {card.title}
               </h2>
@@ -822,8 +847,8 @@ export function LandingGridCard({
       ) : null}
 
       {isUnavailable ? (
-        <div className="landing-grid-card-unavailable-overlay" data-slot="unavailableOverlay" aria-hidden="true">
-          <span className="landing-grid-card-unavailable-badge">{copy.comingSoon}</span>
+        <div className={LANDING_GRID_CARD_UNAVAILABLE_OVERLAY_CLASSNAME} data-slot="unavailableOverlay" aria-hidden="true">
+          <span className={LANDING_GRID_CARD_UNAVAILABLE_BADGE_CLASSNAME}>{copy.comingSoon}</span>
         </div>
       ) : null}
     </div>

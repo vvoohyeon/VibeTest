@@ -3,6 +3,9 @@
 import {useEffect, useRef, useState} from 'react';
 
 const DEFAULT_BANNER_HEIGHT_PX = 120;
+const CONSENT_BANNER_SPACER_CLASS = 'telemetry-consent-banner-spacer flex-none';
+const CONSENT_BANNER_LAYER_CLASS =
+  'telemetry-consent-banner-layer pointer-events-none fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-[1075] flex justify-center px-4';
 const CONSENT_BUTTON_FOCUS_RING_CLASS =
   'focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
 const CONSENT_BUTTON_BASE_CLASS = [
@@ -84,8 +87,8 @@ export function ConsentBanner({
 
   return (
     <>
-      <div className="telemetry-consent-banner-spacer" aria-hidden="true" style={{height: `${bannerHeight}px`}} />
-      <div className="telemetry-consent-banner-layer">
+      <div className={CONSENT_BANNER_SPACER_CLASS} aria-hidden="true" style={{height: `${bannerHeight}px`}} />
+      <div className={CONSENT_BANNER_LAYER_CLASS}>
         <section
           ref={bannerRef}
           className="telemetry-consent-banner pointer-events-auto flex w-full max-w-[1280px] items-center justify-between gap-5 rounded-[18px] border px-4 py-[14px] max-[719px]:flex-wrap max-[719px]:justify-start max-[719px]:gap-[14px] max-[719px]:p-[14px]"
