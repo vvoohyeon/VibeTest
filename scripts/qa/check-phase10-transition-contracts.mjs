@@ -137,8 +137,13 @@ if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
     fail('Landing grid styles must keep explicit mobile open/close choreography keyframes.');
   }
 
-  if (!/data-mobile-transient-mode='OPENING'/u.test(css) || !/data-mobile-transient-mode='CLOSING'/u.test(css)) {
-    fail('Landing grid styles must keep explicit mobile transient-mode selectors.');
+  if (
+    !/\.root\.mobileTransientOpening/u.test(css) ||
+    !/\.root\.mobileTransientClosing/u.test(css) ||
+    !/\.transientShell\.transientOpening/u.test(css) ||
+    !/\.transientShell\.transientClosing/u.test(css)
+  ) {
+    fail('Landing grid styles must keep explicit semantic-class selectors for mobile transient choreography.');
   }
 }
 

@@ -897,7 +897,8 @@
 - landing grid의 animation selector를 utility로 완전히 치환하는 작업은 상태 조합이 많아 별도 후속 리팩터 범위로 보류했다.
 - hover 관련 moved utility는 Tailwind variant 경로를 사용한다. touch 환경에서 hover semantic 차이가 관찰되면 arbitrary variant 또는 residual selector 복구를 검토한다.
 - local theme/state Playwright baseline은 이번 배치 결과에 맞춰 재동기화했다. 현재 baseline 자산은 로컬 QA 참고 자산으로 취급한다.
-- raw `data-*` anchor를 QA/debug surface로 유지한 채 CSS compatibility fallback selector까지 제거하려면, 관련 QA script와 snapshot contract를 먼저 semantic class 기준으로 갱신해야 한다.
+- 2026-04-18 후속 정리에서 static QA script를 semantic class 기준으로 갱신한 뒤 CSS compatibility fallback selector를 제거했다.
+- raw `data-*` anchor는 QA/debug 및 Playwright/e2e surface로 계속 유지한다.
 
 #### 재진입 조건
 

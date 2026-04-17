@@ -5,26 +5,19 @@
     var(--card-shadow);
 }
 
-/* Semantic style classes are the primary consumers; data-* selectors stay as QA/debug fallbacks. */
-.root.desktopOverlayLayer:has(:focus-visible),
-.root[data-expanded-layer='desktop-overlay']:has(:focus-visible) {
+/* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */
+.root.desktopOverlayLayer:has(:focus-visible) {
   box-shadow: var(--card-shadow);
 }
 
-.root.desktopOverlayLayer:has(:focus-visible) .expandedSurface,
-.root[data-expanded-layer='desktop-overlay']:has(:focus-visible) .expandedSurface {
+.root.desktopOverlayLayer:has(:focus-visible) .expandedSurface {
   box-shadow:
     0 0 0 3px var(--focus-ring-outer),
     0 0 0 6px var(--focus-ring-inner),
     0 0 0 1px color-mix(in srgb, var(--surface-divider) 92%, transparent);
 }
 
-.desktopStageActive,
-.desktopStage[data-phase='opening'],
-.desktopStage[data-phase='steady'],
-.desktopStage[data-phase='closing'],
-.desktopStage[data-phase='cleanup-pending'],
-.desktopStage[data-phase='handoff-target'] {
+.desktopStageActive {
   inset:
     calc(var(--landing-card-stage-shadow-bleed-top) * -1)
     calc(var(--landing-card-stage-shadow-bleed-x) * -1)
@@ -42,141 +35,107 @@
 
 .root.desktopOverlayLayer .expandedShellFrame,
 .root.desktopOverlayLayer .expandedShell,
-.root.desktopOverlayLayer .expandedSurface,
-.root[data-expanded-layer='desktop-overlay'] .expandedShellFrame,
-.root[data-expanded-layer='desktop-overlay'] .expandedShell,
-.root[data-expanded-layer='desktop-overlay'] .expandedSurface {
+.root.desktopOverlayLayer .expandedSurface {
   min-height: 0;
   height: auto;
 }
 
-.root.desktopMotionEnter .expandedShellFrame,
-.root[data-desktop-motion-role='opening'] .expandedShellFrame,
-.root[data-desktop-motion-role='handoff-target'] .expandedShellFrame {
+.root.desktopMotionEnter .expandedShellFrame {
   animation: landing-card-shell-frame-expand var(--landing-card-motion-ms) linear both;
 }
 
-.root.desktopMotionEnter .expandedShell,
-.root[data-desktop-motion-role='opening'] .expandedShell,
-.root[data-desktop-motion-role='handoff-target'] .expandedShell {
+.root.desktopMotionEnter .expandedShell {
   animation: landing-card-shell-expand var(--landing-card-motion-ms) linear both;
 }
 
-.root.desktopMotionExit .expandedShellFrame,
-.root[data-desktop-motion-role='closing'] .expandedShellFrame {
+.root.desktopMotionExit .expandedShellFrame {
   animation: landing-card-shell-frame-collapse var(--landing-card-motion-ms) linear both;
 }
 
-.root.desktopMotionExit .expandedShell,
-.root[data-desktop-motion-role='closing'] .expandedShell {
+.root.desktopMotionExit .expandedShell {
   animation: landing-card-shell-collapse var(--landing-card-motion-ms) linear both;
 }
 
-.root.desktopMotionExit .expandedSurface,
-.root[data-desktop-motion-role='closing'] .expandedSurface {
+.root.desktopMotionExit .expandedSurface {
   pointer-events: none;
 }
 
-.desktopStageCleanupPending .expandedShell,
-.desktopStage[data-phase='cleanup-pending'] .expandedShell {
+.desktopStageCleanupPending .expandedShell {
   animation: none;
   transform: scale(1);
 }
 
-.desktopStageCleanupPending .expandedShellFrame,
-.desktopStage[data-phase='cleanup-pending'] .expandedShellFrame {
+.desktopStageCleanupPending .expandedShellFrame {
   animation: none;
   left: 0;
   width: 100%;
 }
 
-.desktopStageCleanupPending .expandedSurface,
-.desktopStage[data-phase='cleanup-pending'] .expandedSurface {
+.desktopStageCleanupPending .expandedSurface {
   pointer-events: none;
 }
 
-.root.desktopMotionSteady .expandedShellFrame,
-.root[data-desktop-motion-role='steady'] .expandedShellFrame {
+.root.desktopMotionSteady .expandedShellFrame {
   left: calc(var(--landing-card-shell-extra-start) * -1);
   width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
 }
 
-.root.desktopMotionSteady .expandedShell,
-.root[data-desktop-motion-role='steady'] .expandedShell {
+.root.desktopMotionSteady .expandedShell {
   transform: scale(var(--landing-card-shell-scale));
 }
 
-.root.desktopMotionEnter .motionStageEarly,
-.root[data-desktop-motion-role='opening'] .motionStageEarly,
-.root[data-desktop-motion-role='handoff-target'] .motionStageEarly {
+.root.desktopMotionEnter .motionStageEarly {
   animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 40ms;
 }
 
-.root.desktopMotionEnter .motionStageMiddle,
-.root[data-desktop-motion-role='opening'] .motionStageMiddle,
-.root[data-desktop-motion-role='handoff-target'] .motionStageMiddle {
+.root.desktopMotionEnter .motionStageMiddle {
   animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 100ms;
 }
 
-.root.desktopMotionEnter .motionStageLate,
-.root[data-desktop-motion-role='opening'] .motionStageLate,
-.root[data-desktop-motion-role='handoff-target'] .motionStageLate {
+.root.desktopMotionEnter .motionStageLate {
   animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
   animation-delay: 160ms;
 }
 
 .root.mobileTransientOpening .normalTitle,
-.root.mobileTransientClosing .normalTitle,
-.root[data-mobile-transient-mode='OPENING'] .normalTitle,
-.root[data-mobile-transient-mode='CLOSING'] .normalTitle {
+.root.mobileTransientClosing .normalTitle {
   opacity: 0;
 }
 
 .root.mobileTransientOpening .normalThumbnail,
 .root.mobileTransientOpening .normalSubtitle,
 .root.mobileTransientOpening .normalTags,
-.root.mobileTransientOpening .normalTagsGap,
-.root[data-mobile-transient-mode='OPENING'] .normalThumbnail,
-.root[data-mobile-transient-mode='OPENING'] .normalSubtitle,
-.root[data-mobile-transient-mode='OPENING'] .normalTags,
-.root[data-mobile-transient-mode='OPENING'] .normalTagsGap {
+.root.mobileTransientOpening .normalTagsGap {
   animation: landing-card-normal-slot-exit 120ms linear both;
 }
 
-.root.mobileTransientClosing .normalThumbnail,
-.root[data-mobile-transient-mode='CLOSING'] .normalThumbnail {
+.root.mobileTransientClosing .normalThumbnail {
   animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
   animation-delay: 20ms;
 }
 
-.root.mobileTransientClosing .normalSubtitle,
-.root[data-mobile-transient-mode='CLOSING'] .normalSubtitle {
+.root.mobileTransientClosing .normalSubtitle {
   animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
   animation-delay: 80ms;
 }
 
 .root.mobileTransientClosing .normalTagsGap,
-.root.mobileTransientClosing .normalTags,
-.root[data-mobile-transient-mode='CLOSING'] .normalTagsGap,
-.root[data-mobile-transient-mode='CLOSING'] .normalTags {
+.root.mobileTransientClosing .normalTags {
   animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
   animation-delay: 140ms;
 }
 
-.transientShell.transientOpening,
-.transientShell[data-state='OPENING'] {
+.transientShell.transientOpening {
   animation: landing-card-mobile-open-shell var(--landing-card-motion-ms) linear both;
 }
 
-.transientShell.transientClosing,
-.transientShell[data-state='CLOSING'] {
+.transientShell.transientClosing {
   animation: landing-card-mobile-close-shell var(--landing-card-motion-ms) linear both;
 }
 
-.transientShell.transientClosing .transientPanel,
-.transientShell[data-state='CLOSING'] .transientPanel {
+.transientShell.transientClosing .transientPanel {
   animation: landing-card-mobile-close-surface var(--landing-card-motion-ms) linear both;
 }
 
@@ -197,28 +156,21 @@
 
 .transientShell.transientClosing .motionStageEarly,
 .transientShell.transientClosing .motionStageMiddle,
-.transientShell.transientClosing .motionStageLate,
-.transientShell[data-state='CLOSING'] .motionStageEarly,
-.transientShell[data-state='CLOSING'] .motionStageMiddle,
-.transientShell[data-state='CLOSING'] .motionStageLate {
+.transientShell.transientClosing .motionStageLate {
   animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) linear both;
 }
 
-.root.reducedMotion.desktopMotionEnter .expandedBody,
-.root.reducedMotion[data-desktop-motion-role='opening'] .expandedBody,
-.root.reducedMotion[data-desktop-motion-role='handoff-target'] .expandedBody {
+.root.reducedMotion.desktopMotionEnter .expandedBody {
   animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
   transform: none;
 }
 
-.root.reducedMotion.desktopMotionExit .expandedBody,
-.root.reducedMotion[data-desktop-motion-role='closing'] .expandedBody {
+.root.reducedMotion.desktopMotionExit .expandedBody {
   animation: landing-card-shell-reduced-close var(--landing-card-motion-ms) linear both;
   transform: none;
 }
 
 .root.reducedMotion.desktopMotionSteady .expandedBody,
-.root.reducedMotion[data-desktop-motion-role='steady'] .expandedBody,
 .root.reducedMotion .motionStageEarly,
 .root.reducedMotion .motionStageMiddle,
 .root.reducedMotion .motionStageLate {
@@ -232,28 +184,23 @@
   width: 100%;
 }
 
-.root.reducedMotion.mobilePhaseClosing .mobileExpanded,
-.root.reducedMotion[data-mobile-phase='CLOSING'] .mobileExpanded {
+.root.reducedMotion.mobilePhaseClosing .mobileExpanded {
   animation: none;
 }
 
 .root.reducedMotion .transientShell.transientOpening,
-.root.reducedMotion .transientShell.transientClosing,
-.root.reducedMotion .transientShell[data-state='OPENING'],
-.root.reducedMotion .transientShell[data-state='CLOSING'] {
+.root.reducedMotion .transientShell.transientClosing {
   left: 0;
   width: 100vw;
   border-radius: 0;
   animation-duration: var(--landing-card-motion-ms);
 }
 
-.root.reducedMotion .transientShell.transientOpening,
-.root.reducedMotion .transientShell[data-state='OPENING'] {
+.root.reducedMotion .transientShell.transientOpening {
   animation-name: landing-card-shell-reduced-open;
 }
 
-.root.reducedMotion .transientShell.transientClosing,
-.root.reducedMotion .transientShell[data-state='CLOSING'] {
+.root.reducedMotion .transientShell.transientClosing {
   animation-name: landing-card-shell-reduced-close;
 }
 
@@ -263,20 +210,10 @@
 .root.reducedMotion .transientShell.transientClosing .motionStageEarly,
 .root.reducedMotion .transientShell.transientClosing .motionStageMiddle,
 .root.reducedMotion .transientShell.transientClosing .motionStageLate,
-.root.reducedMotion .transientShell[data-state='OPENING'] .motionStageEarly,
-.root.reducedMotion .transientShell[data-state='OPENING'] .motionStageMiddle,
-.root.reducedMotion .transientShell[data-state='OPENING'] .motionStageLate,
-.root.reducedMotion .transientShell[data-state='CLOSING'] .motionStageEarly,
-.root.reducedMotion .transientShell[data-state='CLOSING'] .motionStageMiddle,
-.root.reducedMotion .transientShell[data-state='CLOSING'] .motionStageLate,
 .root.reducedMotion.mobileTransientClosing .normalThumbnail,
 .root.reducedMotion.mobileTransientClosing .normalSubtitle,
 .root.reducedMotion.mobileTransientClosing .normalTags,
-.root.reducedMotion.mobileTransientClosing .normalTagsGap,
-.root.reducedMotion[data-mobile-transient-mode='CLOSING'] .normalThumbnail,
-.root.reducedMotion[data-mobile-transient-mode='CLOSING'] .normalSubtitle,
-.root.reducedMotion[data-mobile-transient-mode='CLOSING'] .normalTags,
-.root.reducedMotion[data-mobile-transient-mode='CLOSING'] .normalTagsGap {
+.root.reducedMotion.mobileTransientClosing .normalTagsGap {
   animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
   transform: none;
 }

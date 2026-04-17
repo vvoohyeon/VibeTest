@@ -143,10 +143,10 @@ if (fileExists('src/features/landing/grid/landing-grid-card.module.css')) {
   }
 
   if (
-    !/reducedMotion[\s\S]*data-state='OPENING'[\s\S]*animation-name:\s*landing-card-shell-reduced-open/ums.test(css) ||
-    !/reducedMotion[\s\S]*data-state='CLOSING'[\s\S]*animation-name:\s*landing-card-shell-reduced-close/ums.test(css)
+    !/\.root\.reducedMotion \.transientShell\.transientOpening[\s\S]*animation-name:\s*landing-card-shell-reduced-open/ums.test(css) ||
+    !/\.root\.reducedMotion \.transientShell\.transientClosing[\s\S]*animation-name:\s*landing-card-shell-reduced-close/ums.test(css)
   ) {
-    fail('Landing grid styles must simplify mobile transient-shell motion under reduced-motion.');
+    fail('Landing grid styles must simplify mobile transient-shell motion under reduced-motion through semantic transient-shell classes.');
   }
 }
 
