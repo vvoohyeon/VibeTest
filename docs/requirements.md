@@ -1,5 +1,14 @@
 # Functional Requirements Specification
 
+> **Status (2026-04-21): Product intent / background document.**
+>
+> This file preserves the broader functional product intent and historical evidence map.
+> It is not the current implementation source of truth. For active runtime contracts,
+> routes, QA gates, and code ownership, use `docs/project-analysis.md`,
+> `docs/req-landing.md`, `docs/req-test.md`, and `docs/req-test-plan.md` first.
+> Concrete implementation references in §7 may point to earlier `pages/*`-era files
+> that no longer exist in the current App Router codebase.
+
 ## 1) Overview
 This product lets users take multiple kinds of short assessments (test variants/families), receive a variant-defined final result label (a 1-, 2-, or 4-letter token depending on the variant’s axis count) along with axis-based scores, and share or revisit that result without requiring an account.
 

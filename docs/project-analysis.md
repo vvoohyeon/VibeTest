@@ -8,13 +8,13 @@ This repository is a localized Next.js App Router application. Its real technica
 
 - `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/theme-matrix-smoke.spec.ts tests/e2e/safari-hover-ghosting.spec.ts`: 174 tests — passes
 - `node scripts/qa/check-phase11-telemetry-contracts.mjs`: passes
-- `npm run qa:rules` (2026-04-18 docs sync gate): passes
+- `npm run qa:rules` (2026-04-21 docs sync gate): passes
 - `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` (2026-04-21 domain/schema-registry docs sync gate): pass
 - Ownership migration final gate (`check-phase4`~`check-phase10`, `grid/state/gnb/a11y/theme-matrix/transition` Playwright smoke): pass
 - `npm test`: 38 unit test files / 181 tests — passes
 - Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required.
 
-**Implementation phase status (2026-04-06):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
+**Implementation phase status (2026-04-21):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
 
 ---
 
@@ -177,10 +177,10 @@ The most technically distinctive part of the codebase. Several focused pure modu
 
 Coordinated by:
 
-- `src/features/landing/grid/use-landing-interaction-controller.ts` — **1582 lines**, runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, transition start/cancel
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — **1587 lines**, runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, transition start/cancel
 - `src/features/landing/grid/landing-catalog-grid.tsx` — DOM geometry measurement, row baseline freezing, `requestAnimationFrame` timing
 
-State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. Styling ownership is now hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` also remaps raw runtime state into semantic style classes (`desktopOverlayLayer`, `desktopMotionEnter|Exit|Steady`, `mobileTransientOpening|Closing`, `mobilePhaseClosing`) that `landing-grid-card.module.css` now consumes exclusively for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors, but no longer participate in the CSS contract. `src/app/globals.css` now keeps only tokens and the shared anchor base. `motion@12.34.0` is installed but not imported anywhere in `src` or `tests`; the live motion system is still entirely CSS- and data-attribute-driven, and any package adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract.
+State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. Styling ownership is now hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` also remaps raw runtime state into semantic style classes (`desktopOverlayLayer`, `desktopMotionEnter|Exit|Steady`, `mobileTransientOpening|Closing`, `mobilePhaseClosing`) that `landing-grid-card.module.css` now consumes exclusively for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors, but no longer participate in the CSS contract. `src/app/globals.css` now keeps only tokens and the shared anchor base. `motion@12.34.0` is installed but not imported anywhere in `src` or `tests`; the live motion system is CSS module and semantic-class driven, and any package adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract.
 
 ### 5.2 GNB
 
@@ -199,18 +199,18 @@ Questions source rows: `src/features/test/fixtures/questions/**`
 
 Current fixture inventory:
 - 10 total cards (7 test, 3 blog)
-- Test card attributes: 2 `available`, 1 `opt_out`, 2 `unavailable`, 1 `hide`, 1 `debug`
+- Test card attributes: 3 `available`, 1 `opt_out`, 1 `unavailable`, 1 `hide`, 1 `debug`
 - Blog card attributes: 3 `available`
-- Publicly enterable test variant ids: `qmbti`, `rhythm-b`, `energy-check`
+- Publicly enterable test variant ids: `qmbti`, `rhythm-b`, `energy-check`, `egtt`
 - Blog variants: `ops-handbook`, `build-metrics`, `release-gate`
 
 `src/features/variant-registry/attribute.ts` now owns `attribute` normalization and the helper surface that matters to the rest of the app: `deriveAvailability()`, `isEnterableCard()`, `isCatalogVisibleCard()`, and `isUnavailablePresentation()`.
 
-`src/features/variant-registry/types.ts` already separates source-facing and runtime-facing shapes: source rows can carry `seq` and inline preview bridge fields, while runtime landing cards exclude those source-only fields. `src/features/variant-registry/resolvers.ts` centralizes `loadVariantRegistry()`, locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `loadVariantRegistry()` now exposes the environment-branching interface for future generated production loading, but until ADR-D is resolved it always returns the cached fixture-built registry. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
+`src/features/variant-registry/types.ts` already separates source-facing and runtime-facing shapes: source rows can carry `seq` and inline preview bridge fields, while runtime landing cards exclude those source-only fields. `src/features/variant-registry/resolvers.ts` centralizes `loadVariantRegistry()`, locale fallback (active → `defaultLocale` → `default` → first non-empty), consent-aware catalog filtering, strict variant lookup, and the `resolveTestPreviewPayload()` boundary. `loadVariantRegistry()` exposes the environment-branching interface for future generated production loading; ADR-D is now confirmed as versioned file (git 커밋 포함, 매 sync 전체 재생성), so it currently returns the cached fixture-built registry pending the Sync GitHub Action implementation. `src/features/variant-registry/builder.ts` validates source rows, sorts by `seq`, drops `seq` from the exported runtime registry, and emits separate `landingCards` / `testPreviewPayloadByVariant` runtime stores. The resolver layer still exposes a `{audience: 'qa'}` escape hatch that preserves `hide` / `debug` fixtures the end-user catalog hides.
 
 `src/features/variant-registry/cross-sheet-integrity.ts` provides the first pure cross-sheet validation slice: `validateCrossSheetIntegrity(landingTestVariants, questionVariants)` compares Landing test variant IDs with Questions sheet-name variant IDs and returns `missingInQuestions` / `extraInQuestions`. This helper is intentionally limited to the Landing ↔ Questions 2-source boundary; Results-source validation, Sync script wiring, and runtime lazy-validation integration remain Phase 2 follow-up work.
 
-The current builder still relies on fixture-backed localized copy and a temporary bridge where the **first scoring preview source of truth** remains inline. That bridge is isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly. Runtime meta keys are unified as `durationM` / `sharedC` / `engagedC`, while UI labels branch by content type.
+The current builder still relies on fixture-backed localized copy and a temporary bridge where the **first scoring preview source of truth** remains inline. That bridge is isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly. `src/features/variant-registry/source-fixture.ts` carries a `@migration Q1 Preview` annotation marking the inline preview fields as a temporary bridge pending Sync migration to Questions `scoring1`. `src/features/variant-registry/builder.ts` carries a `@sync-target` annotation at the corresponding builder boundary. `src/features/variant-registry/variant-registry.generated.ts` carries a `@generated` annotation and a "직접 편집하지 않는다" directive (ADR-D: versioned file, full regeneration on each sync). Runtime meta keys are unified as `durationM` / `sharedC` / `engagedC`, while UI labels branch by content type.
 
 Questions fixtures are no longer held in a single combined file. `src/features/test/fixtures/questions/index.ts` exports the aggregate `questionSourceFixture` map and `getVariantQuestionRows()` lookup, while each variant file preserves source row order and stores Sheets locale columns as `LocalizedText` objects (`question`, `answerA`, `answerB`). EGTT keeps its profile row (`seq='q.1'`) in the same canonical source order as the scoring rows.
 
@@ -246,6 +246,86 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 `src/features/test/schema-registry.ts` currently provides the code-owned schema registry slice for `mbti` and `egtt`, and is the single owner of the variant → `ScoringLogicType` → `ScoringSchema` template mapping. MBTI variants share the 4-axis `E/I`, `S/N`, `T/F`, `J/P` schema. EGTT resolves to one `E/T` axis plus the `gender` qualifier with `['M', 'F']` token values. Landing/Questions fixtures and Sheets metadata do not duplicate `scoringLogicType`; consumers use `getLogicTypeForVariant()` / `getSchemaForVariant()` when they need schema lookup. `src/features/test/response-projection.ts` is intentionally only a reserved stub for Phase 4/7: it records the future pure helper boundary that will map runtime `'A' | 'B'` responses to domain pole/qualifier tokens before calling `computeScoreStats()` or `buildTypeSegment()`.
 
+### 5.5.1 Phase 1 Domain Foundation — Frozen Interface Contracts
+
+> Phase 0–1 ADR에서 동결된 계약. shape·enum 값 변경은 새 ADR 필수. Phase 2+ 구현 시 아래 시그니처를 소비한다.
+
+```typescript
+// Core branded types — 변경 시 새 ADR 필요
+type VariantId     = string & { readonly __brand: 'VariantId' }  // object-wrapping 금지
+type QuestionIndex = number & { readonly __brand: 'QuestionIndex' }
+type AxisCount     = 1 | 2 | 4  // branded literal union 격상 미결 — plain union 기준 유지
+
+interface Question {
+  index: QuestionIndex
+  poleA?: string; poleB?: string  // scoring은 필수, profile은 optional (ADR-X)
+  questionType: 'scoring' | 'profile'
+}
+interface QualifierFieldSpec {
+  key: string; questionIndex: QuestionIndex
+  values: string[]; tokenLength: number
+}
+interface AxisSpec { poleA: string; poleB: string; scoringMode: 'binary_majority' | 'scale' }
+interface ScoringSchema {
+  variantId: VariantId; scoringSchemaId: string  // scoringSchemaId는 URL에 포함하지 않음
+  axisCount: AxisCount; axes: AxisSpec[]
+  supportedSections: SectionId[]
+  qualifierFields?: QualifierFieldSpec[]
+}
+interface VariantSchema {
+  variant: VariantId; schema: ScoringSchema
+  questions: Question[]  // scoring + profile 전체, canonical 실행 순서
+}
+// ScoreStats = Record<axisId, { poleA, poleB, counts: Record<string,number>, dominant: string }>
+// ResultPayload = { scoreStats: ScoreStats; shared: boolean }
+```
+
+```typescript
+// validateVariant — Phase 4 entry path 소비. 시그니처·union shape 동결
+validateVariant(input: unknown, registeredVariants: VariantId[], availableVariants: VariantId[])
+  : { ok: true; value: VariantId }
+  | { ok: false; reason: 'MISSING' | 'UNKNOWN' | 'UNAVAILABLE' }
+// MISSING: null·undefined·''·비-string. UNKNOWN: 등록 외. UNAVAILABLE: 등록됨·available 아님
+```
+
+```typescript
+// validateVariantDataIntegrity — Phase 2 registry builder 소비. enum 동결
+type BlockingDataErrorReason =
+  | 'EMPTY_QUESTION_SET' | 'QUESTION_MODEL_VIOLATION'
+  | 'EVEN_AXIS_QUESTION_COUNT'    // binary_majority axis에만 적용
+  | 'AXIS_COUNT_SCHEMA_MISMATCH'  // axes 배열 길이 ≠ axisCount
+  | 'DUPLICATE_AXIS_SPEC' | 'UNSUPPORTED_SCORING_MODE'
+  | 'QUALIFIER_QUESTION_NOT_FOUND' | 'QUALIFIER_QUESTION_NOT_PROFILE'
+  | 'DUPLICATE_QUALIFIER_KEY' | 'QUALIFIER_SPEC_INVALID' | 'DUPLICATE_QUALIFIER_VALUE'
+// 새 reason 추가는 새 ADR 대상
+
+validateVariantDataIntegrity(schema: VariantSchema)
+  : { ok: true } | { ok: false; reason: BlockingDataErrorReason; detail?: string }
+```
+
+```typescript
+// computeScoreStats / deriveDerivedType — Phase 7 소비
+// scoring 문항만 집계; profile 문항 응답은 ScoreStats에 포함하지 않음
+// schema axis와 역방향인 question도 같은 axis로 집계 (bidirectional rule)
+computeScoreStats(questions: Question[], responses: Map<QuestionIndex, string>, schema: ScoringSchema)
+  : ScoreStats | { error: 'INCOMPLETE_SCORING_RESPONSES' | 'UNMATCHED_QUESTION' }
+deriveDerivedType(scoreStats: ScoreStats, schema: ScoringSchema)
+  : DerivedType | { error: 'AXIS_NOT_FOUND' | 'TOKEN_LENGTH_MISMATCH' }
+
+// parseTypeSegment / buildTypeSegment — Phase 8 result URL 소비
+// type segment 길이 = axisCount + sum(qualifierFields[i].tokenLength)
+parseTypeSegment(typeSegment: string, schema: ScoringSchema)
+  : { ok: true; derivedType: string; qualifiers: Record<string, string> }
+  | { ok: false; reason: 'LENGTH_MISMATCH' | 'INVALID_QUALIFIER_VALUE' }
+buildTypeSegment(derivedType: string, responses: Map<QuestionIndex, string>, schema: ScoringSchema)
+  : { ok: true; typeSegment: string }
+  | { ok: false; reason: 'QUALIFIER_RESPONSE_MISSING' | 'INVALID_QUALIFIER_VALUE' }
+```
+
+**ADR-X (완료)**: `Question.poleA`/`poleB`는 `scoring`에서만 필수, `profile`에서는 optional. EGTT `q.*` profile row의 source shape(`poleA`/`poleB` 없음)와의 충돌을 해소. 변경 범위: `types.ts`, `validate-question-model.ts`, `question-source-parser.ts`, 관련 unit tests.
+
+**Live runtime 현황**: `test-question-client.tsx`와 page.tsx는 `src/features/test/domain/`을 아직 import하지 않는다. `validateVariant()` ok:false 결과를 소비하는 runtime wiring이 없다. Phase 4 소유: `validateVariant()` ok:false → §6.1 에러 복구 페이지 wiring.
+
 ### 5.6 Telemetry
 
 `src/features/landing/telemetry/consent-source.ts` — single consent gate for both custom telemetry and Vercel analytics, synchronized to `localStorage`, bridges cross-tab changes via browser `storage` event.
@@ -275,6 +355,22 @@ Tailwind v4 is now active in the live runtime through `src/app/globals.css` `@im
 - Component-local utility/class constants now own `PageShell` spacing, consent banner layout/buttons, transition GNB overlay positioning, GNB shell rows/triggers/chips/settings-panel geometry, landing grid/card static shells and boolean-resolvable state shells, instruction/test shells, blog/history shells, and both not-found surfaces.
 - `landing-shell-card` still exists as a shared DOM hook/classname across test/blog/history consumers, but its visual styling is now local to each component rather than defined in `globals.css`.
 - Title/subtitle continuity measurement no longer depends on a global `.landing-grid-card-text-probe` selector; `landing-card-title-continuity.tsx` now creates and styles the probe element programmatically.
+
+### 5.7.1 Tailwind v4 Migration — 완료 기록
+
+**완료 상태 (2026-04-16)**: Batch 1–7 전체 완료. Checkpoint 1–4 모두 통과.
+
+**핵심 확정 결정:**
+
+- `src/app/globals.css`는 1,240줄 → **112줄** 로 축소. 역할: token/theme + anchor base만 유지.
+- landing grid/card의 motion, focus continuity, reduced-motion, transient choreography 소유자: `src/features/landing/grid/landing-grid-card.module.css` (371줄).
+- 전역 CSS에서 component-local ownership으로 회수된 범위: body canvas(`APP_BODY_CLASSNAME`), transition GNB overlay, consent spacer/layer, GNB settings panel geometry/chip state, test/blog/history/not-found static shell, title/subtitle continuity probe.
+- `data-*` anchor는 QA/debug/Playwright surface로 **계속 유지**. 시각 CSS ownership만 이동.
+- 전역에 남긴 최소 3가지: `:root`, `html[data-theme='dark']`, `a { color: var(--link-ink) }`.
+- Checkpoint 2 구현 메모 (2026-04-16): `@tailwindcss/postcss` 미연결 회귀를 `postcss.config.mjs` 최소 연결로 복구. 우측 vertical empty space 기준선은 `scrollbar-gutter` 없는 body canvas 구조로 정리.
+- `tailwind.config.*`는 content scan 또는 theme extension이 실제로 필요해질 때까지 도입하지 않는다.
+- 보류 항목 (non-blocking): landing grid animation selector의 utility 완전 치환. 별도 후속 리팩터 범위.
+- 원본 migration plan 문서는 이 섹션으로 흡수 후 제거됨. 현재 style ownership SSOT는 본 섹션(§5.7·§5.7.1)과 코드베이스.
 
 ---
 
@@ -329,7 +425,7 @@ Scoped to `tests/unit/`. The latest rerun passed with 38 files / 181 tests. Cove
 
 ### 7.2 E2E Tests (Playwright)
 
-9 spec files in `tests/e2e/` are currently enumerated by `npx playwright test --grep @smoke --list`:
+9 spec files / 275 tests in `tests/e2e/` are currently enumerated by `npx playwright test --grep @smoke --list`:
 
 | Spec | Contract covered |
 |---|---|
@@ -343,7 +439,7 @@ Scoped to `tests/unit/`. The latest rerun passed with 38 files / 181 tests. Cove
 | `safari-hover-ghosting.spec.ts` | WebKit-only hover/shadow seam regression (5 baselines) |
 | `transition-telemetry-smoke.spec.ts` | Landing ingress, transition signals, timeout/load-error/cancel closure, scroll restore, payload hygiene |
 
-Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for the representative test-route anchors via `PRIMARY_AVAILABLE_TEST_VARIANT` / `PRIMARY_AVAILABLE_TEST_VARIANT` and `PRIMARY_OPT_OUT_TEST_VARIANT` / `PRIMARY_OPT_OUT_TEST_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
+Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of truth for representative anchors via `PRIMARY_AVAILABLE_TEST_VARIANT`, `PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_OPT_OUT_TEST_VARIANT`, `PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY`, `PRIMARY_BLOG_VARIANT`, and `SECONDARY_BLOG_VARIANT`; `helpers/consent.ts` seeds consent deterministically; `helpers/axe.ts` formats Axe violations.
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 
@@ -370,13 +466,28 @@ Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces aro
 
 `docs/blocker-traceability.json` spans blockers `1..30`, mixing `automated_assertion`, `scenario_test`, and `manual_checkpoint` evidence kinds.
 
-Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`; the remaining test-flow blockers 24~30 still mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence surfaces. The registry remains the machine-readable source for the current evidence kind and file mapping.
+Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`; the remaining test-flow blockers 24~30 still mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence surfaces, with blockers 27 and 28 already carrying additional automated evidence. The registry remains the machine-readable source for the current evidence kind and file mapping.
 
-As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.mjs` after baseline restoration and currently stops at `check-variant-registry-contracts.mjs` because legacy identifiers remain in `docs/req-landing.md`, `docs/req-test-plan.md`, and `docs/requirements.md`.
+As of 2026-04-21, `npm run qa:rules` passes all 12 checks, including Phase 11 telemetry, variant registry, variant-only routing, and blocker traceability.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 
 **Least verified areas** correspond directly to unimplemented product surfaces: scoring correctness, result semantics, history persistence, backend ingestion guarantees, data-source synchronization.
+
+### 7.4 Closed Follow-up Items
+
+아래 항목은 Tailwind v4 Checkpoint 1·2 사이클에서 발생한 follow-up으로, 2026-04-16 기준 모두 닫혔다. 활성 후속 작업 없음.
+
+**Variant Registry Fixture Drift** (닫힘 2026-04-16):
+- 수정 범위: `qmbti` preview question fixture string 정렬, hidden fixture variant `burnout-risk` 기준 정합 수정.
+- `egtt`는 `available` / enterable test variant 상태 유지. landing catalog 노출 copy 뉘앙스는 별도 product/copy 작업 범위 (non-blocking).
+- 재현 명령 (현재 PASS): `npm test -- tests/unit/landing-data-contract.test.ts tests/unit/landing-question-bank.test.ts`
+
+**Theme Matrix / Safari Baseline Closure** (닫힘 2026-04-16):
+- theme-matrix PNG baseline 168개 (96 layout + 72 state), Safari ghosting PNG baseline 5개 복구 완료.
+- 재현 명령 (현재 PASS): `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/theme-matrix-smoke.spec.ts tests/e2e/safari-hover-ghosting.spec.ts`
+- `node scripts/qa/check-phase11-telemetry-contracts.mjs` — PASS.
+- 이후 visual 변경으로 baseline 재생성이 필요해지면 해당 구현 batch에서 재생성. 별도 follow-up 문서로 분리하지 않음.
 
 ---
 
@@ -415,9 +526,9 @@ As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.m
 
 **Instruction copy ownership is intentionally split.** Variant-specific instruction bodies live in fixtures, while CTA labels and consent notes live in locale messages. Future editors need to keep both sources in sync.
 
-**Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1582 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. Powerful but fragile under content-density or browser changes. The most likely future refactoring cost concentration point.
+**Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1587 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. Powerful but fragile under content-density or browser changes. The most likely future refactoring cost concentration point.
 
-**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Two files stand out as the primary pressure points: `use-landing-interaction-controller.ts` (1582 lines) and `site-gnb.tsx` (~831 lines).
+**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Two files stand out as the primary pressure points: `use-landing-interaction-controller.ts` (1587 lines) and `site-gnb.tsx` (~831 lines).
 
 **Screenshot-driven QA remains concentrated in the instruction surface.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of representative snapshots and route-level assertions.
 
