@@ -8,9 +8,11 @@ import {
   type AxisCount,
   type AxisSpec,
   type Question,
+  type QuestionIndex,
   type QuestionType,
   type ScoringSchema
 } from '../../src/features/test/domain';
+import {axisMatchesQuestion} from '../../src/features/test/domain/derivation';
 
 function makeAxis(poleA: string, poleB: string): AxisSpec {
   return {poleA, poleB, scoringMode: 'binary_majority'};
@@ -43,6 +45,41 @@ function makeSchema(variant: string, axisCount: AxisCount, axes: AxisSpec[]): Sc
 function makeResponses(entries: Array<[number, string]>) {
   return new Map(entries.map(([index, value]) => [asQuestionIndex(index), value]));
 }
+
+describe('axisMatchesQuestion', () => {
+  const scoringAxis = {poleA: 'E', poleB: 'I', scoringMode: 'binary_majority' as const};
+
+  it('정방향 일치 → true', () => {
+    const q = {index: 1 as QuestionIndex, poleA: 'E', poleB: 'I', questionType: 'scoring' as const};
+
+    expect(axisMatchesQuestion(scoringAxis, q)).toBe(true);
+  });
+
+  it('역방향 일치 → true', () => {
+    const q = {index: 1 as QuestionIndex, poleA: 'I', poleB: 'E', questionType: 'scoring' as const};
+
+    expect(axisMatchesQuestion(scoringAxis, q)).toBe(true);
+  });
+
+  it('완전 불일치 → false', () => {
+    const q = {index: 1 as QuestionIndex, poleA: 'T', poleB: 'F', questionType: 'scoring' as const};
+
+    expect(axisMatchesQuestion(scoringAxis, q)).toBe(false);
+  });
+
+  it('부분 불일치 (poleA만 일치) → false', () => {
+    const q = {index: 1 as QuestionIndex, poleA: 'E', poleB: 'T', questionType: 'scoring' as const};
+
+    expect(axisMatchesQuestion(scoringAxis, q)).toBe(false);
+  });
+
+  it('profile question (poleA/poleB undefined) → false', () => {
+    const egttAxis = {poleA: 'E', poleB: 'T', scoringMode: 'binary_majority' as const};
+    const q = {index: 1 as QuestionIndex, poleA: undefined, poleB: undefined, questionType: 'profile' as const};
+
+    expect(axisMatchesQuestion(egttAxis, q)).toBe(false);
+  });
+});
 
 describe('test domain derivation', () => {
   it('assertion:B11-derivation-correctness computes axisCount=1 score stats and derivedType while ignoring profile responses', () => {

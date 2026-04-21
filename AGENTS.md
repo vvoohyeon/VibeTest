@@ -123,7 +123,7 @@
 - 2026-04-16 기준 Phase 11 visual smoke baseline은 로컬 QA 자산으로 정리되었다.
 - Playwright screenshot baseline은 `tests/e2e/*-snapshots/` 아래 로컬 PNG로 저장하며, Git tracked completeness는 요구하지 않는다.
 - visual smoke helper는 missing baseline을 같은 경로에 자동 생성하고, baseline이 이미 있으면 기존 PNG와 비교한다.
-- `npm run qa:rules`는 Phase 11까지 통과하며, 현재는 `check-variant-registry-contracts.mjs`의 legacy identifier 문서 drift에서 실패한다.
+- 2026-04-21 기준 `npm run qa:rules`는 Phase 11, variant registry, variant-only, blocker traceability까지 모두 통과한다.
 - `npm run qa:gate`는 release / flake 확인용의 무거운 파이프라인이다.
 
 ## 5. 골드 스탠다드 참조
@@ -191,13 +191,13 @@
 - combined theme label wording family는 `Language ⋅ Theme` 계열을 유지한다.
 - `public/theme-bootstrap.js`는 hydration 이전에 `vivetest-theme`를 읽는다.
 - `motion` 패키지는 설치되어 있지만 현재 `src` / `tests`에서 사용하지 않는다. [임시: 2026-04-15 기준]
-- Tailwind v4 패키지는 설치되어 있으며, 현재 런타임 styling ownership은 `src/app/globals.css`의 token/base와 feature-local style source로 분리되어 있다. [업데이트: 2026-04-17]
+- Tailwind v4 패키지는 설치되어 있으며, 현재 런타임 styling ownership은 `src/app/globals.css`의 token/base와 feature-local style source로 분리되어 있다. `src/app/globals.css`는 112줄 token/base 표면이고 landing grid/card motion/focus/reduced-motion은 `src/features/landing/grid/landing-grid-card.module.css`가 소유한다. [업데이트: 2026-04-21]
 
 ### UX 위험 집중 구역
 아래 파일·서브시스템은 사용성·접근성·반응성·성능·디자인 일관성에 직접 영향을 준다.
 수정 전에 Template A 또는 B의 UX 관련 필드에 사용성·접근성·반응성·성능·디자인 일관성 중 해당 항목을 명시한다.
-- `src/features/landing/grid/use-landing-interaction-controller.ts` — 1582줄 상태 머신. 포커스·키보드·hover 타이머·모바일 셸·리듀스드 모션 전체를 오케스트레이션한다.
-- `src/features/landing/gnb/site-gnb.tsx` — ~791줄. 키보드 탐색 순서, 포커스 반환, 테마 전환, 로케일 전환을 담당한다.
+- `src/features/landing/grid/use-landing-interaction-controller.ts` — 1587줄 상태 머신. 포커스·키보드·hover 타이머·모바일 셸·리듀스드 모션 전체를 오케스트레이션한다.
+- `src/features/landing/gnb/site-gnb.tsx` — ~831줄. 키보드 탐색 순서, 포커스 반환, 테마 전환, 로케일 전환을 담당한다.
 - `src/features/landing/shell/page-shell.tsx` — 전 로케일 라우트의 공유 런타임 컨트롤러. GNB, TransitionGnbOverlay, TelemetryConsentBanner를 마운트한다.
 - `public/theme-bootstrap.js` — hydration 이전 테마 부트스트랩. 변경 시 테마 깜빡임 회귀 위험.
 - `src/features/landing/telemetry/consent-source.ts` — 동의 게이트 단일 소스. Vercel analytics와 telemetry의 공통 진입점이다.
