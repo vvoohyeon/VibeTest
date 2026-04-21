@@ -8,6 +8,8 @@ export const egttQuestions: ReadonlyArray<QuestionSourceRow> = [
     question: {en: 'My sexual identity is', kr: '나의 성별은'},
     poleA: undefined,
     poleB: undefined,
+    // 표시용 answer label. domain qualifier token(['M','F'])과 다름.
+    // token 매핑은 schema-registry.ts의 egtt qualifierFields.values를 기준으로 한다.
     answerA: {en: 'Male', kr: '남성'},
     answerB: {en: 'Female', kr: '여성'}
   },

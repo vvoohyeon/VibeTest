@@ -13,7 +13,17 @@ export interface LandingTestQuestion {
 
 /**
  * locale 해석이 완료된 runtime question 단위.
- * Phase 1 domain Question과 달리 UI 표시용 텍스트를 포함한다.
+ *
+ * ⚠️ 이 타입은 UI 렌더링용 데이터 구조이며, domain 집계에 직접 사용하지 않는다.
+ *
+ * A/B → domain token 변환은 이 레이어의 책임이 아니다.
+ *   - scoring projection (A→poleA, B→poleB): src/features/test/response-projection.ts 담당
+ *   - qualifier projection (A→values[0], B→values[1]): 동일
+ *   - 위 파일은 Phase 4/7에서 구현될 예정이며 현재 stub 상태
+ *
+ * 참조: Phase 1 domain token 모델 (req-test-plan.md §Phase 1 완료 요약)
+ *   computeScoreStats() / buildTypeSegment()는 pole label 또는 qualifier token을
+ *   직접 소비하며, raw 'A'/'B'를 받지 않는다.
  */
 export interface ResolvedQuestion {
   canonicalIndex: number;
@@ -99,6 +109,11 @@ function buildLocalizedFallbackQuestions(locale: AppLocale): LandingTestQuestion
  * canonical index는 출현 순서 기준 1-based다.
  *
  * variant fixture가 없으면 빈 배열을 반환한다.
+ *
+ * @responsibility
+ *   이 함수는 locale resolve와 canonicalIndex 부여까지만 담당한다.
+ *   runtime user response('A'|'B')를 domain token으로 변환하는 것은
+ *   이 함수의 책임이 아니며, src/features/test/response-projection.ts에서 수행한다.
  */
 export function buildVariantQuestionBank(variantId: string, locale: AppLocale): ResolvedQuestion[] {
   const rows = getVariantQuestionRows(variantId);
@@ -121,6 +136,11 @@ export function buildVariantQuestionBank(variantId: string, locale: AppLocale): 
  *   - profile question은 landing preview 대상이 아니다.
  *   - 첫 번째 scoring question이 scoring1이다.
  *   - scoring question이 없으면 null을 반환한다.
+ *
+ * @sync-target
+ *   현재는 question fixture의 첫 번째 scoring row를 사용한다.
+ *   Google Sheets Sync 구현 이후에는 Questions Sheets의 scoring1 row를
+ *   builder가 이 경로에 투영한다. consumer shape는 변경되지 않는다.
  */
 export function resolveVariantPreviewQ1(variantId: string, locale: AppLocale): ResolvedPreviewQ1 | null {
   const firstScoringRow = findFirstScoringRow(getVariantQuestionRows(variantId));

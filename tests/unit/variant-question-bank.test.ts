@@ -27,6 +27,23 @@ describe('buildVariantQuestionBank', () => {
     expect(bank[2].canonicalIndex).toBe(3);
   });
 
+  it('buildVariantQuestionBank는 poleA/poleB를 그대로 보존하며 A/B로 변환하지 않는다', () => {
+    const bank = buildVariantQuestionBank('qmbti', 'en');
+
+    expect(bank[0].poleA).toBe('E');
+    expect(bank[0].poleB).toBe('I');
+    expect(bank[0].poleA).not.toBe('A');
+    expect(bank[0].poleB).not.toBe('B');
+  });
+
+  it('buildVariantQuestionBank는 egtt profile question의 poleA/poleB를 undefined로 보존한다', () => {
+    const bank = buildVariantQuestionBank('egtt', 'en');
+
+    expect(bank[0].questionType).toBe('profile');
+    expect(bank[0].poleA).toBeUndefined();
+    expect(bank[0].poleB).toBeUndefined();
+  });
+
   it('존재하지 않는 variant는 빈 배열 반환', () => {
     const bank = buildVariantQuestionBank('non-existent', 'en');
 

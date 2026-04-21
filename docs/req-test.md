@@ -111,7 +111,7 @@
 - 실제 Sheets locale 컬럼은 `question_EN`, `question_KR`, `answerA_EN`, `answerB_EN` 같은 snake_case suffix 형식이다. 코드 fixture는 이를 `LocalizedText` key(`en`, `kr`, ...)로 보존하며, 신규 locale 도입 시 row shape를 늘리지 않고 localized key만 추가한다.
 - Questions source row는 source row 순서를 보존해 정규화해야 한다. sync 후 canonical `questions[]`는 **source row 순서 기준 1-based canonical index**로 재번호한다.
   - 예: `q.1, q.2, 1, 2, 3` → canonical `questions[]` index `1, 2, 3, 4, 5`
-- 현재 dev canonical 변환 구현은 `buildCanonicalQuestions(rows, locale)`이며, Phase 1 domain `Question` 타입 shape를 변경하지 않는다. 표시용 question/answer 텍스트는 runtime question-bank selector가 별도 `ResolvedQuestion`으로 제공한다.
+- 현재 dev canonical 변환 구현은 `buildCanonicalQuestions(rows, locale)`이며, source row 순서를 canonical index로 재번호하고 profile row의 `poleA` / `poleB` `undefined` 상태를 보존한다. 표시용 question/answer 텍스트는 runtime question-bank selector가 별도 `ResolvedQuestion`으로 제공한다.
 - canonical index는 storage, qualifier mapping, schema validation, telemetry의 단일 기준축이다.
 - profile question도 canonical `questions[]`에 포함한다. 별도 profile 배열 분리를 허용하지 않는다.
 - landing preview payload의 최종 canonical target은 Questions source의 **first scoring question (`scoring1`)** 이다. 다만 현재 단계에서는 source of truth를 fixture inline bridge로 유지할 수 있으며, 이 예외는 다음 단계 migration 전용 temporary bridge로만 해석한다.
@@ -596,23 +596,24 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 
 ### 3.8 Question Model Contract
 
-- 각 question은 정확히 2개의 선택지를 가져야 한다. 두 선택지의 의미는 `poleA`, `poleB` 문자열로 직접 표현한다.
+- 각 runtime question은 정확히 2개의 선택지를 가져야 한다. `scoring` question의 두 선택지는 `poleA`, `poleB` 문자열로 직접 표현한다. `profile` question의 표시 선택지는 content layer가 소유하며, domain qualifier token은 `QualifierFieldSpec.values`가 소유한다.
 - canonical Question model은 각 question에 `questionType: 'scoring' | 'profile'` 필드를 가져야 한다. 이 필드는 source column이 아니라 sync normalization 결과일 수 있다.
 - canonical `questions[]` 배열은 source row 순서를 보존한 뒤 1-based canonical index로 재번호한 결과다.
 
 **Scoring question 규칙**:
+- `poleA`와 `poleB`는 필수이며 서로 달라야 한다 (`poleA ≠ poleB`).
 - 정확히 1개의 scoring axis를 평가해야 한다. 축 소속은 question의 `poleA/poleB` 쌍이 schema axis의 `poleA/poleB`와 정방향 또는 역방향으로 일치하는 항목으로 결정된다.
 - 예: schema axis가 `E/I`이면 question `E/I`와 `I/E`는 같은 axis에 속한다. 이는 질문 방향 차이일 뿐 별도 axis가 아니다.
 - 하나의 scoring question이 다중 axis에 동시에 기여하면 안 된다. bidirectional 기준으로 둘 이상의 schema axis에 매칭되어서는 안 된다.
 
 **Profile question 규칙**:
-- scoring axis에 귀속되지 않는다. `poleA`+`poleB` 쌍이 `schema.axes`와 일치하지 않아도 된다.
-- `poleA`와 `poleB`는 서로 달라야 한다 (`poleA ≠ poleB`).
+- scoring axis에 귀속되지 않는다. `poleA` / `poleB`는 optional이며, EGTT 같은 qualifier profile row에서는 `undefined`일 수 있다.
+- profile의 표시 선택지(`answerA` / `answerB`)와 domain qualifier token은 동일한 값이라고 가정하면 안 된다. qualifier token은 `schema.qualifierFields[].values`가 소유한다.
 - `scoreStats` 계산에서 제외된다.
 - `qualifierFields` 중 해당 question의 `index`를 참조하는 항목이 없는 경우에도 응답은 수집되고 저장된다. 단, result URL 구성에 사용되지 않는다.
 
 **공통 규칙**:
-- domain derivation 함수가 소비하는 응답 맵은 선택된 pole 문자열(`poleA` 또는 `poleB` 값)을 저장한다.
+- domain derivation 함수가 소비하는 응답 맵은 `scoring` 응답에서는 선택된 pole 문자열(`poleA` 또는 `poleB` 값)을, `profile` qualifier 응답에서는 `QualifierFieldSpec.values`의 token을 저장한다.
 - runtime `final_responses`가 보유한 `'A' | 'B'` 코드는 domain 함수의 직접 입력이 아니다. 향후 `src/features/test/response-projection.ts`의 pure helper가 scoring 응답은 `A -> question.poleA`, `B -> question.poleB`로, qualifier 응답은 `A -> qualifierField.values[0]`, `B -> qualifierField.values[1]`로 투영한다.
 - 이 projection layer 없이 `computeScoreStats()` 또는 `buildTypeSegment()`에 raw `'A' | 'B'`를 전달하는 것을 금지한다.
 - 표시용 텍스트(선택지 본문)는 별도 i18n/콘텐츠 레이어에서 question index 기준으로 조회한다. Question 도메인 타입에 포함하지 않는다.
@@ -625,7 +626,7 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - main progress는 **answered scoring count / total scoring count**를 기준으로 계산한다.
 - landing ingress flag 존재 시 landing에서 pre-answer된 `scoring1`의 canonical index는 answered scoring count에 포함된다. profile question이 존재하면 이 answered index는 canonical `1`이 아닐 수 있다.
 
-> **향후 확장**: 현재 question model은 이진 선택지(`poleA`/`poleB`)만 지원한다. 척도형(1~5점) 응답지 지원은 `AxisSpec.scoringMode: 'scale'` 구현 단계에서 별도 question model 확장이 필요하다. 이번 단계에서는 이진 모델만 구현 대상이다.
+> **향후 확장**: 현재 scoring question model은 이진 pole 선택지(`poleA`/`poleB`)만 지원한다. 척도형(1~5점) 응답지 지원은 `AxisSpec.scoringMode: 'scale'` 구현 단계에서 별도 question model 확장이 필요하다. 이번 단계에서는 이진 모델만 구현 대상이다.
 
 ### 3.9 Progress / Revision / Tail Reset Contract
 
@@ -721,7 +722,7 @@ ScoreStats = Record<string, AxisScoreStat>
 ```
 schema.axes = [{ poleA: 'E', poleB: 'T', scoringMode: 'binary_majority' }]
 schema.qualifierFields = [{ key: 'gender', questionIndex: 1, values: ['M', 'F'], tokenLength: 1 }]
-// questions[0] = { index:1, poleA:'M', poleB:'F', questionType:'profile' }   // source seq q.1
+// questions[0] = { index:1, poleA: undefined, poleB: undefined, questionType:'profile' } // source seq q.1
 // questions[1] = first scoring question                                         // source seq 1 = scoring1
 // questions[2..N] = remaining scoring questions
 
@@ -1479,7 +1480,7 @@ skeleton으로 확보해야 할 hook 위치:
 4. **Instruction / Ingress Continuity**: `scoring1` pre-answer가 있는 진입에서 instruction이 기존 응답을 무효화하지 않는다. consume 시점이 Start 클릭 직후(또는 test_start)임을 검증한다.
 5. **Active Run 판정**: 30분 경계값 전후 판정 정확성. timeout 시 휘발.
 6. **응답 데이터 휘발**: result screen entry commit 후, timeout 후, 처음부터 다시 하기 commit success 후 — 잔류 데이터 `0건`. derivation-failure 상태에서 응답 데이터 미삭제.
-7. **Question Model Integrity**: canonical 모든 question이 `questionType` 필드를 가진다. scoring question은 정확히 2개 선택지 + bidirectional 기준 정확히 1개 scoring axis 매핑. profile question은 정확히 2개 선택지 + axis 귀속 없음 (`poleA ≠ poleB` 충족). 전체 canonical question index 중복 없음.
+7. **Question Model Integrity**: canonical 모든 question이 `questionType` 필드를 가진다. scoring question은 필수 `poleA`/`poleB` + bidirectional 기준 정확히 1개 scoring axis 매핑. profile question은 axis 귀속 없음이며 `poleA`/`poleB`는 optional로 허용한다. 전체 canonical question index 중복 없음.
 8. **Progress / Completion Gating**: main progress가 scoring answered/total 기준이며 profile 문항을 포함하지 않는다. profile overlay prerequisite 미완료 또는 미응답 canonical 문항 존재 시 completion 차단.
 9. **Answer Revision / Tail Reset**: 이전 문항 재방문 시 기존 답변 표시. 이전 문항(non-final) 응답 변경 즉시 tail reset + eligibility false. 마지막 문항 응답 변경 시 derivation residue 무효화만 발생, eligibility 조건 충족 시 유지.
 10. **Session Lifecycle Determinism**: variant switch 시 prior context 정리. timeout 이후 stale context 미유지.

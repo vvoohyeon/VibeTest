@@ -15,17 +15,22 @@ function isValidQuestionIndex(index: number): boolean {
 
 function hasRequiredQuestionFields(question: Question): boolean {
   return (
-    typeof question.poleA === 'string' &&
-    question.poleA.length > 0 &&
-    typeof question.poleB === 'string' &&
-    question.poleB.length > 0 &&
     allowedQuestionTypes.has(question.questionType) &&
     isValidQuestionIndex(question.index)
   );
 }
 
+function hasRequiredScoringPoles(question: Question): question is Question & {poleA: string; poleB: string} {
+  return (
+    typeof question.poleA === 'string' &&
+    question.poleA.length > 0 &&
+    typeof question.poleB === 'string' &&
+    question.poleB.length > 0
+  );
+}
+
 function countAxisMatches(question: Question, axes: AxisSpec[]): number {
-  return axes.filter((axis) => axisMatchesQuestion(question, axis)).length;
+  return axes.filter((axis) => axisMatchesQuestion(axis, question)).length;
 }
 
 export function validateQuestionModel(
@@ -43,14 +48,6 @@ export function validateQuestionModel(
       };
     }
 
-    if (question.poleA === question.poleB) {
-      return {
-        ok: false,
-        reason: 'QUESTION_MODEL_VIOLATION',
-        detail: `Question ${String(question.index)} must declare distinct poles.`
-      };
-    }
-
     if (indexes.has(question.index)) {
       return {
         ok: false,
@@ -61,7 +58,27 @@ export function validateQuestionModel(
 
     indexes.add(question.index);
 
-    if (question.questionType === 'scoring' && countAxisMatches(question, schema.axes) !== 1) {
+    if (question.questionType !== 'scoring') {
+      continue;
+    }
+
+    if (!hasRequiredScoringPoles(question)) {
+      return {
+        ok: false,
+        reason: 'QUESTION_MODEL_VIOLATION',
+        detail: `Scoring question ${String(question.index)} is missing required poles.`
+      };
+    }
+
+    if (question.poleA === question.poleB) {
+      return {
+        ok: false,
+        reason: 'QUESTION_MODEL_VIOLATION',
+        detail: `Scoring question ${String(question.index)} must declare distinct poles.`
+      };
+    }
+
+    if (countAxisMatches(question, schema.axes) !== 1) {
       return {
         ok: false,
         reason: 'QUESTION_MODEL_VIOLATION',

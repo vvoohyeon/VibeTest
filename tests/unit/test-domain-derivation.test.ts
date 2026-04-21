@@ -16,7 +16,12 @@ function makeAxis(poleA: string, poleB: string): AxisSpec {
   return {poleA, poleB, scoringMode: 'binary_majority'};
 }
 
-function makeQuestion(index: number, poleA: string, poleB: string, questionType: QuestionType): Question {
+function makeQuestion(
+  index: number,
+  poleA: string | undefined,
+  poleB: string | undefined,
+  questionType: QuestionType
+): Question {
   return {
     index: asQuestionIndex(index),
     poleA,
@@ -43,7 +48,7 @@ describe('test domain derivation', () => {
   it('assertion:B11-derivation-correctness computes axisCount=1 score stats and derivedType while ignoring profile responses', () => {
     const schema = makeSchema('egtt', 1, [makeAxis('e', 't')]);
     const questions = [
-      makeQuestion(1, 'm', 'f', 'profile'),
+      makeQuestion(1, undefined, undefined, 'profile'),
       makeQuestion(2, 'e', 't', 'scoring'),
       makeQuestion(3, 'e', 't', 'scoring'),
       makeQuestion(4, 'e', 't', 'scoring')

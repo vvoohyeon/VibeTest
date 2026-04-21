@@ -12,7 +12,7 @@ function getAxisId(poleA: string, poleB: string): string {
   return `${poleA}${poleB}`;
 }
 
-export function axisMatchesQuestion(question: Question, axis: AxisSpec): boolean {
+export function axisMatchesQuestion(axis: AxisSpec, question: Question): boolean {
   return (
     (question.poleA === axis.poleA && question.poleB === axis.poleB) ||
     (question.poleA === axis.poleB && question.poleB === axis.poleA)
@@ -47,7 +47,7 @@ export function computeScoreStats(
   const scoreStats: ScoreStats = {};
 
   for (const axis of schema.axes) {
-    const axisQuestions = scoringQuestions.filter((question) => axisMatchesQuestion(question, axis));
+    const axisQuestions = scoringQuestions.filter((question) => axisMatchesQuestion(axis, question));
     const axisScoreStat = buildAxisScoreStat(axis.poleA, axis.poleB);
 
     for (const question of axisQuestions) {

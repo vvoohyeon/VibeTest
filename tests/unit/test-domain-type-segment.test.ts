@@ -12,7 +12,12 @@ import {
   type VariantSchema
 } from '../../src/features/test/domain';
 
-function makeQuestion(index: number, poleA: string, poleB: string, questionType: QuestionType): Question {
+function makeQuestion(
+  index: number,
+  poleA: string | undefined,
+  poleB: string | undefined,
+  questionType: QuestionType
+): Question {
   return {
     index: asQuestionIndex(index),
     poleA,
@@ -50,7 +55,7 @@ function makeEgttVariantSchema(questions?: Question[]): VariantSchema {
     questions:
       questions ??
       [
-        makeQuestion(1, 'm', 'f', 'profile'),
+        makeQuestion(1, undefined, undefined, 'profile'),
         makeQuestion(2, 'e', 't', 'scoring'),
         makeQuestion(3, 'e', 't', 'scoring'),
         makeQuestion(4, 'e', 't', 'scoring')

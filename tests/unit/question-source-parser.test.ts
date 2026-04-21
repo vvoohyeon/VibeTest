@@ -41,6 +41,8 @@ describe('buildCanonicalQuestions - egtt', () => {
     const questions = buildCanonicalQuestions(rows, 'en');
 
     expect(questions[0].questionType).toBe('profile');
+    expect(questions[0].poleA).toBeUndefined();
+    expect(questions[0].poleB).toBeUndefined();
     expect(questions[1].questionType).toBe('scoring');
     expect(questions[2].questionType).toBe('scoring');
   });

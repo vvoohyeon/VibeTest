@@ -14,8 +14,8 @@ export interface AxisSpec {
 
 export interface Question {
   index: QuestionIndex;
-  poleA: string;
-  poleB: string;
+  poleA?: string;
+  poleB?: string;
   questionType: QuestionType;
 }
 

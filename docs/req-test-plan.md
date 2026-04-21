@@ -202,11 +202,30 @@ Phase 1 Domain Foundation은 완료되었다. `src/features/test/domain/` 하위
 |---|---|---|
 | 브랜드 타입 및 도메인 모델 | `types.ts` | `VariantId`, `QuestionIndex`, `AxisCount`, `ScoringSchema`, `VariantSchema`, `Question`, `QuestionType`, `QualifierFieldSpec`, `ScoreStats`, `DerivedType`, `ResultPayload` |
 | `validateVariant()` | `validate-variant.ts` | MISSING/UNKNOWN/UNAVAILABLE 3-way pure gate. 시그니처와 결과 union shape 동결 |
-| `validateQuestionModel()` | `validate-question-model.ts` | poleA≠poleB, index 유일성, bidirectional axis 귀속 불변식 검증 |
+| `validateQuestionModel()` | `validate-question-model.ts` | scoring `poleA`/`poleB` 필수·상호 다름, profile pole optional, index 유일성, bidirectional axis 귀속 불변식 검증 |
 | `validateVariantDataIntegrity()` | `validate-variant-data-integrity.ts` | `BlockingDataErrorReason` enum 동결. bidirectional odd-count rule, duplicate axis/qualifier, unsupported scoringMode 포함 |
 | `computeScoreStats()`, `deriveDerivedType()` | `derivation.ts` | schema-driven 도출. profile 문항 제외, MBTI 하드코딩 없음. `axisMatchesQuestion()` exported helper를 제공하지만 `domain/index.ts` public surface로 re-export하지 않는다 |
 | `parseTypeSegment()`, `buildTypeSegment()` | `type-segment.ts` | qualifier-aware type segment 인코딩·파싱 |
 | Public surface | `index.ts` | 위 타입과 함수 전체 export. `axisMatchesQuestion()`은 현재 내부 공유용 direct export이며 `index.ts` public surface에는 포함하지 않는다 |
+
+### ADR-X — Question.poleA/poleB profile optional 허용
+
+**완료 상태**: done.
+
+**결정**:
+- `Question.poleA` / `Question.poleB`는 `scoring` question에서만 필수다.
+- `profile` question에서는 `poleA` / `poleB`를 optional로 허용한다.
+
+**근거**:
+- `profile` question은 scoring axis pole을 평가하지 않는 qualifier 문항이다.
+- Phase 1 당시 profile 구조가 미확정이었고, 모든 `Question`에 pole을 강제하던 타입은 EGTT `q.*` profile row의 실제 source shape(`poleA` / `poleB` 없음)와 충돌했다.
+- 이 ADR은 Phase 1 동결 계약의 공백을 메우는 수정이며, domain token 모델과 A/B projection 경계는 변경하지 않는다.
+
+**변경 범위**:
+- `src/features/test/domain/types.ts`
+- `src/features/test/domain/validate-question-model.ts`
+- `src/features/test/question-source-parser.ts`
+- domain / question-source-parser unit tests
 
 **동결 계약 참조 (Phase 2+ 구현 시 소비)**:
 
@@ -220,7 +239,7 @@ type AxisCount     = 1 | 2 | 4  // branded literal union 격상 미결 — plain
 
 interface Question {
   index: QuestionIndex
-  poleA: string; poleB: string
+  poleA?: string; poleB?: string       // scoring은 필수, profile은 optional
   questionType: 'scoring' | 'profile'   // sync parser 산출물, source column 아님
 }
 interface QualifierFieldSpec {

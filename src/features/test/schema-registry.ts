@@ -8,8 +8,12 @@
  *   - src/features/test/fixtures/questions/ 하위 파일
  *   - Landing Sheets / Questions Sheets 컬럼
  *
- * 새 variant 추가 시: variantLogicTypeMap에만 항목을 추가한다.
- * 새 logic type 추가 시: ScoringLogicType union, schemaTemplates, variantLogicTypeMap을 함께 확장한다.
+ * 기존 logic type을 재사용하는 새 variant 추가 시:
+ *   - variantLogicTypeMap에만 항목을 추가한다.
+ *
+ * 새 logic type / schema template 추가 시:
+ *   - ScoringLogicType union, schemaTemplates, variantLogicTypeMap을 함께 확장한다.
+ *   - tests/unit/schema-registry.test.ts의 등록 variant 기대값도 함께 갱신한다.
  */
 import {
   asQuestionIndex,

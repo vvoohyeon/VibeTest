@@ -17,7 +17,12 @@ function makeAxis(poleA: string, poleB: string, scoringMode: ScoringMode = 'bina
   return {poleA, poleB, scoringMode};
 }
 
-function makeQuestion(index: number, poleA: string, poleB: string, questionType: QuestionType): Question {
+function makeQuestion(
+  index: number,
+  poleA: string | undefined,
+  poleB: string | undefined,
+  questionType: QuestionType
+): Question {
   return {
     index: asQuestionIndex(index),
     poleA,
@@ -49,7 +54,7 @@ function makeVariantSchema(input?: {
 }
 
 describe('test domain question model and integrity validation', () => {
-  it('assertion:B7-question-model-integrity accepts scoring questions mapped to one axis and profile questions outside the axis model', () => {
+  it('assertion:B7-question-model-integrity accepts scoring questions mapped to one axis and profile questions without axis poles', () => {
     const schema = makeVariantSchema({
       axisCount: 2,
       axes: [makeAxis('E', 'I'), makeAxis('S', 'N')],
@@ -60,7 +65,7 @@ describe('test domain question model and integrity validation', () => {
         makeQuestion(4, 'S', 'N', 'scoring'),
         makeQuestion(5, 'S', 'N', 'scoring'),
         makeQuestion(6, 'S', 'N', 'scoring'),
-        makeQuestion(7, 'm', 'f', 'profile')
+        makeQuestion(7, undefined, undefined, 'profile')
       ]
     });
 
@@ -82,11 +87,11 @@ describe('test domain question model and integrity validation', () => {
     });
   });
 
-  it('assertion:B7-question-model-integrity rejects identical poles, duplicate indexes, and scoring questions with no axis match', () => {
+  it('assertion:B7-question-model-integrity rejects duplicate indexes and invalid scoring pole declarations', () => {
     const duplicateIndexQuestions = [
       makeQuestion(1, 'E', 'I', 'scoring'),
       makeQuestion(1, 'E', 'I', 'scoring'),
-      makeQuestion(3, 'm', 'f', 'profile')
+      makeQuestion(3, undefined, undefined, 'profile')
     ];
 
     expect(validateQuestionModel(duplicateIndexQuestions, makeVariantSchema().schema)).toEqual(
@@ -97,7 +102,16 @@ describe('test domain question model and integrity validation', () => {
     );
 
     expect(
-      validateQuestionModel([makeQuestion(1, 'E', 'E', 'profile')], makeVariantSchema().schema)
+      validateQuestionModel([makeQuestion(1, 'E', 'E', 'scoring')], makeVariantSchema().schema)
+    ).toEqual(
+      expect.objectContaining({
+        ok: false,
+        reason: 'QUESTION_MODEL_VIOLATION'
+      })
+    );
+
+    expect(
+      validateQuestionModel([makeQuestion(1, undefined, 'I', 'scoring')], makeVariantSchema().schema)
     ).toEqual(
       expect.objectContaining({
         ok: false,
@@ -120,7 +134,7 @@ describe('test domain question model and integrity validation', () => {
       questions: [
         makeQuestion(1, 'E', 'I', 'scoring'),
         makeQuestion(2, 'E', 'I', 'scoring'),
-        makeQuestion(3, 'm', 'f', 'profile')
+        makeQuestion(3, undefined, undefined, 'profile')
       ]
     });
 
@@ -183,7 +197,7 @@ describe('test domain question model and integrity validation', () => {
     });
   });
 
-  it('accepts empty-question, valid schema, and profile-question mismatch edge cases according to the Phase 1 contract', () => {
+  it('accepts empty-question, valid schema, and profile-question optional pole edge cases according to the Phase 1 contract', () => {
     expect(validateVariantDataIntegrity(makeVariantSchema({questions: []}))).toEqual({
       ok: false,
       reason: 'EMPTY_QUESTION_SET'
@@ -205,10 +219,17 @@ describe('test domain question model and integrity validation', () => {
     expect(validateVariantDataIntegrity(validSchema)).toEqual({ok: true});
 
     expect(
-      validateQuestionModel([makeQuestion(1, 'x', 'y', 'profile')], makeVariantSchema().schema)
+      validateQuestionModel([makeQuestion(1, undefined, undefined, 'profile')], makeVariantSchema().schema)
     ).toEqual({
       ok: true,
-      value: [makeQuestion(1, 'x', 'y', 'profile')]
+      value: [makeQuestion(1, undefined, undefined, 'profile')]
+    });
+
+    expect(
+      validateQuestionModel([makeQuestion(1, 'x', 'x', 'profile')], makeVariantSchema().schema)
+    ).toEqual({
+      ok: true,
+      value: [makeQuestion(1, 'x', 'x', 'profile')]
     });
   });
 });

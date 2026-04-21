@@ -64,8 +64,8 @@ export function buildCanonicalQuestions(rows: ReadonlyArray<QuestionSourceRow>, 
 
     return {
       index: asQuestionIndex(index + 1),
-      poleA: row.poleA ?? '',
-      poleB: row.poleB ?? '',
+      poleA: row.poleA,
+      poleB: row.poleB,
       questionType: parseSeqToQuestionType(row.seq)
     };
   });

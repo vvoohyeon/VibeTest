@@ -125,7 +125,7 @@ function checkOddCountRule(questions: Question[], axes: AxisSpec[]): VariantData
       continue;
     }
 
-    const axisQuestions = scoringQuestions.filter((question) => axisMatchesQuestion(question, axis));
+    const axisQuestions = scoringQuestions.filter((question) => axisMatchesQuestion(axis, question));
 
     if (axisQuestions.length % 2 === 0) {
       return {
