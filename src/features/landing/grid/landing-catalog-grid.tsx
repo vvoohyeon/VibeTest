@@ -38,6 +38,8 @@ import {useLandingTransition} from '@/features/landing/transition/use-landing-tr
 
 const INITIAL_VIEWPORT_WIDTH = 1280;
 const INITIAL_GRID_INLINE_SIZE = CONTAINER_MAX_WIDTH - TABLET_DESKTOP_SIDE_PADDING * 2;
+const LANDING_GRID_MOBILE_BACKDROP_CLASSNAME =
+  'landing-grid-mobile-backdrop fixed inset-0 z-10 bg-[var(--overlay-scrim-medium)] touch-pan-y [transition:opacity_180ms_ease] data-[state=CLOSING]:opacity-0';
 
 export const LANDING_GRID_PLAN_CHANGED_EVENT = 'landing:grid-plan-changed';
 
@@ -133,6 +135,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
   const {
     interactionMode,
     interactionState,
+    prefersReducedMotion,
     mobileLifecycleState,
     mobileBackdropBindings,
     activeVisualCardVariant,
@@ -435,7 +438,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
   return (
     <section
       ref={shellRef}
-      className="landing-grid-shell"
+      className="landing-grid-shell relative pb-5"
       aria-label="Landing Catalog Grid"
       data-testid="landing-grid-shell"
       data-grid-tier={plan.tier}
@@ -456,7 +459,7 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
     >
       {mobileBackdropBindings.active ? (
         <div
-          className="landing-grid-mobile-backdrop"
+          className={LANDING_GRID_MOBILE_BACKDROP_CLASSNAME}
           data-testid="landing-grid-mobile-backdrop"
           data-state={mobileBackdropBindings.state}
           onPointerDown={mobileBackdropBindings.onPointerDown}
@@ -465,14 +468,18 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
           onPointerCancel={mobileBackdropBindings.onPointerCancel}
         />
       ) : null}
-      <div ref={containerRef} className="landing-grid-container" data-testid="landing-grid-container">
+      <div
+        ref={containerRef}
+        className="landing-grid-container relative grid gap-[15px] md:gap-4"
+        data-testid="landing-grid-container"
+      >
         {plan.rows.map((row) => {
           const rowSnapshot = baselineState.snapshots.get(`row-${row.rowIndex}`);
 
           return (
             <div
               key={row.rowIndex}
-              className="landing-grid-row"
+              className="landing-grid-row grid items-stretch gap-[15px] md:gap-4 [grid-template-columns:repeat(var(--landing-grid-columns),minmax(0,1fr))]"
               data-testid={`landing-grid-row-${row.rowIndex}`}
               data-row-index={row.rowIndex}
               data-row-role={row.role}
@@ -502,6 +509,8 @@ export function LandingCatalogGrid({cards, assetBackedVariants}: LandingCatalogG
                     mobileRestoreReady={interactionBindings.mobileRestoreReady}
                     desktopMotionRole={interactionBindings.desktopMotionRole}
                     desktopShellPhase={interactionBindings.desktopShellPhase}
+                    desktopShellInlineScale={row.expandedShellInlineScale}
+                    reducedMotion={prefersReducedMotion}
                     mobileSnapshot={interactionBindings.mobileSnapshot}
                     desktopTransformOriginX={resolveDesktopTransformOriginX({
                       cardOffset: offset,

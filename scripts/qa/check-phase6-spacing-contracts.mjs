@@ -20,6 +20,10 @@ function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function readExisting(relativePaths) {
+  return relativePaths.filter(fileExists).map(read).join('\n');
+}
+
 function readCssBlock(css, selector) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = css.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, 'u'));
@@ -64,14 +68,17 @@ if (fileExists('src/features/landing/grid/landing-grid-card.tsx')) {
   if (!/landing-grid-card-tags-gap/u.test(cardFile)) {
     fail('LandingGridCard must render explicit tags-gap element for base_gap + comp_gap model.');
   }
+
+  if (!/LANDING_GRID_CARD_TAGS_GAP_CLASSNAME[\s\S]*calc\(var\(--landing-card-base-gap\)_\+_var\(--landing-card-comp-gap\)\)/u.test(cardFile)) {
+    fail('LandingGridCard must compute tags-gap height from base_gap + comp_gap in component-owned class source.');
+  }
 }
 
-if (fileExists('src/app/globals.css')) {
-  const css = read('src/app/globals.css');
-  if (!/\.landing-grid-card-tags-gap\s*\{[\s\S]*calc\(var\(--landing-card-base-gap\) \+ var\(--landing-card-comp-gap\)\)/u.test(css)) {
-    fail('Global styles must compute tags-gap height from base_gap + comp_gap.');
-  }
-
+{
+  const css = readExisting([
+    'src/app/globals.css',
+    'src/features/landing/grid/landing-grid-card.module.css'
+  ]);
   const cardBlock = readCssBlock(css, '.landing-grid-card');
   const contentBlock = readCssBlock(css, '.landing-grid-card-content');
   const tagsGapBlock = readCssBlock(css, '.landing-grid-card-tags-gap');

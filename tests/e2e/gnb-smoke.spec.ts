@@ -48,6 +48,34 @@ async function readInteractiveSurfaceStyles(locator: Locator) {
   });
 }
 
+async function readSharedShellLayoutMetrics(page: Page) {
+  return page.evaluate(() => {
+    const main = document.querySelector<HTMLElement>('.page-shell-main');
+    const gnbInner = document.querySelector<HTMLElement>('.gnb-inner');
+
+    if (!main || !gnbInner) {
+      throw new Error('Expected shared shell landmarks to be present.');
+    }
+
+    const mainStyle = getComputedStyle(main);
+    const mainRect = main.getBoundingClientRect();
+    const gnbRect = gnbInner.getBoundingClientRect();
+
+    return {
+      main: {
+        maxWidth: mainStyle.maxWidth,
+        paddingTop: mainStyle.paddingTop,
+        width: mainRect.width,
+        left: mainRect.left
+      },
+      gnb: {
+        width: gnbRect.width,
+        left: gnbRect.left
+      }
+    };
+  });
+}
+
 function getLocaleLabel(locale: AppLocale): string {
   return localeOptions.find(({code}) => code === locale)?.label ?? locale;
 }
@@ -211,6 +239,24 @@ test.describe('Phase 3 gnb shell smoke', () => {
 
     await page.locator('.page-shell-main').click();
     await expect(panel).toBeHidden();
+  });
+
+  test('@smoke shared page shell keeps the 1280px main contract aligned with the GNB on representative routes', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1600, height: 1000});
+
+    for (const route of ['/en', '/en/history', buildLocalizedPrimaryTestRoute('en')]) {
+      await page.goto(route);
+
+      const metrics = await readSharedShellLayoutMetrics(page);
+
+      expect(metrics.main.maxWidth).toBe('1280px');
+      expect(metrics.main.paddingTop).toBe('88px');
+      expect(metrics.main.width).toBeCloseTo(1280, 0);
+      expect(metrics.gnb.width).toBeCloseTo(1280, 0);
+      expect(metrics.main.left).toBeCloseTo(metrics.gnb.left, 1);
+    }
   });
 
   test('@smoke desktop fallback open works without hover capability', async ({page}) => {

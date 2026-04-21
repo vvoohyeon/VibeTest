@@ -2,6 +2,7 @@ import {expect, type Locator, type Page, test} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT, buildLocalizedPrimaryTestRoute} from './helpers/landing-fixture';
+import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const AVAILABLE_TEST_CARD_SELECTOR =
@@ -152,6 +153,21 @@ async function readInteractiveMetrics(locator: Locator): Promise<InteractiveMetr
   });
 }
 
+async function readDocumentCanvasMetrics(page: Page) {
+  return page.evaluate(() => {
+    const bodyStyle = getComputedStyle(document.body);
+
+    return {
+      scrollHeight: document.documentElement.scrollHeight,
+      clientHeight: document.documentElement.clientHeight,
+      rootClientWidth: document.documentElement.clientWidth,
+      bodyClientWidth: document.body.clientWidth,
+      bodyBackgroundColor: bodyStyle.backgroundColor,
+      bodyBackgroundImage: bodyStyle.backgroundImage
+    };
+  });
+}
+
 async function readHoverOutSamples(
   page: Page,
   interactiveLocator: Locator,
@@ -181,6 +197,20 @@ async function expandLandingCardViaTrigger(page: Page, card: Locator) {
 test.describe('Phase 7 state + capability smoke', () => {
   test.beforeEach(async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_IN');
+  });
+
+  test('@smoke root canvas keeps body-owned background without reserving a right-edge gutter', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1600, height: 700});
+    await page.goto('/en');
+
+    const metrics = await readDocumentCanvasMetrics(page);
+
+    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+    expect(metrics.rootClientWidth).toBe(metrics.bodyClientWidth);
+    expect(metrics.bodyBackgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(metrics.bodyBackgroundImage).not.toBe('none');
   });
 
   test('@smoke capability gate keeps tap on mobile and hover on desktop-capable environments', async ({page}) => {
@@ -291,7 +321,7 @@ test.describe('Phase 7 state + capability smoke', () => {
     expect(overlayStyleMetrics.surfaceMinHeight).toBe('0px');
   });
 
-  test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}) => {
+  test('@smoke expanded keyboard focus boundary follows the visible overlay shell', async ({page}, testInfo) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
@@ -302,16 +332,16 @@ test.describe('Phase 7 state + capability smoke', () => {
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
     await expect(firstCard).toHaveAttribute('data-desktop-motion-role', 'steady');
     await expect(firstCard.getByTestId('landing-grid-card-trigger')).toBeFocused();
-    await expect(firstCard).toHaveScreenshot('expanded-focus-shell.png');
+    await expectLocatorToMatchLocalSnapshot(firstCard, 'expanded-focus-shell.png', testInfo);
   });
 
-  test('@smoke assertion:B5-overlay-focus shell-aligned focus remains readable above unavailable overlay', async ({page}) => {
+  test('@smoke assertion:B5-overlay-focus shell-aligned focus remains readable above unavailable overlay', async ({page}, testInfo) => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto('/en');
 
     const unavailableCard = page.locator('[data-card-variant="creativity-profile"]');
     await unavailableCard.getByTestId('landing-grid-card-trigger').focus();
-    await expect(unavailableCard).toHaveScreenshot('overlay-focus-shell.png');
+    await expectLocatorToMatchLocalSnapshot(unavailableCard, 'overlay-focus-shell.png', testInfo);
   });
 
   test('@smoke assertion:B5-mobile-keyboard-handoff mobile keyboard CTA traversal collapses the previous expanded card before focusing the next trigger', async ({

@@ -1,0 +1,371 @@
+.root:has(:focus-visible) {
+  box-shadow:
+    0 0 0 3px var(--focus-ring-outer),
+    0 0 0 6px var(--focus-ring-inner),
+    var(--card-shadow);
+}
+
+/* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */
+.root.desktopOverlayLayer:has(:focus-visible) {
+  box-shadow: var(--card-shadow);
+}
+
+.root.desktopOverlayLayer:has(:focus-visible) .expandedSurface {
+  box-shadow:
+    0 0 0 3px var(--focus-ring-outer),
+    0 0 0 6px var(--focus-ring-inner),
+    0 0 0 1px color-mix(in srgb, var(--surface-divider) 92%, transparent);
+}
+
+.desktopStageActive {
+  inset:
+    calc(var(--landing-card-stage-shadow-bleed-top) * -1)
+    calc(var(--landing-card-stage-shadow-bleed-x) * -1)
+    calc(var(--landing-card-stage-shadow-bleed-bottom) * -1)
+    calc(var(--landing-card-stage-shadow-bleed-x) * -1);
+  overflow: hidden;
+  overflow: clip;
+  border-radius: 0;
+  contain: paint;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.root.desktopOverlayLayer .expandedShellFrame,
+.root.desktopOverlayLayer .expandedShell,
+.root.desktopOverlayLayer .expandedSurface {
+  min-height: 0;
+  height: auto;
+}
+
+.root.desktopMotionEnter .expandedShellFrame {
+  animation: landing-card-shell-frame-expand var(--landing-card-motion-ms) linear both;
+}
+
+.root.desktopMotionEnter .expandedShell {
+  animation: landing-card-shell-expand var(--landing-card-motion-ms) linear both;
+}
+
+.root.desktopMotionExit .expandedShellFrame {
+  animation: landing-card-shell-frame-collapse var(--landing-card-motion-ms) linear both;
+}
+
+.root.desktopMotionExit .expandedShell {
+  animation: landing-card-shell-collapse var(--landing-card-motion-ms) linear both;
+}
+
+.root.desktopMotionExit .expandedSurface {
+  pointer-events: none;
+}
+
+.desktopStageCleanupPending .expandedShell {
+  animation: none;
+  transform: scale(1);
+}
+
+.desktopStageCleanupPending .expandedShellFrame {
+  animation: none;
+  left: 0;
+  width: 100%;
+}
+
+.desktopStageCleanupPending .expandedSurface {
+  pointer-events: none;
+}
+
+.root.desktopMotionSteady .expandedShellFrame {
+  left: calc(var(--landing-card-shell-extra-start) * -1);
+  width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
+}
+
+.root.desktopMotionSteady .expandedShell {
+  transform: scale(var(--landing-card-shell-scale));
+}
+
+.root.desktopMotionEnter .motionStageEarly {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 40ms;
+}
+
+.root.desktopMotionEnter .motionStageMiddle {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 100ms;
+}
+
+.root.desktopMotionEnter .motionStageLate {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 160ms;
+}
+
+.root.mobileTransientOpening .normalTitle,
+.root.mobileTransientClosing .normalTitle {
+  opacity: 0;
+}
+
+.root.mobileTransientOpening .normalThumbnail,
+.root.mobileTransientOpening .normalSubtitle,
+.root.mobileTransientOpening .normalTags,
+.root.mobileTransientOpening .normalTagsGap {
+  animation: landing-card-normal-slot-exit 120ms linear both;
+}
+
+.root.mobileTransientClosing .normalThumbnail {
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation-delay: 20ms;
+}
+
+.root.mobileTransientClosing .normalSubtitle {
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation-delay: 80ms;
+}
+
+.root.mobileTransientClosing .normalTagsGap,
+.root.mobileTransientClosing .normalTags {
+  animation: landing-card-normal-slot-enter var(--landing-card-motion-ms) linear both;
+  animation-delay: 140ms;
+}
+
+.transientShell.transientOpening {
+  animation: landing-card-mobile-open-shell var(--landing-card-motion-ms) linear both;
+}
+
+.transientShell.transientClosing {
+  animation: landing-card-mobile-close-shell var(--landing-card-motion-ms) linear both;
+}
+
+.transientShell.transientClosing .transientPanel {
+  animation: landing-card-mobile-close-surface var(--landing-card-motion-ms) linear both;
+}
+
+.transientShell .motionStageEarly {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 40ms;
+}
+
+.transientShell .motionStageMiddle {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 100ms;
+}
+
+.transientShell .motionStageLate {
+  animation: landing-card-detail-rise var(--landing-card-motion-ms) linear both;
+  animation-delay: 160ms;
+}
+
+.transientShell.transientClosing .motionStageEarly,
+.transientShell.transientClosing .motionStageMiddle,
+.transientShell.transientClosing .motionStageLate {
+  animation: landing-card-detail-quiet-exit var(--landing-card-motion-ms) linear both;
+}
+
+.root.reducedMotion.desktopMotionEnter .expandedBody {
+  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+.root.reducedMotion.desktopMotionExit .expandedBody {
+  animation: landing-card-shell-reduced-close var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+.root.reducedMotion.desktopMotionSteady .expandedBody,
+.root.reducedMotion .motionStageEarly,
+.root.reducedMotion .motionStageMiddle,
+.root.reducedMotion .motionStageLate {
+  animation: none;
+  transform: none;
+}
+
+.root.reducedMotion .expandedShellFrame {
+  animation: none;
+  left: 0;
+  width: 100%;
+}
+
+.root.reducedMotion.mobilePhaseClosing .mobileExpanded {
+  animation: none;
+}
+
+.root.reducedMotion .transientShell.transientOpening,
+.root.reducedMotion .transientShell.transientClosing {
+  left: 0;
+  width: 100vw;
+  border-radius: 0;
+  animation-duration: var(--landing-card-motion-ms);
+}
+
+.root.reducedMotion .transientShell.transientOpening {
+  animation-name: landing-card-shell-reduced-open;
+}
+
+.root.reducedMotion .transientShell.transientClosing {
+  animation-name: landing-card-shell-reduced-close;
+}
+
+.root.reducedMotion .transientShell.transientOpening .motionStageEarly,
+.root.reducedMotion .transientShell.transientOpening .motionStageMiddle,
+.root.reducedMotion .transientShell.transientOpening .motionStageLate,
+.root.reducedMotion .transientShell.transientClosing .motionStageEarly,
+.root.reducedMotion .transientShell.transientClosing .motionStageMiddle,
+.root.reducedMotion .transientShell.transientClosing .motionStageLate,
+.root.reducedMotion.mobileTransientClosing .normalThumbnail,
+.root.reducedMotion.mobileTransientClosing .normalSubtitle,
+.root.reducedMotion.mobileTransientClosing .normalTags,
+.root.reducedMotion.mobileTransientClosing .normalTagsGap {
+  animation: landing-card-shell-reduced-open var(--landing-card-motion-ms) linear both;
+  transform: none;
+}
+
+@keyframes landing-card-shell-expand {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(var(--landing-card-shell-scale));
+  }
+}
+
+@keyframes landing-card-shell-frame-expand {
+  from {
+    left: 0;
+    width: 100%;
+  }
+
+  to {
+    left: calc(var(--landing-card-shell-extra-start) * -1);
+    width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
+  }
+}
+
+@keyframes landing-card-shell-collapse {
+  from {
+    transform: scale(var(--landing-card-shell-scale));
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes landing-card-shell-frame-collapse {
+  from {
+    left: calc(var(--landing-card-shell-extra-start) * -1);
+    width: calc(100% + var(--landing-card-shell-extra-start) + var(--landing-card-shell-extra-end));
+  }
+
+  to {
+    left: 0;
+    width: 100%;
+  }
+}
+
+@keyframes landing-card-detail-rise {
+  from {
+    transform: translateY(4px);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-card-shell-reduced-open {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-card-shell-reduced-close {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-card-normal-slot-exit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-card-normal-slot-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-card-detail-quiet-exit {
+  from {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0);
+  }
+
+  to {
+    opacity: 0;
+    clip-path: inset(0 0 8% 0 round 0);
+  }
+}
+
+@keyframes landing-card-mobile-open-shell {
+  from {
+    left: var(--landing-mobile-card-left, 0px);
+    width: var(--landing-mobile-card-width, 100vw);
+    border-radius: var(--landing-card-radius);
+  }
+
+  to {
+    left: 0;
+    width: 100vw;
+    border-radius: 0;
+  }
+}
+
+@keyframes landing-card-mobile-close-shell {
+  from {
+    left: 0;
+    width: 100vw;
+    border-radius: 0;
+  }
+
+  to {
+    left: var(--landing-mobile-card-left, 0px);
+    width: var(--landing-mobile-card-width, 100vw);
+    border-radius: var(--landing-card-radius);
+  }
+}
+
+@keyframes landing-card-mobile-close-surface {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    --landing-card-shell-scale: 1;
+    --landing-card-shell-inline-scale: 1;
+    --landing-card-motion-ms: 180ms;
+  }
+}

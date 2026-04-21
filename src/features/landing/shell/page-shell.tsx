@@ -16,10 +16,12 @@ interface PageShellProps {
 
 export function PageShell({locale, context, currentRoute, showDefaultConsentBanner = true, children}: PageShellProps) {
   return (
-    <div className="page-shell" data-page-context={context}>
+    <div className="page-shell min-h-screen" data-page-context={context}>
       <TransitionGnbOverlay locale={locale} context={context} currentRoute={currentRoute} />
       <SiteGnb locale={locale} context={context} currentRoute={currentRoute} />
-      <main className="page-shell-main">{children}</main>
+      <main className="page-shell-main mx-auto max-w-[1280px] px-4 pt-20 pb-6 md:px-5 md:pt-[88px] md:pb-8 min-[900px]:px-6">
+        {children}
+      </main>
       {showDefaultConsentBanner ? <TelemetryConsentBanner /> : null}
     </div>
   );

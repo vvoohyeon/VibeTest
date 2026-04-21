@@ -4,7 +4,7 @@ import {
   DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE,
   DESKTOP_WIDE_MIN_GRID_INLINE_SIZE,
   MOBILE_MAX_VIEWPORT_WIDTH,
-  TABLET_DESKTOP_SIDE_PADDING,
+  NARROW_TABLET_SIDE_PADDING,
   type LandingGridColumnMode
 } from '../../src/features/landing/grid/layout-plan';
 import {seedTelemetryConsent} from './helpers/consent';
@@ -108,14 +108,6 @@ async function sampleGridSweepState(
       columnMode: columnMode as LandingGridColumnMode,
       hasScrollbar: rootElement.scrollHeight > window.innerHeight
     };
-  });
-}
-
-async function readStableScrollbarGutterWidth(page: Page): Promise<number> {
-  // `scrollbar-gutter: stable`이 켜진 레이아웃에서는 viewport 폭과 실제 본문 폭 사이에
-  // 항상 예약 폭이 생길 수 있으므로, 경계 sweep은 이 차이를 보정한 뒤 계산한다.
-  return page.evaluate(() => {
-    return Math.max(0, document.documentElement.clientWidth - document.body.clientWidth);
   });
 }
 
@@ -267,7 +259,7 @@ test.describe('Phase 4 grid smoke', () => {
       'rhythm-b',
       'energy-check',
       'creativity-profile',
-      'burnout-risk',
+      'egtt',
       'ops-handbook',
       'build-metrics',
       'release-gate'
@@ -364,11 +356,8 @@ test.describe('Phase 4 grid smoke', () => {
   test('@smoke threshold sweeps stay monotonic and keep tablet region two-column', async ({page}) => {
     await page.goto('/en');
 
-    const stableScrollbarGutterWidth = await readStableScrollbarGutterWidth(page);
-    const desktopWideBoundaryViewport =
-      DESKTOP_WIDE_MIN_GRID_INLINE_SIZE + TABLET_DESKTOP_SIDE_PADDING * 2 + stableScrollbarGutterWidth;
-    const desktopMediumBoundaryViewport =
-      DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE + TABLET_DESKTOP_SIDE_PADDING * 2 + stableScrollbarGutterWidth;
+    const desktopWideBoundaryViewport = DESKTOP_WIDE_MIN_GRID_INLINE_SIZE + NARROW_TABLET_SIDE_PADDING * 2;
+    const desktopMediumBoundaryViewport = DESKTOP_MEDIUM_MIN_GRID_INLINE_SIZE + NARROW_TABLET_SIDE_PADDING * 2;
 
     const wideSamples: GridSweepSample[] = [];
     for (const viewportWidth of createDescendingViewportSweep(desktopWideBoundaryViewport, 6)) {

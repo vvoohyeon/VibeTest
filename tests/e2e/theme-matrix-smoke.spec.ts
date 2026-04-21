@@ -1,8 +1,11 @@
-import {expect, test, type Browser, type Page, type ViewportSize} from '@playwright/test';
+import {expect, test, type Browser, type Page, type TestInfo, type ViewportSize} from '@playwright/test';
 
 import {seedTelemetryConsent} from './helpers/consent';
 import {PRIMARY_AVAILABLE_TEST_VARIANT} from './helpers/landing-fixture';
+import {expectLocatorToMatchLocalSnapshot} from './helpers/local-snapshot';
 import rawThemeMatrixManifest from './theme-matrix-manifest.json';
+
+// Theme matrix baselines are captured through helper wrappers that delegate to Playwright `toHaveScreenshot`.
 
 const THEME_STORAGE_KEY = 'vivetest-theme';
 const PREVIEW_HOST = 'http://127.0.0.1:4173';
@@ -123,6 +126,7 @@ async function captureRepresentativeState(input: {
   theme: 'light' | 'dark';
   route: string;
   screenshotName: string;
+  testInfo: TestInfo;
   viewport?: ViewportSize;
   settle?: (page: Page) => Promise<void>;
 }) {
@@ -134,7 +138,7 @@ async function captureRepresentativeState(input: {
     await input.settle(page);
   }
 
-  await expect(page.locator('.page-shell')).toHaveScreenshot(input.screenshotName);
+  await expectLocatorToMatchLocalSnapshot(page.locator('.page-shell'), input.screenshotName, input.testInfo);
   await page.close();
 }
 
@@ -267,13 +271,14 @@ test.describe('Phase 11 theme matrix smoke', () => {
   for (const matrixCase of themeMatrixCases) {
     test(`@smoke assertion:B8-theme-matrix ${matrixCase.suite} ${matrixCase.id} ${matrixCase.locale} ${matrixCase.theme} ${matrixCase.viewportKey}`, async ({
       browser
-    }) => {
+    }, testInfo) => {
       await captureRepresentativeState({
         browser,
         theme: matrixCase.theme,
         route: matrixCase.route,
         viewport: matrixCase.viewport,
         screenshotName: matrixCase.screenshotName,
+        testInfo,
         settle: async (page) => {
           await applySettleRecipe(page, matrixCase.settleRecipe);
         }

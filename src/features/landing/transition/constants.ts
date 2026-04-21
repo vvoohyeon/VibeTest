@@ -1,0 +1,1 @@
+export const LANDING_TRANSITION_TIMEOUT_MS = 1600;

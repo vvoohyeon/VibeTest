@@ -246,7 +246,7 @@ export const variantRegistrySourceFixture: ReadonlyArray<VariantRegistrySourceCa
         kr: "히든 베타는 현재 퍼블릭 카탈로그에서 숨겨진 비공개 프로토타입 트랙을 설명합니다.",
       },
       previewQuestion: {
-        en: "I`m interested in making me charming...",
+        en: "I`m interested in making me charming ipsum lorem string",
         kr: "패션이나 나를 꾸미는 일에 관심이",
       },
       answerA: {

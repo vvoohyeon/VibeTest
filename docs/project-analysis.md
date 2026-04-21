@@ -4,12 +4,15 @@
 
 This repository is a localized Next.js App Router application. Its real technical center of gravity is a landing-to-destination interaction system plus a fixture-backed, policy-driven test-entry shell, not the full assessment product described in `docs/requirements.md`. The codebase is best understood as a V1 front-end interaction prototype with mature contract coverage in landing, transition, consent, and telemetry seams, plus a separate pure test-domain foundation that is only partially wired into the user-facing runtime.
 
-**Workspace verification (2026-04-04):**
+**Workspace verification:**
 
-- `npm test -- --run`: 34 unit test files / 144 tests — passes
-- `npx playwright test --grep @smoke --list`: 271 smoke tests in 9 files — listed
-- `npm run qa:rules`: fails at Phase 11 because theme-matrix and Safari ghosting PNG baselines are absent
-- Snapshot baseline status: theme-matrix and Safari ghosting PNG baselines are absent in the current workspace; only 2 `state-smoke` PNGs are present
+- `PLAYWRIGHT_SERVER_MODE=preview npx playwright test tests/e2e/theme-matrix-smoke.spec.ts tests/e2e/safari-hover-ghosting.spec.ts`: 174 tests — passes
+- `node scripts/qa/check-phase11-telemetry-contracts.mjs`: passes
+- `npm run qa:rules` (2026-04-18 docs sync gate): passes
+- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` (2026-04-18 docs sync gate): pass
+- Ownership migration final gate (`check-phase4`~`check-phase10`, `grid/state/gnb/a11y/theme-matrix/transition` Playwright smoke): pass
+- `npm test`: 34 unit test files / 146 tests — passes
+- Snapshot baseline policy: visual smoke stores local PNG baselines under `tests/e2e/*-snapshots/`. The screenshot helper auto-creates missing files and falls back to Playwright comparison when a local baseline already exists. Git tracked completeness is not required.
 
 **Implementation phase status (2026-04-06):** Phase 0 pre-requisite ADRs are all complete — ADR-A (`src/features/test` namespace separation), ADR-B (storage key contract and 5-flag topology), ADR-E (representative variant QA baseline). Phase 1 Domain Foundation is complete: all seven files under `src/features/test/domain/` exist, dedicated unit tests pass, and blockers #7/#11/#12/#27 are mapped in `docs/blocker-traceability.json`. Key contracts frozen by Phase 0–1: `VariantId` and `QuestionIndex` intersection brand types, `validateVariant()` three-way result union shape, `BlockingDataErrorReason` enum surface. Modifying these requires a new ADR. See `docs/req-test-plan.md` for the full Phase roadmap and ADR decision records.
 
@@ -22,6 +25,7 @@ This repository is a localized Next.js App Router application. Its real technica
 - Localized landing page with hero + catalog (`src/app/[locale]/page.tsx`)
 - Landing catalog grid with desktop/mobile expansion behavior (`src/features/landing/grid/`)
 - Global navigation shell (GNB) with theme switching, locale switching, keyboard/focus contract (`src/features/landing/gnb/site-gnb.tsx`)
+- Tailwind v4 entry plus component-local utility migration across shared shell, GNB, landing grid/card static surface, test shell, blog/history shells, and not-found pages, with `src/app/globals.css` reduced to tokens/base while landing-grid motion/focus continuity moved into feature-local CSS
 - Landing-to-destination transition handshake with sessionStorage persistence and timeout/cancel semantics (`src/features/landing/transition/`)
 - Consent-gated telemetry with anonymous session ID, event queueing, and Vercel analytics bridge (`src/features/landing/telemetry/`)
 - Proxy-level locale normalization and SSR `<html lang>` correctness (`src/proxy.ts`, `src/i18n/`)
@@ -46,7 +50,7 @@ This repository is a localized Next.js App Router application. Its real technica
 | Layer | Responsibility |
 |---|---|
 | `src/proxy.ts` + `src/i18n/` | Request normalization, locale resolution, `X-NEXT-INTL-LOCALE` injection |
-| `src/app/layout.tsx` | Document structure, global CSS, theme bootstrap, Vercel analytics gates |
+| `src/app/layout.tsx` | Document structure, Tailwind/global CSS entry, theme bootstrap, Vercel analytics gates |
 | `src/app/[locale]/layout.tsx` | Locale validation, `NextIntlClientProvider`, `TransitionRuntimeMonitor` |
 | `src/app/[locale]/**/page.tsx` | Thin server components — load translations, validate params, hand off to `PageShell` + client |
 | `src/features/landing/` | **Shared application runtime** — grid, GNB, transition, telemetry, shared shell, blog destination |
@@ -168,17 +172,17 @@ Coordinated by:
 - `src/features/landing/grid/use-landing-interaction-controller.ts` — **1582 lines**, runtime state machine for focus, hover intent, keyboard handoff, reduced motion, page visibility, mobile transient shells, backdrop gestures, transition start/cancel
 - `src/features/landing/grid/landing-catalog-grid.tsx` — DOM geometry measurement, row baseline freezing, `requestAnimationFrame` timing
 
-State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. `motion@12.34.0` is installed but not imported anywhere in `src` or `tests`; the live motion system is still entirely CSS- and data-attribute-driven, and any package adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract.
+State transitions are named and centralized; timing constants are explicit. The main risk is operational complexity under future browser, content-density, or performance changes. Styling ownership is now hybrid: static shells plus boolean-resolvable card states live as utility/class constants in `landing-catalog-grid.tsx` and `landing-grid-card.tsx`, while `landing-grid-card.tsx` also remaps raw runtime state into semantic style classes (`desktopOverlayLayer`, `desktopMotionEnter|Exit|Steady`, `mobileTransientOpening|Closing`, `mobilePhaseClosing`) that `landing-grid-card.module.css` now consumes exclusively for motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography. Raw `data-*` attributes remain on the DOM as QA/debug and Playwright anchors, but no longer participate in the CSS contract. `src/app/globals.css` now keeps only tokens and the shared anchor base. `motion@12.34.0` is installed but not imported anywhere in `src` or `tests`; the live motion system is still entirely CSS- and data-attribute-driven, and any package adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract.
 
 ### 5.2 GNB
 
-`src/features/landing/gnb/site-gnb.tsx` — **~791 lines** — does far more than render nav links. It owns: desktop settings hover, click/focus fallback, mobile menu choreography, route-aware back behavior, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics.
+`src/features/landing/gnb/site-gnb.tsx` — **~831 lines** — does far more than render nav links. It owns: desktop settings hover, click/focus fallback, mobile menu choreography, route-aware back behavior, locale switching, theme switching, landing-specific keyboard entry order, and focus return semantics.
 
 Key supporting files: `src/features/landing/gnb/behavior.ts`, `src/features/landing/gnb/types.ts` (defines `GnbContext` per route: landing/blog/history/test), `src/features/landing/gnb/hooks/`.
 
 Theme subsystem: `public/theme-bootstrap.js` (sets before hydration from `localStorage`), `src/features/landing/gnb/hooks/use-theme-preference.ts` (persists manual overrides), `src/features/landing/gnb/hooks/theme-transition.ts` (2500ms blur-circle View Transition API, with reduced-motion fallback).
 
-`src/features/landing/shell/page-shell.tsx` mounts the GNB for every localized route — it is a shared runtime controller, not a page-local header.
+`src/features/landing/shell/page-shell.tsx` mounts the GNB for every localized route — it is a shared runtime controller, not a page-local header. Styling is similarly split: sticky shell, inner rows, buttons, theme/locale chips, mobile panel/base backdrop, and the desktop settings panel geometry/pseudo-element seam now live in `site-gnb.tsx`, while the theme heading typography shim lives directly on the label span in `settings-controls.tsx`. `src/app/globals.css` no longer owns GNB panel geometry or descendant typography adjustments.
 
 ### 5.3 Catalog Data Model
 
@@ -197,7 +201,7 @@ Current fixture inventory:
 
 The current builder still relies on fixture-backed localized copy and a temporary bridge where the **first scoring preview source of truth** remains inline. That bridge is isolated to `resolveTestPreviewPayload()` so the rest of the runtime does not read preview source fields directly. Runtime meta keys are unified as `durationM` / `sharedC` / `engagedC`, while UI labels branch by content type.
 
-Blog subtitle continuity is also fixed in tests: the runtime uses `subtitle` as the only blog body-copy source for landing cards, and unit/e2e checks assert that Normal and Expanded states reuse the same text rather than a separate summary field.
+Blog subtitle continuity is also fixed in tests: the runtime uses `subtitle` as the only blog body-copy source for landing cards, and unit/e2e checks assert that Normal and Expanded states reuse the same text rather than a separate fallback text field.
 
 Active e2e representative anchors now use canonical landing variants directly: `PRIMARY_AVAILABLE_TEST_VARIANT` (`qmbti`) and `PRIMARY_OPT_OUT_TEST_VARIANT` (`energy-check`). Theme-matrix screenshots still key off the available representative route.
 
@@ -213,7 +217,7 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 
 ### 5.5 Destination Bootstrap
 
-**Blog** (`src/features/landing/blog/server-model.ts`, `src/features/landing/blog/blog-destination-client.tsx`): `variant` is the only article identifier. `/{locale}/blog` is list-only, while `/{locale}/blog/{variant}` resolves article detail strictly from the route variant. Invalid or non-enterable variants redirect to the localized blog index. Pending transition is only a completion/overlay signal and is not the article selection source of truth.
+**Blog** (`src/features/landing/blog/server-model.ts`, `src/features/landing/blog/blog-destination-client.tsx`): `variant` is the only article identifier. `/{locale}/blog` is list-only, while `/{locale}/blog/{variant}` resolves article detail strictly from the route variant. Invalid or non-enterable variants redirect to the localized blog index. Pending transition is only a completion/overlay signal and is not the article selection source of truth. The detail route also exports `generateMetadata()` so the document title follows the resolved article title rather than a static fallback.
 
 **Test** (`src/features/test/test-question-client.tsx`): policy-driven instruction gating, landing-ingress starts the current compatibility flow at Q2 while deep-link entry starts at Q1, dwell time tracking, and `attempt_start` / `final_submit` telemetry. `src/features/test/entry-policy.ts` separates content, CTA configuration, and action effects; `src/features/test/instruction-overlay.tsx` renders the composed instruction surface. The live page today is a compatibility shell around entry semantics and registry-backed question data.
 
@@ -241,6 +245,17 @@ Limitation: all persistence is session-scoped and client-only. No server correla
 | `final_submit` | same as above + `final_responses` (semantic `A`/`B` codes only) |
 
 `src/app/api/telemetry/route.ts` accepts any parseable JSON and returns `204`. No server-side schema validation, field rejection, or persistence. All guarantees are client-side only.
+
+### 5.7 Styling Runtime
+
+Tailwind v4 is now active in the live runtime through `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`, and the app no longer behaves like a globals-first styling system.
+
+- `src/app/globals.css` is down to 112 lines and is intentionally limited to theme tokens and the shared anchor base.
+- `src/features/landing/grid/landing-grid-card.module.css` now owns landing-grid motion, focus continuity, reduced-motion branches, and desktop/mobile transient choreography.
+- `src/app/app-body-class.ts` now exports `APP_BODY_CLASSNAME`, which owns the body canvas/background, text color, line-height, and font stack for both `src/app/layout.tsx` and `src/app/global-not-found.tsx`.
+- Component-local utility/class constants now own `PageShell` spacing, consent banner layout/buttons, transition GNB overlay positioning, GNB shell rows/triggers/chips/settings-panel geometry, landing grid/card static shells and boolean-resolvable state shells, instruction/test shells, blog/history shells, and both not-found surfaces.
+- `landing-shell-card` still exists as a shared DOM hook/classname across test/blog/history consumers, but its visual styling is now local to each component rather than defined in `globals.css`.
+- Title/subtitle continuity measurement no longer depends on a global `.landing-grid-card-text-probe` selector; `landing-card-title-continuity.tsx` now creates and styles the probe element programmatically.
 
 ---
 
@@ -291,7 +306,7 @@ The repository includes unit tests, Playwright smoke suites, and custom QA scrip
 
 ### 7.1 Unit Tests (Vitest)
 
-Scoped to `tests/unit/`. The rerun on 2026-04-04 passed with 34 files / 144 tests. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, and the pure test-domain modules.
+Scoped to `tests/unit/`. The latest rerun passed with 34 files / 145 tests. Coverage spans route helpers, localization helpers, telemetry validation, transition storage, card/data contracts, GNB behavior, and the pure test-domain modules.
 
 ### 7.2 E2E Tests (Playwright)
 
@@ -313,7 +328,7 @@ Helper layer: `tests/e2e/helpers/landing-fixture.ts` is the single source of tru
 
 The theme-matrix suites assume the combined theme label remains locked to the messages JSON wording family (`Language ⋅ Theme`); changing that label without updating the visual/message contract is a release-gate drift risk.
 
-Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces around representative routes and states. The manifest currently encodes 168 theme-matrix cases (96 layout + 72 state), and the Safari suite defines 5 WebKit-only snapshot names, but the corresponding PNG baselines are absent from the current workspace.
+Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces around representative routes and states. The manifest currently encodes 168 theme-matrix cases (96 layout + 72 state), and the Safari suite defines 5 WebKit-only snapshot names. Their corresponding PNG baselines are now present in the current workspace.
 
 ### 7.3 Custom QA Scripts (`scripts/qa/`)
 
@@ -338,7 +353,7 @@ Theme-matrix and Safari ghosting suites define screenshot-driven QA surfaces aro
 
 Consent-specific blockers 20~23 now anchor in `tests/e2e/consent-smoke.spec.ts`; the remaining test-flow blockers 24~30 still mix `docs/req-test.md` manual/scenario anchors with unit/e2e evidence surfaces. The registry remains the machine-readable source for the current evidence kind and file mapping.
 
-As of 2026-04-04, `npm run qa:rules` stops at `check-phase11-telemetry-contracts.mjs` because the expected theme-matrix and Safari ghosting PNG baselines are missing from the workspace.
+As of 2026-04-16, `npm run qa:rules` passes `check-phase11-telemetry-contracts.mjs` after baseline restoration and currently stops at `check-variant-registry-contracts.mjs` because legacy identifiers remain in `docs/req-landing.md`, `docs/req-test-plan.md`, and `docs/requirements.md`.
 
 `qa:gate:once` chains `qa:static`, `build`, `npm test`, and Playwright smoke. `qa:gate` repeats that pipeline three times for flake detection.
 
@@ -383,11 +398,11 @@ As of 2026-04-04, `npm run qa:rules` stops at `check-phase11-telemetry-contracts
 
 **Landing interaction runtime is a scaling risk.** `use-landing-interaction-controller.ts` at 1582 lines mixes geometry measurement, `requestAnimationFrame` sequencing, hover timers, and mobile shell phases. Powerful but fragile under content-density or browser changes. The most likely future refactoring cost concentration point.
 
-**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Two files stand out as the primary pressure points: `use-landing-interaction-controller.ts` (1582 lines) and `site-gnb.tsx` (~791 lines).
+**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Two files stand out as the primary pressure points: `use-landing-interaction-controller.ts` (1582 lines) and `site-gnb.tsx` (~831 lines).
 
 **Screenshot-driven QA remains concentrated in the instruction surface.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of representative snapshots and route-level assertions.
 
 **Tech stack notes:**
 - `next@16.1.6`, `react@19.2.4`, `next-intl@4.8.3`
 - `motion@12.34.0` installed but not imported anywhere in `src` or `tests`; any adoption should stay aligned with `docs/req-landing.md` §8.3 Core Motion Contract
-- Tailwind v4 packages installed but runtime is primarily `src/app/globals.css`
+- Tailwind v4 entry is active via `src/app/globals.css` `@import "tailwindcss"` plus `postcss.config.mjs`; static surface ownership is now mostly component-local, `src/app/globals.css` is limited to tokens/shared anchor base, and landing-grid state/motion contracts now live in feature-local CSS that consumes semantic classes only while preserved `data-*` anchors continue serving QA/debug and Playwright coverage. Any further follow-up should stay within feature-local CSS and avoid widening the QA/debug surface.

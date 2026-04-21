@@ -28,15 +28,15 @@
 
 ### 작업 유형별 진입 맵
 - routing / locale / not-found: `docs/req-landing.md` §5, `docs/project-analysis.md` §4, `src/proxy.ts`, `src/i18n/**`, `tests/e2e/routing-smoke.spec.ts`
-  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+  → 실행 명령어: **'로컬 실행 명령어'** 섹션의 변경 유형별 추가 체크 참조
 - landing grid / GNB / theme: `docs/req-landing.md` §6~11, `src/features/landing/grid/**`, `src/features/landing/gnb/**`, `public/theme-bootstrap.js`
-  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+  → 실행 명령어: **'로컬 실행 명령어'** 섹션의 변경 유형별 추가 체크 참조
 - transition / telemetry / consent: `docs/req-landing.md` §8, §12, §13, `src/features/landing/transition/**`, `src/features/landing/telemetry/**`, `tests/e2e/transition-telemetry-smoke.spec.ts`, `tests/e2e/consent-smoke.spec.ts`
-  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+  → 실행 명령어: **'로컬 실행 명령어'** 섹션의 변경 유형별 추가 체크 참조
 - test flow / domain: `docs/req-test.md`, `docs/req-test-plan.md`, `src/features/test/**`, `src/features/test/domain/**`, `tests/unit/test-domain-*.test.ts`
-  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+  → 실행 명령어: **'로컬 실행 명령어'** 섹션의 변경 유형별 추가 체크 참조
 - variant registry / fixture boundary: `docs/req-landing.md` §12, `docs/req-test.md` §2, `docs/project-analysis.md` §5.3, `src/features/variant-registry/**`, `tests/unit/landing-data-contract.test.ts`, `scripts/qa/check-variant-registry-contracts.mjs`
-  → 실행 명령어: 섹션 4 변경 유형별 추가 체크 참조
+  → 실행 명령어: **'로컬 실행 명령어'** 섹션의 변경 유형별 추가 체크 참조
 
 ## 2. 현재 런타임 표면과 ownership
 - 활성 route surface: `/{locale}`, `/{locale}/blog`, `/{locale}/blog/{variant}`, `/{locale}/history`, `/{locale}/test/{variant}`, `/api/telemetry`
@@ -120,8 +120,10 @@
 - test flow / domain: `npm test -- tests/unit/test-domain-variant-validation.test.ts tests/unit/test-domain-question-model.test.ts tests/unit/test-domain-derivation.test.ts tests/unit/test-domain-type-segment.test.ts tests/unit/test-entry-policy.test.ts tests/unit/test-question-bootstrap.test.ts`, `npx playwright test tests/e2e/consent-smoke.spec.ts`
 
 ### `qa:rules` 제외 메모
-- 2026-04-15 기준 현재 workspace에서는 Phase 11 PNG baseline이 비어 있어 `npm run qa:rules`가 기본 Done 항목이 아니다.
-- 확인된 결손: theme-matrix PNG baseline 168개, Safari ghosting PNG baseline 5개
+- 2026-04-16 기준 Phase 11 visual smoke baseline은 로컬 QA 자산으로 정리되었다.
+- Playwright screenshot baseline은 `tests/e2e/*-snapshots/` 아래 로컬 PNG로 저장하며, Git tracked completeness는 요구하지 않는다.
+- visual smoke helper는 missing baseline을 같은 경로에 자동 생성하고, baseline이 이미 있으면 기존 PNG와 비교한다.
+- `npm run qa:rules`는 Phase 11까지 통과하며, 현재는 `check-variant-registry-contracts.mjs`의 legacy identifier 문서 drift에서 실패한다.
 - `npm run qa:gate`는 release / flake 확인용의 무거운 파이프라인이다.
 
 ## 5. 골드 스탠다드 참조
@@ -189,11 +191,11 @@
 - combined theme label wording family는 `Language ⋅ Theme` 계열을 유지한다.
 - `public/theme-bootstrap.js`는 hydration 이전에 `vivetest-theme`를 읽는다.
 - `motion` 패키지는 설치되어 있지만 현재 `src` / `tests`에서 사용하지 않는다. [임시: 2026-04-15 기준]
-- Tailwind v4 패키지는 설치되어 있지만 현재 런타임 styling 중심은 `src/app/globals.css`다. [임시: 2026-04-15 기준]
+- Tailwind v4 패키지는 설치되어 있으며, 현재 런타임 styling ownership은 `src/app/globals.css`의 token/base와 feature-local style source로 분리되어 있다. [업데이트: 2026-04-17]
 
 ### UX 위험 집중 구역
 아래 파일·서브시스템은 사용성·접근성·반응성·성능·디자인 일관성에 직접 영향을 준다.
-수정 전에 Template A의 "영향 받는 범위"에 UX 영향을 명시적으로 적는다.
+수정 전에 Template A 또는 B의 UX 관련 필드에 사용성·접근성·반응성·성능·디자인 일관성 중 해당 항목을 명시한다.
 - `src/features/landing/grid/use-landing-interaction-controller.ts` — 1582줄 상태 머신. 포커스·키보드·hover 타이머·모바일 셸·리듀스드 모션 전체를 오케스트레이션한다.
 - `src/features/landing/gnb/site-gnb.tsx` — ~791줄. 키보드 탐색 순서, 포커스 반환, 테마 전환, 로케일 전환을 담당한다.
 - `src/features/landing/shell/page-shell.tsx` — 전 로케일 라우트의 공유 런타임 컨트롤러. GNB, TransitionGnbOverlay, TelemetryConsentBanner를 마운트한다.
@@ -290,8 +292,8 @@
 - 동작 변경 또는 버그 수정 포함 여부: [예 / 아니오]
 - 추가 또는 갱신한 테스트: [path 또는 해당 없음]
 
-baseline 부재로 생략된 검증:
-- [생략한 항목과 이유]
+검증 생략 항목:
+- [생략한 항목 / 이유]
 
 남은 수동 확인:
 1. [step]
@@ -302,8 +304,8 @@ PR 메모:
 ```
 
 ## 10. Done의 로컬 정의
-- 기본 Done 게이트 순서: 섹션 4 기본 게이트를 따른다.
-- `qa:rules`는 기본 Done에서 제외한다. baseline이 복구되기 전에는 release-surface 참고 명령으로만 취급한다.
+- 기본 Done 게이트 순서: **'로컬 실행 명령어'** 섹션의 기본 게이트를 따른다.
+- `qa:rules`는 기본 Done에서 제외한다. release-surface 전체를 보는 참고 명령으로 유지한다.
 - `qa:gate:once` / `qa:gate`는 기본 Done보다 무겁다. release 직전 또는 flake 확인이 필요할 때만 올린다.
 - 영향 범위 추가 체크:
   - `proxy` / `i18n` / `route-builder` / `localized-path`: routing / locale unit test + `tests/e2e/routing-smoke.spec.ts`
@@ -313,7 +315,7 @@ PR 메모:
   - `test flow` / `entry-policy` / `question-bank` / `domain`: `tests/unit/test-domain-*.test.ts`, `tests/unit/test-entry-policy.test.ts`, `tests/unit/test-question-bootstrap.test.ts`, 필요 시 `tests/e2e/consent-smoke.spec.ts`
   - `blog detail` / `subtitle continuity`: `tests/unit/blog-server-model.test.ts`, `tests/unit/landing-card-contract.test.ts`
   - `AGENTS.md`: 파일 경로, 명령어, locale set, representative anchor, baseline 상태를 현재 저장소와 다시 대조한다.
-  - `AGENTS.md` 섹션 11의 갱신 트리거 항목에 해당하면 관련 계약 문서와 `AGENTS.md`를 코드와 동시에 갱신한다.
+  - **'문서 유지보수 원칙'** 섹션의 갱신 트리거 항목에 해당하면 관련 계약 문서와 `AGENTS.md`를 코드와 동시에 갱신한다.
 - 동작 변경이나 버그 수정을 포함한 경우, 관련 회귀 시나리오의 테스트 커버리지가 추가 또는 갱신되었는지 확인한다.
 
 ## 11. 문서 유지보수 원칙
