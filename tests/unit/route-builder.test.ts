@@ -11,6 +11,7 @@ describe('RouteBuilder', () => {
       params: {variant: 'ops-handbook'}
     });
     expect(RouteBuilder.history()).toEqual({pathname: '/history'});
+    expect(RouteBuilder.testError()).toEqual({pathname: '/test/error'});
   });
 
   it('builds locale-free paths from route objects only', () => {
@@ -19,5 +20,6 @@ describe('RouteBuilder', () => {
     expect(buildLocaleFreePath(RouteBuilder.blogArticle('ops-handbook'))).toBe('/blog/ops-handbook');
     expect(buildLocaleFreePath(RouteBuilder.history())).toBe('/history');
     expect(buildLocaleFreePath(RouteBuilder.question('beta'))).toBe('/test/beta');
+    expect(buildLocaleFreePath(RouteBuilder.testError())).toBe('/test/error');
   });
 });

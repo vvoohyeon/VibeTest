@@ -1,10 +1,16 @@
 import type {AppLocale} from '@/config/site';
 import type {TelemetryConsentState} from '@/features/landing/telemetry/types';
+import {questionSourceFixture} from '@/features/test/fixtures/questions';
+import {resolveResultsVariantIds} from '@/features/test/fixtures/results';
 import {
   deriveAvailability,
   isCatalogVisibleCard
 } from '@/features/variant-registry/attribute';
 import {buildVariantRegistry} from '@/features/variant-registry/builder';
+import {
+  applyCrossSheetRuntimeFallback,
+  validateCrossSheetIntegrity
+} from '@/features/variant-registry/cross-sheet-integrity';
 import {
   resolveLocalizedTagList,
   resolveLocalizedText
@@ -23,7 +29,12 @@ import type {
 } from '@/features/variant-registry/types';
 
 const DEFAULT_CATALOG_AUDIENCE: LandingCatalogAudience = 'end-user';
-let fixtureRegistryCache: VariantRegistry | null = null;
+let fixtureRuntimeRegistryStateCache: RuntimeRegistryState | null = null;
+
+interface RuntimeRegistryState {
+  registry: VariantRegistry;
+  blockedRuntimeVariants: ReadonlySet<string>;
+}
 
 export interface LandingCatalogOptions {
   audience?: LandingCatalogAudience;
@@ -43,12 +54,28 @@ export interface LandingCatalogOptions {
  * @see docs/req-test-plan.md ADR-D
  */
 export function loadVariantRegistry(): VariantRegistry {
-  return getFixtureRegistry();
+  return getFixtureRuntimeRegistryState().registry;
 }
 
-function getFixtureRegistry(): VariantRegistry {
-  fixtureRegistryCache ??= buildVariantRegistry(getVariantRegistrySourceFixture());
-  return fixtureRegistryCache;
+function getFixtureRuntimeRegistryState(): RuntimeRegistryState {
+  fixtureRuntimeRegistryStateCache ??= buildFixtureRuntimeRegistryState();
+  return fixtureRuntimeRegistryStateCache;
+}
+
+function buildFixtureRuntimeRegistryState(): RuntimeRegistryState {
+  const registry = buildVariantRegistry(getVariantRegistrySourceFixture());
+  const landingTestVariants = registry.landingCards
+    .filter((card): card is VariantRegistryRuntimeTestCard => card.type === 'test')
+    .map((card) => card.variant);
+  const questionVariants = Object.keys(questionSourceFixture);
+  const resultsVariants = resolveResultsVariantIds();
+  const integrity = validateCrossSheetIntegrity(landingTestVariants, questionVariants, resultsVariants);
+  const fallback = applyCrossSheetRuntimeFallback(registry, integrity);
+
+  return {
+    registry: fallback.registry,
+    blockedRuntimeVariants: new Set(fallback.blockedRuntimeVariants)
+  };
 }
 
 function resolveLandingCard(card: VariantRegistryRuntimeLandingCard, locale: AppLocale): LandingCard {
@@ -133,6 +160,14 @@ export function resolveLandingTestCardByVariant(locale: AppLocale, variant: stri
   return resolveLandingCard(card, locale) as LandingTestCard;
 }
 
+export function resolveLandingTestEntryCardByVariant(locale: AppLocale, variant: string): LandingTestCard | null {
+  if (getFixtureRuntimeRegistryState().blockedRuntimeVariants.has(variant)) {
+    return null;
+  }
+
+  return resolveLandingTestCardByVariant(locale, variant);
+}
+
 export function resolveLandingBlogCardByVariant(locale: AppLocale, variant: string): LandingBlogCard | null {
   const card = resolveLandingCardByVariantInternal(variant);
   if (!card || card.type !== 'blog') {
@@ -168,6 +203,14 @@ export function resolveTestPreviewPayload(variant: string, locale: AppLocale): T
 export function resolveRuntimeTestCardByVariant(variant: string): VariantRegistryRuntimeTestCard | null {
   const card = resolveLandingCardByVariantInternal(variant);
   return card?.type === 'test' ? card : null;
+}
+
+export function resolveRuntimeTestEntryCardByVariant(variant: string): VariantRegistryRuntimeTestCard | null {
+  if (getFixtureRuntimeRegistryState().blockedRuntimeVariants.has(variant)) {
+    return null;
+  }
+
+  return resolveRuntimeTestCardByVariant(variant);
 }
 
 export function resolveRuntimeBlogCardByVariant(variant: string): VariantRegistryRuntimeBlogCard | null {

@@ -34,6 +34,7 @@ describe('buildCanonicalQuestions - egtt', () => {
     expect(questions[0].index).toBe(1);
     expect(questions[1].index).toBe(2);
     expect(questions[2].index).toBe(3);
+    expect(questions[3].index).toBe(4);
   });
 
   it('q.1은 profile, 나머지는 scoring이다', () => {
@@ -45,6 +46,7 @@ describe('buildCanonicalQuestions - egtt', () => {
     expect(questions[0].poleB).toBeUndefined();
     expect(questions[1].questionType).toBe('scoring');
     expect(questions[2].questionType).toBe('scoring');
+    expect(questions[3].questionType).toBe('scoring');
   });
 });
 

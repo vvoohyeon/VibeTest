@@ -16,5 +16,21 @@ export const energyCheckQuestions: ReadonlyArray<QuestionSourceRow> = [
     poleB: 'S',
     answerA: {en: 'want to clear up the misunderstanding quickly.', kr: '빨리 오해를 풀고 다시 노는게 더 좋아'},
     answerB: {en: 'wait until my friend feels better.', kr: '친구 마음이 풀릴 때까지 기다려주는 편이야'}
+  },
+  {
+    seq: '3',
+    question: {en: 'Q_placeholder_energy-check_3', kr: 'Q_placeholder_energy-check_3'},
+    poleA: 'E',
+    poleB: 'I',
+    answerA: {en: 'Option A', kr: '옵션 A'},
+    answerB: {en: 'Option B', kr: '옵션 B'}
+  },
+  {
+    seq: '4',
+    question: {en: 'Q_placeholder_energy-check_4', kr: 'Q_placeholder_energy-check_4'},
+    poleA: 'J',
+    poleB: 'P',
+    answerA: {en: 'Option A', kr: '옵션 A'},
+    answerB: {en: 'Option B', kr: '옵션 B'}
   }
 ];

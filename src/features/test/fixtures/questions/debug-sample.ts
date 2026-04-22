@@ -1,5 +1,17 @@
 import type {QuestionSourceRow} from './types';
 
+/**
+ * 테스트 전용 의도적 오류 fixture.
+ *
+ * debug-sample은 routing/lazy-validation 회귀 테스트에서
+ * validateVariantDataIntegrity() 실패 경로를 검증하기 위해 일부러 잘못된
+ * Questions 구조를 보존한다. MBTI schema 기준 E/I axis scoring question이
+ * 0개이고 T/F axis scoring question이 2개라 binary_majority odd-count rule에
+ * 의해 BlockingDataErrorReason `EVEN_AXIS_QUESTION_COUNT`가 발생한다.
+ *
+ * 이 fixture를 "정상 데이터"로 고치면 B30 lazy validation 실패 경로 테스트가
+ * 무력화되므로, 의도 없이 수정해서 올바른 데이터로 만들지 않는다.
+ */
 export const debugSampleQuestions: ReadonlyArray<QuestionSourceRow> = [
   {
     seq: '1',

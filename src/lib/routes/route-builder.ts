@@ -22,6 +22,10 @@ export type LocaleFreeRoute =
       params: {
         variant: string;
       };
+    }
+  | {
+      pathname: '/test/error';
+      params?: undefined;
     };
 
 type LandingRoute = {pathname: '/'; params?: undefined};
@@ -39,6 +43,7 @@ type QuestionRoute = {
     variant: string;
   };
 };
+type TestErrorRoute = {pathname: '/test/error'; params?: undefined};
 
 export const RouteBuilder = {
   landing(): LandingRoute {
@@ -61,6 +66,9 @@ export const RouteBuilder = {
       pathname: '/test/[variant]',
       params: {variant}
     };
+  },
+  testError(): TestErrorRoute {
+    return {pathname: '/test/error'};
   }
 };
 

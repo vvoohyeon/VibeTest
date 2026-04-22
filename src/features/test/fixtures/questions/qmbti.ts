@@ -63,5 +63,21 @@ export const qmbtiQuestions: ReadonlyArray<QuestionSourceRow> = [
     poleB: 'E',
     answerA: {en: 'learn by talking and sharing ideas with friends.', kr: '친구들이랑 같이 이야기하면서 배우는게 좋아'},
     answerB: {en: 'focus quietly and learn on my own.', kr: '조용히 혼자 집중하면서 배우는게 더 편해'}
+  },
+  {
+    seq: '7',
+    question: {en: 'Q_placeholder_qmbti_7', kr: 'Q_placeholder_qmbti_7'},
+    poleA: 'E',
+    poleB: 'I',
+    answerA: {en: 'Option A', kr: '옵션 A'},
+    answerB: {en: 'Option B', kr: '옵션 B'}
+  },
+  {
+    seq: '8',
+    question: {en: 'Q_placeholder_qmbti_8', kr: 'Q_placeholder_qmbti_8'},
+    poleA: 'J',
+    poleB: 'P',
+    answerA: {en: 'Option A', kr: '옵션 A'},
+    answerB: {en: 'Option B', kr: '옵션 B'}
   }
 ];

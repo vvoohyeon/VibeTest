@@ -72,13 +72,13 @@ test.describe('Phase 1 routing smoke', () => {
     expect(new URL(page.url()).pathname).not.toMatch(DUPLICATE_LOCALE_PATTERN);
   });
 
-  test('@smoke non-allowlisted paths outside the route contract fall through to segment 404 while duplicate locale paths stay global 404', async ({
+  test('@smoke non-allowlisted paths outside the route contract use global 404 while duplicate locale paths stay global 404', async ({
     page
   }) => {
     const previewLogBefore = readPreviewLog();
     const unmatchedResponse = await page.goto('/foo');
     expect(unmatchedResponse?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
 
     const duplicateLocaleResponse = await page.goto('/ja/ja/blog');
     expect(duplicateLocaleResponse?.status()).toBe(404);
@@ -94,6 +94,35 @@ test.describe('Phase 1 routing smoke', () => {
     const response = await page.goto('/en/test/INVALID!');
     expect(response?.status()).toBe(404);
     await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
+  });
+
+  test('@smoke assertion:B30-runtime-lazy-validation-error-route lazy validation failure redirects to the test error recovery stub without mounting runtime', async ({
+    page
+  }) => {
+    const telemetryRequests: string[] = [];
+    await page.route('**/api/telemetry', async (route) => {
+      telemetryRequests.push(route.request().postData() ?? '');
+      await route.fulfill({status: 204, body: ''});
+    });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('vivetest-telemetry-consent', 'OPTED_IN');
+      window.sessionStorage.setItem('vivetest-test-instruction-seen:debug-sample', 'true');
+    });
+
+    // debug-sample은 validateVariantDataIntegrity() 실패를 검증하기 위한 의도적 오류 fixture다.
+    await page.goto('/en/test/debug-sample');
+
+    await expect(page).toHaveURL(/\/en\/test\/error\?variant=debug-sample$/u);
+    await expect(page.getByTestId('test-error-recovery')).toContainText(
+      '이 테스트에 진입할 수 없습니다 (variant: debug-sample)'
+    );
+    await expect(page.getByTestId('test-shell-card')).toHaveCount(0);
+    await page.waitForTimeout(100);
+    expect(telemetryRequests).toEqual([]);
+
+    await page.goto('/en/test/error');
+    await expect(page.getByTestId('test-error-recovery')).toContainText('이 테스트에 진입할 수 없습니다');
+    await expect(page.getByTestId('test-error-recovery')).not.toContainText('variant:');
   });
 
   test('@smoke localized SSR responses emit locale-specific html lang and client locale navigation preserves it', async ({

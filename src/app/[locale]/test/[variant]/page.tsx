@@ -1,11 +1,20 @@
-import {notFound} from 'next/navigation';
+import {notFound, redirect} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 
-import {isLocale} from '@/config/site';
+import {isLocale, type AppLocale} from '@/config/site';
 import {PageShell} from '@/features/landing/shell';
+import {getLazyValidatedVariant} from '@/features/test/lazy-validation';
 import {TestQuestionClient} from '@/features/test/test-question-client';
 import {resolveLandingTestCardByVariant} from '@/features/variant-registry';
+import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
+
+type TestErrorRedirectPath = `/${AppLocale}/test/error?variant=${string}`;
+
+function buildTestErrorRedirectPath(locale: AppLocale, variant: string): TestErrorRedirectPath {
+  const encodedVariant = encodeURIComponent(variant);
+  return `${buildLocalizedPath(RouteBuilder.testError(), locale)}?variant=${encodedVariant}`;
+}
 
 export default async function QuestionPage({
   params
@@ -27,6 +36,11 @@ export default async function QuestionPage({
 
   if (!card) {
     notFound();
+  }
+
+  const validation = getLazyValidatedVariant(variant);
+  if (!validation.ok) {
+    redirect(buildTestErrorRedirectPath(locale, variant));
   }
 
   return (

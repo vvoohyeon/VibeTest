@@ -3,20 +3,21 @@ import {describe, expect, it} from 'vitest';
 import {buildVariantQuestionBank, resolveVariantPreviewQ1} from '../../src/features/test/question-bank';
 
 describe('buildVariantQuestionBank', () => {
-  it('qmbti: 6개 scoring question 반환', () => {
+  it('qmbti: 8개 scoring question 반환', () => {
     const bank = buildVariantQuestionBank('qmbti', 'en');
 
-    expect(bank).toHaveLength(6);
+    expect(bank).toHaveLength(8);
     expect(bank.every((question) => question.questionType === 'scoring')).toBe(true);
   });
 
-  it('egtt: 3개 항목, 첫 번째는 profile', () => {
+  it('egtt: 4개 항목, 첫 번째는 profile', () => {
     const bank = buildVariantQuestionBank('egtt', 'en');
 
-    expect(bank).toHaveLength(3);
+    expect(bank).toHaveLength(4);
     expect(bank[0].questionType).toBe('profile');
     expect(bank[1].questionType).toBe('scoring');
     expect(bank[2].questionType).toBe('scoring');
+    expect(bank[3].questionType).toBe('scoring');
   });
 
   it('canonical index는 1-based 출현 순서', () => {
@@ -25,6 +26,7 @@ describe('buildVariantQuestionBank', () => {
     expect(bank[0].canonicalIndex).toBe(1);
     expect(bank[1].canonicalIndex).toBe(2);
     expect(bank[2].canonicalIndex).toBe(3);
+    expect(bank[3].canonicalIndex).toBe(4);
   });
 
   it('buildVariantQuestionBank는 poleA/poleB를 그대로 보존하며 A/B로 변환하지 않는다', () => {

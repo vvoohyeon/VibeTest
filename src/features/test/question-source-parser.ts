@@ -54,7 +54,7 @@ function resolveQuestionSourceTexts(row: QuestionSourceRow, locale: AppLocale): 
  *
  * canonical index 규칙:
  *   - seq 값과 무관하게 배열 출현 순서 기준 1-based 정수를 부여한다.
- *   - 예: egtt → q.1→1, 1→2, 2→3
+ *   - 예: egtt → q.1→1, 1→2, 2→3, 3→4
  *
  * locale fallback 순서: locale → 'en' → 첫 번째 키 값
  */
