@@ -87,10 +87,7 @@ export const variantRegistryGenerated: VariantRegistry = {
         "en": "Internal reference card for QA and snapshots.",
         "kr": "QA와 스냅샷 검증을 위한 내부 참조 카드입니다."
       },
-      "tags": {
-        "en": [],
-        "kr": []
-      },
+      "tags": {},
       "test": {
         "instruction": {
           "en": "Debug Sample exists only for internal QA and uses a deterministic planning prompt.",
@@ -288,10 +285,7 @@ export const variantRegistryGenerated: VariantRegistry = {
         "en": "A compact field guide to selecting build-time, test-time, and runtime quality indicators that correlate with user outcomes.",
         "kr": "사용자 결과와 실제로 연결되는 빌드, 테스트, 런타임 품질 지표를 고르는 짧고 실용적인 가이드입니다."
       },
-      "tags": {
-        "en": [],
-        "kr": []
-      },
+      "tags": {},
       "title": {
         "en": "Build Metrics That Actually Matter",
         "kr": "정말 중요한 빌드 지표"
@@ -383,7 +377,7 @@ export const variantRegistryGenerated: VariantRegistry = {
         "kr": "없다"
       },
       "previewQuestion": {
-        "en": "I'm interested in making me charming...",
+        "en": "I`m interested in making me charming...",
         "kr": "패션이나 나를 꾸미는 일에 관심이"
       }
     },
