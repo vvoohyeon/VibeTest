@@ -20,9 +20,14 @@ function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function readExisting(relativePaths) {
+  return relativePaths.filter(fileExists).map(read).join('\n');
+}
+
 const requiredFiles = [
   'src/features/landing/model/interaction-state.ts',
   'src/features/landing/grid/use-landing-interaction-controller.ts',
+  'src/features/landing/grid/interaction-dom.ts',
   'src/features/landing/grid/landing-catalog-grid.tsx',
   'src/features/landing/grid/landing-grid-card.tsx',
   'tests/unit/landing-interaction-state.test.ts',
@@ -65,6 +70,10 @@ if (fileExists('src/features/landing/model/interaction-state.ts')) {
 
 if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts')) {
   const controllerFile = read('src/features/landing/grid/use-landing-interaction-controller.ts');
+  const controllerAndDomFiles = readExisting([
+    'src/features/landing/grid/use-landing-interaction-controller.ts',
+    'src/features/landing/grid/interaction-dom.ts'
+  ]);
 
   if (!/useReducer/u.test(controllerFile) || !/reduceLandingInteractionState/u.test(controllerFile)) {
     fail('Interaction controller must orchestrate state through reducer/store for Phase 7.');
@@ -90,7 +99,7 @@ if (fileExists('src/features/landing/grid/use-landing-interaction-controller.ts'
     fail('Interaction controller must resolve per-card visual state and tab policy.');
   }
 
-  if (!/getExpandedFocusableElements/u.test(controllerFile) || !/resolveAdjacentCardVariant/u.test(controllerFile)) {
+  if (!/getExpandedFocusableElements/u.test(controllerAndDomFiles) || !/resolveAdjacentCardVariant/u.test(controllerAndDomFiles)) {
     fail('Interaction controller must implement keyboard sequential override traversal helpers.');
   }
 }
