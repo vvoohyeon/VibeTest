@@ -161,7 +161,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
     await expect
       .poll(async () => (await readTransitionSignals(page)).filter((signal) => signal.signal === 'transition_complete').length)
       .toBe(1);
@@ -172,10 +172,10 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.reload();
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
 
     await page.getByTestId('test-start-button').click();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
     await expect
       .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_AVAILABLE_TEST_INGRESS_STORAGE_KEY))
       .toBeNull();
@@ -222,14 +222,14 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     expect(finalSubmit?.landing_ingress_flag).toBe(true);
     expect(finalSubmit?.question_index_1based).toBe(8);
     expect(finalSubmit?.final_responses).toEqual({
-      q1: 'A',
-      q2: 'A',
-      q3: 'B',
-      q4: 'A',
-      q5: 'B',
-      q6: 'A',
-      q7: 'B',
-      q8: 'A'
+      '1': 'A',
+      '2': 'A',
+      '3': 'B',
+      '4': 'A',
+      '5': 'B',
+      '6': 'A',
+      '7': 'B',
+      '8': 'A'
     });
     expect(finalSubmit).not.toHaveProperty('final_q1_response');
     expect(finalSubmit).not.toHaveProperty('transition_id');
@@ -265,7 +265,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.setViewportSize({width: 1440, height: 980});
     await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
 
     await page.getByTestId('test-start-button').click();
 
@@ -308,7 +308,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(page.getByTestId('test-instruction-divider')).toHaveCount(0);
     await expect(page.getByTestId('test-instruction-note')).toHaveCount(0);
     await expect(page.getByTestId('test-start-button')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('25%');
     await expect
       .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY))
       .not.toBeNull();
@@ -317,13 +317,13 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_OPT_OUT_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
     await expect(page.getByTestId('test-instruction-body')).toHaveText(optOutInstruction);
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('25%');
     await expect
       .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY))
       .not.toBeNull();
 
     await page.getByTestId('test-start-button').click();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 4');
+    await expect(page.getByTestId('test-progress')).toHaveText('25%');
     await expect
       .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), PRIMARY_OPT_OUT_TEST_INGRESS_STORAGE_KEY))
       .toBeNull();
@@ -344,7 +344,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
 
     await expect(page).toHaveURL(new RegExp(`${PRIMARY_AVAILABLE_TEST_ROUTE_EN}$`, 'u'));
     await expect(page.getByTestId('test-instruction-overlay')).toBeVisible();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 2 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('13%');
 
     await page.getByTestId('test-start-button').click();
     await expect
@@ -354,7 +354,7 @@ test.describe('Phase 10/11 transition + telemetry smoke', () => {
     await page.goto('/en');
     await page.goto(PRIMARY_AVAILABLE_TEST_ROUTE_EN);
     await expect(page.getByTestId('test-instruction-overlay')).toBeHidden();
-    await expect(page.getByTestId('test-progress')).toHaveText('Question 1 of 8');
+    await expect(page.getByTestId('test-progress')).toHaveText('0%');
   });
 
   test('@smoke assertion:B9-opted-out-no-send missing consent blocks client telemetry network sends', async ({page}) => {

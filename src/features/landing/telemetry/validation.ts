@@ -3,6 +3,7 @@ import type {TelemetryConsentState, TelemetryEvent} from '@/features/landing/tel
 const FORBIDDEN_FIELD_PATTERN =
   /^(question_text|answer_text|free_input|free_text|email|ip|fingerprint)$/iu;
 const LEGACY_FORBIDDEN_FIELD_PATTERN = /^(transition_id|result_reason|final_q1_response)$/u;
+const CANONICAL_INDEX_KEY = /^[1-9]\d*$/u;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -93,6 +94,12 @@ export function validateTelemetryEvent(event: TelemetryEvent): TelemetryEvent {
 
       if (!isPlainObject(event.final_responses) || Object.keys(event.final_responses).length === 0) {
         throw new Error('final_submit requires final_responses.');
+      }
+
+      for (const responseKey of Object.keys(event.final_responses)) {
+        if (!CANONICAL_INDEX_KEY.test(responseKey)) {
+          throw new Error('final_submit response keys must be canonical question index strings.');
+        }
       }
 
       for (const response of Object.values(event.final_responses)) {
