@@ -1,14 +1,7 @@
 import type {AppLocale} from '@/config/site';
 import {getVariantQuestionRows} from '@/features/test/fixtures/questions';
 import {findFirstScoringRow, parseSeqToQuestionType} from '@/features/test/question-source-parser';
-import type {LandingTestCard, LocalizedText, TestPreviewPayload} from '@/features/variant-registry/types';
-
-export interface LandingTestQuestion {
-  id: string;
-  prompt: string;
-  choiceA: string;
-  choiceB: string;
-}
+import type {LocalizedText, TestPreviewPayload} from '@/features/variant-registry/types';
 
 /**
  * locale 해석이 완료된 runtime question 단위.
@@ -45,10 +38,6 @@ export interface ResolvedPreviewQ1 {
   answerB: string;
 }
 
-function usesKoreanFallbackCopy(locale: AppLocale): boolean {
-  return locale === 'kr';
-}
-
 function resolveLocalizedText(localized: LocalizedText, locale: AppLocale): string {
   return (
     localized[locale] ??
@@ -56,52 +45,6 @@ function resolveLocalizedText(localized: LocalizedText, locale: AppLocale): stri
     Object.values(localized).find((value): value is string => typeof value === 'string') ??
     ''
   );
-}
-
-function buildLocalizedFallbackQuestions(locale: AppLocale): LandingTestQuestion[] {
-  if (usesKoreanFallbackCopy(locale)) {
-    return [
-      {
-        id: 'q2',
-        prompt: '하루 중 가장 안정적으로 흐름을 유지하는 시간대는 언제인가요?',
-        choiceA: '오전 블록',
-        choiceB: '오후 블록'
-      },
-      {
-        id: 'q3',
-        prompt: '집중이 깨질 때 더 자주 영향을 주는 요인은 무엇인가요?',
-        choiceA: '회의와 메시지',
-        choiceB: '맥락 전환'
-      },
-      {
-        id: 'q4',
-        prompt: '테스트를 끝낸 뒤 결과를 바로 정리하는 편인가요?',
-        choiceA: '바로 정리한다',
-        choiceB: '나중에 몰아서 본다'
-      }
-    ];
-  }
-
-  return [
-    {
-      id: 'q2',
-      prompt: 'Which block keeps your focus the longest?',
-      choiceA: 'Morning work sessions',
-      choiceB: 'Afternoon work sessions'
-    },
-    {
-      id: 'q3',
-      prompt: 'What breaks your pace more often?',
-      choiceA: 'Meetings and pings',
-      choiceB: 'Context switching'
-    },
-    {
-      id: 'q4',
-      prompt: 'Do you usually review results right away?',
-      choiceA: 'Yes, immediately',
-      choiceB: 'Later, in a batch'
-    }
-  ];
 }
 
 /**
@@ -163,26 +106,4 @@ export function resolveVariantPreviewPayload(variantId: string, locale: AppLocal
     answerChoiceA: previewQ1.answerA,
     answerChoiceB: previewQ1.answerB
   };
-}
-
-/**
- * @deprecated Live `/test/{variant}` 경로는 `buildVariantQuestionBank()`를 사용한다.
- * 이 함수는 inline-bridge 기반 하위 호환 경로로만 남아 있다.
- * 신규 코드에서 호출하지 않는다.
- */
-export function buildLandingTestQuestionBank(card: LandingTestCard, locale: AppLocale): LandingTestQuestion[] {
-  const previewPayload = resolveVariantPreviewPayload(card.variant, locale);
-  if (!previewPayload) {
-    throw new Error(`Missing scoring1 preview question for variant "${card.variant}".`);
-  }
-
-  return [
-    {
-      id: 'q1',
-      prompt: previewPayload.previewQuestion,
-      choiceA: previewPayload.answerChoiceA,
-      choiceB: previewPayload.answerChoiceB
-    },
-    ...buildLocalizedFallbackQuestions(locale)
-  ];
 }
