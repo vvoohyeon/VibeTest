@@ -234,7 +234,7 @@ The files and subsystems below directly affect usability, accessibility, respons
 Any Superpowers plan that touches these paths must explicitly identify which of those dimensions is at risk and must include subagent-level QA regression coverage.
 
 - `src/features/landing/grid/use-landing-interaction-controller.ts` — 486-line orchestrator. Owns two `useReducer` instances, capability/reduced-motion/visibility sync, card binding composition, and transition start callbacks. DOM/focus helpers, hover intent, desktop motion, mobile lifecycle, keyboard handoff, and grid geometry/RAF have been extracted into dedicated hooks/modules in the same directory. [Updated: 2026-04-25]
-- `src/features/landing/grid/use-mobile-card-lifecycle.ts` — 543 lines. Owns mobile card lifecycle. Sensitive to landing grid timing contracts. [Updated: 2026-04-25]
+- `src/features/landing/grid/use-mobile-card-lifecycle.ts` — 281-line orchestrator. Owns mobile lifecycle orchestration, queued close, keyboard handoff, viewport reset, open/close timer coordination, and public API composition; scroll lock, backdrop gesture, DOM measurement, restore polling, and transient shell state live in focused mobile helper modules. Sensitive to landing grid timing contracts. [Updated: 2026-04-30]
 - `src/features/landing/grid/use-keyboard-handoff.ts` — 367 lines. Owns keyboard navigation handoff. [Updated: 2026-04-25]
 - `src/features/landing/gnb/site-gnb.tsx` — Owns keyboard navigation order, focus return, theme switching, and locale switching.
 - `src/features/landing/shell/page-shell.tsx` — Shared runtime controller for all locale routes. Mounts GNB, TransitionGnbOverlay, and TelemetryConsentBanner.

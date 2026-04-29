@@ -186,13 +186,18 @@ Pure or model-focused modules:
 - `src/features/landing/grid/mobile-lifecycle.ts` — mobile expansion phases
 - `src/features/landing/grid/desktop-shell-phase.ts` — visual shell phases
 
-Runtime ownership after the 2026-04-25 split:
+Runtime ownership after the 2026-04-30 split:
 
 - `src/features/landing/grid/use-landing-interaction-controller.ts` — **486 lines**, owns the two `useReducer` calls, capability/reduced-motion/visibility sync, per-card binding composition, active visual state derivation, and transition-start callback composition.
 - `src/features/landing/grid/interaction-dom.ts` — DOM/focus helpers: card-root lookup, expanded focusable selection, adjacent-card resolution, queued focus callbacks, mobile-card detection, and card-boundary resolution.
 - `src/features/landing/grid/use-hover-intent-controller.ts` — hover timers/tokens, last pointer position, card-boundary containment checks, and trigger `onMouseEnter` / `onMouseLeave` handlers.
 - `src/features/landing/grid/use-desktop-motion-controller.ts` — desktop opening/closing/handoff visual state, transition reason ref, cleanup timers, and double-RAF cleanup.
-- `src/features/landing/grid/use-mobile-card-lifecycle.ts` — mobile open/close timers, restore-ready and transient-shell timers, body scroll lock, backdrop outside gesture, queued close, and restore polling.
+- `src/features/landing/grid/use-mobile-card-lifecycle.ts` — **281 lines**, owns mobile lifecycle orchestration, queued close, keyboard handoff, viewport reset, open/close timer coordination, and public API composition.
+- `src/features/landing/grid/use-mobile-scroll-lock.ts` — **27 lines**, owns phase-based body scroll lock.
+- `src/features/landing/grid/use-mobile-backdrop-gesture.ts` — **100 lines**, owns outside gesture state and pointer handlers.
+- `src/features/landing/grid/mobile-card-lifecycle-dom.ts` — **48 lines**, owns mobile snapshot capture and restore measurement helpers.
+- `src/features/landing/grid/use-mobile-restore-polling.ts` — **115 lines**, owns the restore-ready marker timer and RAF polling.
+- `src/features/landing/grid/use-mobile-transient-shell.ts` — **86 lines**, owns transient shell state and timer.
 - `src/features/landing/grid/use-keyboard-handoff.ts` — global keyboard-mode entry/exit listeners, pointer/mouse/wheel keyboard-mode exit, first forward-Tab landing entry, Escape collapse, trigger focus/key handlers, and expanded-body key handling.
 - `src/features/landing/grid/use-grid-geometry-controller.ts` — spacing model, row baseline snapshots, baseline freeze/restore/release timers, plan-change collapse, and `LANDING_GRID_PLAN_CHANGED_EVENT`.
 - `src/features/landing/grid/landing-catalog-grid.tsx` — **270 lines**, keeps `shellRef`, `containerRef`, viewport/grid inline-size measurement, `LandingGridPlan` calculation, render assembly, and data attributes.
@@ -535,7 +540,7 @@ Tailwind v4 Checkpoint 1–2 cycle follow-up tasks (variant registry fixture dri
 
 **Landing interaction runtime remains choreography-heavy, but the risk is now distributed.** The controller is down to 486 lines and reducer/orchestration ownership is clear, while hover, desktop motion, mobile lifecycle, keyboard handoff, DOM focus helpers, and grid geometry each have a named module. Future changes still need broad gate coverage because regressions can emerge from timing contracts between these hooks rather than from any single file.
 
-**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (~831 lines), `use-mobile-card-lifecycle.ts` (543 lines), `use-landing-interaction-controller.ts` (486 lines), `use-keyboard-handoff.ts` (367 lines), and `use-grid-geometry-controller.ts` (330 lines).
+**`src/features/landing` namespace is dense.** Blog, test, GNB, telemetry, and transition concerns are all colocated here. Current pressure points are `site-gnb.tsx` (830 lines), `use-landing-interaction-controller.ts` (486 lines), `use-keyboard-handoff.ts` (367 lines), and `use-grid-geometry-controller.ts` (330 lines). `use-mobile-card-lifecycle.ts` is now 281 lines after extracting `use-mobile-scroll-lock.ts` (27), `use-mobile-backdrop-gesture.ts` (100), `mobile-card-lifecycle-dom.ts` (48), `use-mobile-restore-polling.ts` (115), and `use-mobile-transient-shell.ts` (86).
 
 **Screenshot-driven QA remains concentrated in the instruction surface and visual matrix.** The `test-instruction` representative route is shared by the theme-matrix manifest and consent smoke coverage, so CTA/copy/layout tweaks will churn a tightly coupled set of snapshots and route-level assertions. The 2026-04-25 refactor refreshed local theme-matrix and Safari baselines under preview mode; future layout/motion edits should re-run the same preview visual smoke before release.
 
