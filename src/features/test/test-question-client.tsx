@@ -19,6 +19,16 @@ import {useBeforeUnloadGuard} from '@/features/test/use-before-unload-guard';
 import {useLandingTransitionCompletion} from '@/features/test/use-landing-transition-completion';
 import {buildQualifierOverlayModel, type QualifierOverlayItem} from './qualifier-overlay-model';
 import {getSchemaForVariant} from './schema-registry';
+import {
+  testAnswerChoiceClassName,
+  testAnswerChoiceMarkClassName,
+  testAnswerChoiceTextClassName,
+  testOverlineClassName,
+  testPanelClassName,
+  testPrimaryButtonClassName,
+  testSecondaryButtonClassName,
+  testTitleClassName
+} from './surface-class-names';
 import type {LandingTestCard} from '@/features/variant-registry';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
@@ -32,25 +42,29 @@ interface TestQuestionClientProps {
 
 type SlideDirection = 'forward' | 'backward';
 
-const testPanelSurfaceClassName =
-  'rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)]';
-const testShellCardClassName =
-  'landing-shell-card grid gap-[18px] rounded-[16px] p-[18px] [background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:var(--card-shadow)]';
-const testShellHeaderClassName = 'test-shell-header grid gap-1';
-const testQuestionPanelClassName = `test-question-panel ${testPanelSurfaceClassName} grid gap-[14px]`;
-const testButtonFocusRingClassName =
-  'focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
-const testButtonBaseClassName =
-  `inline-flex min-h-[46px] cursor-pointer items-center justify-center rounded-[14px] border px-[14px] py-3 text-center font-semibold leading-[1.35] text-[var(--text-strong)] [font:inherit] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease] disabled:!cursor-not-allowed disabled:!border-[var(--interactive-disabled-border)] disabled:!bg-[var(--interactive-disabled-bg)] disabled:!text-[var(--interactive-disabled-ink)] disabled:!opacity-100 disabled:!shadow-none disabled:hover:!border-[var(--interactive-disabled-border)] disabled:hover:!bg-[var(--interactive-disabled-bg)] disabled:hover:!text-[var(--interactive-disabled-ink)] disabled:hover:!shadow-none disabled:hover:!translate-y-0 ${testButtonFocusRingClassName}`;
-const testPrimaryButtonClassName =
-  `${testButtonBaseClassName} border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] hover:border-[var(--interactive-accent-border-strong)] hover:bg-[var(--interactive-accent-bg-hover)] hover:-translate-y-px active:bg-[var(--interactive-accent-bg-pressed)] active:translate-y-0 focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
-const testSecondaryButtonClassName =
-  `${testButtonBaseClassName} border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg-strong)] hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)]`;
-const testAnswerButtonClassName =
-  `${testButtonBaseClassName} justify-start border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg-soft)] text-left hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)] data-[selected=true]:border-[var(--interactive-accent-border)] data-[selected=true]:bg-[var(--interactive-accent-bg)] data-[selected=true]:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] data-[selected=true]:hover:border-[var(--interactive-accent-border-strong)] data-[selected=true]:hover:bg-[var(--interactive-accent-bg-hover)] data-[selected=true]:hover:-translate-y-px data-[selected=true]:active:bg-[var(--interactive-accent-bg-pressed)] data-[selected=true]:active:translate-y-0 data-[selected=true]:focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
-const testNavRowClassName = 'test-nav-row flex flex-wrap gap-[10px]';
-const testAnswerGridClassName = 'test-answer-grid grid gap-[10px]';
-const testQuestionNumberClassName = 'test-question-number text-sm font-semibold text-[var(--muted-ink)]';
+// 종전에는 셸 카드와 문항 패널이 **서로 다른 두 개의 반투명 면**으로 겹쳐 있었다 —
+// 16px/90% 위에 18px/94%. 이제 바깥이 `.vt-panel` 하나를 지고 안쪽은 면을 갖지 않는다.
+// `test-question-panel` 은 `aria-hidden` 과 E2E 앵커를 지므로 원소 자체는 남는다.
+const testShellCardClassName = `landing-shell-card grid gap-5 ${testPanelClassName}`;
+const testShellHeaderClassName = 'test-shell-header grid gap-3';
+const testQuestionPanelClassName = 'test-question-panel grid gap-4';
+const testNavRowClassName = 'test-nav-row flex flex-wrap items-center justify-between gap-2';
+const testAnswerGridClassName = 'test-answer-grid grid gap-2';
+const testQuestionNumberClassName = `test-question-number ${testOverlineClassName}`;
+// `--t-expanded-question`(600 21px/1.3). 확장된 카탈로그 카드가 미리 보여 주는 질문과 같은
+// 타입이다 — 랜딩에서 본 문항과 테스트 안의 문항이 같은 것으로 읽혀야 한다.
+const testQuestionClassName =
+  'm-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
+// 진행 표시는 표면이 아니라 표시다. 종전 트랙은 24px 높이에 퍼센트 라벨이 채움 **안에서**
+// 떠다니다가 채움이 좁으면 `right: -2.5rem` 로 탈출했다 — 컨트롤 하나에 레이아웃이 둘이고,
+// 답할 때마다 숫자가 좌우로 자리를 옮겼다. 라벨은 트랙 밖 고정 위치로, 트랙은 6px 로 내린다.
+const testProgressHeadClassName = 'flex items-baseline justify-between gap-3';
+const testProgressLabelClassName = 'text-[13px] font-normal leading-[1.45] text-[var(--muted-aa)]';
+const testProgressValueClassName =
+  'text-[13px] font-semibold leading-[1.45] tabular-nums text-[var(--ink-body)]';
+const testProgressTrackClassName = 'h-1.5 overflow-hidden rounded-full bg-[var(--surface-strong)]';
+const testProgressFillClassName =
+  'h-full rounded-[inherit] bg-[var(--accent)] [transition-duration:var(--dur-slow)] [transition-property:width] [transition-timing-function:var(--ease-in-out)] motion-reduce:transition-none';
 
 interface InstructionVisibleInput {
   overlayMode: 'entry' | 'reentry';
@@ -180,7 +194,6 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
   const secondaryButton = entryPolicy.cta.secondary;
   const instructionNote = entryPolicy.content.consentNoteKey ? t(entryPolicy.content.consentNoteKey) : undefined;
   const scoringProgressPercentText = t('progressValue', {percent: scoringProgress.percent});
-  const isProgressLabelClamped = scoringProgress.percent >= 85;
   const isLastQuestion = currentQuestionIndex >= totalQuestions;
   const currentScoringQuestionOrdinal =
     currentQuestion?.questionType === 'scoring'
@@ -239,36 +252,28 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
       }
     >
       <header className={testShellHeaderClassName}>
-        <div>
-          <h1 className="m-0">{card.title}</h1>
-          <div className="grid gap-2" data-testid="test-progress">
+        <h1 className={testTitleClassName}>{card.title}</h1>
+        <div className="grid gap-2">
+          <div className={testProgressHeadClassName}>
+            <span className={testProgressLabelClassName}>{t('progressLabel')}</span>
+            <span className={testProgressValueClassName} data-testid="test-progress">
+              {scoringProgressPercentText}
+            </span>
+          </div>
+          <div
+            aria-label={t('progressLabel')}
+            aria-valuemax={scoringProgress.total}
+            aria-valuemin={0}
+            aria-valuenow={scoringProgress.answered}
+            aria-valuetext={scoringProgressPercentText}
+            className={testProgressTrackClassName}
+            data-testid="test-progress-bar"
+            role="progressbar"
+          >
             <div
-              aria-label={t('progressLabel')}
-              aria-valuemax={scoringProgress.total}
-              aria-valuemin={0}
-              aria-valuenow={scoringProgress.answered}
-              aria-valuetext={scoringProgressPercentText}
-              className="relative h-6 overflow-hidden rounded-full bg-[var(--interactive-neutral-bg-strong)]"
-              data-testid="test-progress-bar"
-              role="progressbar"
-            >
-              <div
-                className="relative h-full overflow-visible rounded-full bg-[var(--interactive-accent-bg)] transition-[width] duration-150 ease-out"
-                style={{width: `${scoringProgress.percent}%`}}
-              >
-                <span
-                  className="absolute top-1/2 whitespace-nowrap text-xs font-semibold leading-none text-[var(--text-strong)] -translate-y-1/2"
-                  data-testid="test-progress-percent"
-                  style={
-                    isProgressLabelClamped
-                      ? {minWidth: '2.5rem', right: '0.5rem', textAlign: 'right'}
-                      : {minWidth: '2.5rem', right: '-2.5rem', textAlign: 'left'}
-                  }
-                >
-                  {scoringProgressPercentText}
-                </span>
-              </div>
-            </div>
+              className={testProgressFillClassName}
+              style={{width: `${scoringProgress.percent}%`}}
+            />
           </div>
         </div>
       </header>
@@ -341,7 +346,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 Q{currentScoringQuestionOrdinal}
               </p>
             ) : null}
-            <h2 className="m-0">{currentQuestion?.question}</h2>
+            <h2 className={testQuestionClassName}>{currentQuestion?.question}</h2>
             <motion.div
               key={currentQuestionIndex}
               className={testAnswerGridClassName}
@@ -351,7 +356,7 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
             >
               <button
                 type="button"
-                className={testAnswerButtonClassName}
+                className={testAnswerChoiceClassName}
                 data-selected={currentAnswer === 'A' ? 'true' : 'false'}
                 disabled={isAnswerLocked}
                 onClick={() => {
@@ -359,11 +364,12 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 }}
                 data-testid="test-choice-a"
               >
-                {currentQuestion?.answerA}
+                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
+                <span className={testAnswerChoiceTextClassName}>{currentQuestion?.answerA}</span>
               </button>
               <button
                 type="button"
-                className={testAnswerButtonClassName}
+                className={testAnswerChoiceClassName}
                 data-selected={currentAnswer === 'B' ? 'true' : 'false'}
                 disabled={isAnswerLocked}
                 onClick={() => {
@@ -371,7 +377,8 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 }}
                 data-testid="test-choice-b"
               >
-                {currentQuestion?.answerB}
+                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
+                <span className={testAnswerChoiceTextClassName}>{currentQuestion?.answerB}</span>
               </button>
             </motion.div>
 
@@ -394,9 +401,11 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
               </button>
 
               {isLastQuestion ? (
+                // 제출은 회차 전체를 확정하는, 한 번뿐인 결정이다. 답변 행이 빌려 쓰던 채워진
+                // accent 무게는 여기 하나에만 남는다(catalog `.vt-cta`).
                 <button
                   type="button"
-                  className={testPrimaryButtonClassName}
+                  className={`${testPrimaryButtonClassName} px-[18px]`}
                   onClick={handleSubmit}
                   disabled={!started || !allAnswered}
                   data-testid="test-submit-button"

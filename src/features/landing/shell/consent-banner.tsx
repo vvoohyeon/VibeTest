@@ -6,19 +6,45 @@ const DEFAULT_BANNER_HEIGHT_PX = 120;
 const CONSENT_BANNER_SPACER_CLASS = 'telemetry-consent-banner-spacer flex-none';
 const CONSENT_BANNER_LAYER_CLASS =
   'telemetry-consent-banner-layer pointer-events-none fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-[1075] flex justify-center px-4';
+// `.vt-banner` — floating 표면이되 scrim 은 없다. 배너는 페이지 **위에** 떠 있지만 아무것도
+// 막지 않으므로, 아닌 것(모달)처럼 읽혀서는 안 된다. 종전에는 94% 반투명 패널에
+// `--surface-divider` 를 두르고 18px 반경이었다.
+const CONSENT_BANNER_SURFACE_CLASS =
+  'rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--shadow-lg)]';
+// L10: `outline-none` 을 같은 `focus-visible` 의 outline shorthand 와 함께 쓰면 링 두께가
+// 0 으로 계산된다. shorthand 만 쓴다.
 const CONSENT_BUTTON_FOCUS_RING_CLASS =
-  'focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
+  'focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
+// 테두리 **색**은 변종만 정한다 — 바탕이 함께 정하면 명시도가 같아 emit 순서가 승자를 정한다.
 const CONSENT_BUTTON_BASE_CLASS = [
   'telemetry-consent-banner-button',
-  'min-h-[42px] cursor-pointer rounded-full border px-[14px] py-[10px] font-semibold text-[var(--text-strong)]',
-  'transition-[border-color,background-color,box-shadow,color] duration-[140ms] ease-out',
+  'inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border px-4 py-3',
+  'text-[15px] font-semibold leading-none tracking-[-0.01em]',
+  '[transition-property:background-color,border-color,box-shadow,color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none',
   CONSENT_BUTTON_FOCUS_RING_CLASS
 ].join(' ');
+const CONSENT_PRIMARY_BUTTON_CLASS = [
+  CONSENT_BUTTON_BASE_CLASS,
+  'telemetry-consent-banner-button-accent',
+  'border-[var(--accent-solid)] bg-[var(--accent-solid)] text-[var(--fg-on-accent)]',
+  'hover:border-[var(--accent-solid-hover)] hover:bg-[var(--accent-solid-hover)]',
+  'active:border-[var(--accent-solid-pressed)] active:bg-[var(--accent-solid-pressed)]'
+].join(' ');
+// 거부는 수락과 **같은 버튼 무게**를 유지한다. 명세 표본은 이 자리에 quiet 를 두지만, 배너의
+// 두 선택지는 서로 대칭인 동의 응답이고 어느 한쪽을 텍스트로 낮추면 그 대칭이 깨진다. quiet 는
+// 셋째 행동(설정)이 가져간다. 지시 오버레이의 거부는 흐름을 빠져나가는 탈출구라 다르다.
+const CONSENT_SECONDARY_BUTTON_CLASS = [
+  CONSENT_BUTTON_BASE_CLASS,
+  'telemetry-consent-banner-button-neutral',
+  'border-[var(--hairline-strong)] bg-[var(--panel-solid)] text-[var(--ink-soft)]',
+  'hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)]',
+  'active:bg-[var(--surface-strong)]'
+].join(' ');
 const CONSENT_LINK_CLASS = [
+  CONSENT_BUTTON_BASE_CLASS,
   'telemetry-consent-banner-link',
-  'cursor-pointer px-[2px] py-2 text-[var(--muted-ink)] underline decoration-1 underline-offset-[0.18em]',
-  'transition-colors duration-[140ms] ease-out hover:text-[var(--text-strong)]',
-  CONSENT_BUTTON_FOCUS_RING_CLASS
+  'min-h-[var(--tap-min)] border-[transparent] bg-transparent px-3 py-[10px] text-[var(--muted-aa)]',
+  'hover:bg-[var(--surface-sunken)] hover:text-[var(--ink-body)]'
 ].join(' ');
 
 interface ConsentBannerProps {
@@ -91,41 +117,27 @@ export function ConsentBanner({
       <div className={CONSENT_BANNER_LAYER_CLASS}>
         <section
           ref={bannerRef}
-          className="telemetry-consent-banner pointer-events-auto flex w-full max-w-[1280px] items-center justify-between gap-5 rounded-[18px] border px-4 py-[14px] max-[719px]:flex-wrap max-[719px]:justify-start max-[719px]:gap-[14px] max-[719px]:p-[14px]"
+          className={`telemetry-consent-banner pointer-events-auto flex w-full max-w-[1280px] items-center justify-between gap-5 px-5 py-4 max-[719px]:flex-wrap max-[719px]:justify-start max-[719px]:gap-[14px] max-[719px]:p-[14px] ${CONSENT_BANNER_SURFACE_CLASS}`}
           aria-label={regionLabel}
           data-testid={rootTestId}
-          style={{
-            borderColor: 'var(--surface-divider)',
-            background: 'color-mix(in srgb, var(--panel-solid) 94%, transparent)',
-            boxShadow: 'var(--surface-shadow)'
-          }}
         >
-          <p className="telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] text-[0.96rem] text-[var(--muted-ink)] max-[719px]:basis-full">
+          <p className="telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] text-[14px] leading-[1.55] text-[var(--ink-body)] max-[719px]:basis-full">
             {message}
           </p>
-          <div className="telemetry-consent-banner-actions flex shrink-0 flex-wrap items-center justify-end gap-[10px] max-[719px]:basis-full max-[719px]:justify-start">
+          <div className="telemetry-consent-banner-actions flex shrink-0 flex-wrap items-center justify-end gap-2 max-[719px]:basis-full max-[719px]:justify-start">
             <button
               type="button"
-              className={`${CONSENT_BUTTON_BASE_CLASS} telemetry-consent-banner-button-accent hover:border-[var(--interactive-accent-border-strong)] hover:[background:var(--interactive-accent-bg-hover)] active:[background:var(--interactive-accent-bg-pressed)]`}
+              className={CONSENT_PRIMARY_BUTTON_CLASS}
               data-testid={primaryTestId}
               onClick={onPrimaryAction}
-              style={{
-                borderColor: 'var(--interactive-accent-border)',
-                background: 'var(--interactive-accent-bg)',
-                boxShadow: 'var(--interactive-accent-shadow)'
-              }}
             >
               {primaryLabel}
             </button>
             <button
               type="button"
-              className={`${CONSENT_BUTTON_BASE_CLASS} telemetry-consent-banner-button-neutral hover:border-[var(--interactive-neutral-border-strong)] hover:[background:var(--interactive-neutral-bg-hover)] active:[background:var(--interactive-neutral-bg-pressed)]`}
+              className={CONSENT_SECONDARY_BUTTON_CLASS}
               data-testid={secondaryTestId}
               onClick={onSecondaryAction}
-              style={{
-                borderColor: 'var(--interactive-neutral-border)',
-                background: 'var(--interactive-neutral-bg)'
-              }}
             >
               {secondaryLabel}
             </button>

@@ -2,10 +2,9 @@
 
 import type {KeyboardEvent} from 'react';
 
-const testButtonFocusRingClassName =
-  'focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
-const testQualifierChipClassName =
-  `test-qualifier-chip inline-flex w-fit cursor-pointer items-center gap-[6px] rounded-full border border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg-soft)] px-3 py-1 text-sm font-semibold text-[var(--text-strong)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease] hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)] ${testButtonFocusRingClassName}`;
+import {testChipClassName} from '@/features/test/surface-class-names';
+
+const testQualifierChipClassName = `test-qualifier-chip ${testChipClassName}`;
 
 interface QualifierChipProps {
   label: string;

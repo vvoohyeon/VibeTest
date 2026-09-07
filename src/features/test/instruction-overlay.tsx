@@ -1,23 +1,28 @@
 'use client';
 
 import type {QualifierOverlayItem} from './qualifier-overlay-model';
+import {
+  testAnswerChoiceClassName,
+  testAnswerChoiceMarkClassName,
+  testAnswerChoiceTextClassName,
+  testBodyClassName,
+  testCaptionClassName,
+  testFloatingClassName,
+  testPrimaryButtonClassName,
+  testQuietButtonClassName,
+  testScrimClassName,
+  testSecondaryButtonClassName,
+  testTitleClassName
+} from './surface-class-names';
 
-const instructionActionRowClassName = 'flex flex-wrap gap-[10px]';
+const instructionActionRowClassName = 'flex flex-wrap items-center gap-2';
+// 다이얼로그는 floating 표면이다: `--surface-raised` · 모서리 하나 · overlay 그림자.
+// 종전에는 94% 반투명 패널에 22px 흐림 그림자를 얹고 **테두리가 아예 없었다** — 그래서 다크
+// 에서 다이얼로그와 그 뒤 페이지를 가르는 것이 아무것도 없었다(scrim 은 1.04:1 밖에 못 어둡게
+// 한다). 모바일에서는 표면이 뷰포트를 가득 채워 뒷면이 보이지 않으므로 모서리를 걷는다.
 const instructionCardClassName =
-  'test-instruction-card grid gap-[14px] rounded-[18px] p-5 [background:color-mix(in_srgb,var(--panel-solid)_94%,transparent)] [box-shadow:var(--dialog-shadow)] max-[767px]:min-h-full max-[767px]:w-full max-[767px]:content-start max-[767px]:rounded-none max-[767px]:pt-[88px]';
-const instructionNoteClassName = 'test-instruction-note m-0 leading-[1.5] text-[var(--muted-ink)]';
-const instructionButtonFocusRingClassName =
-  'focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
-const instructionButtonBaseClassName =
-  `inline-flex min-h-[46px] cursor-pointer items-center justify-center rounded-[14px] border px-[14px] py-3 text-center font-semibold leading-[1.35] text-[var(--text-strong)] [font:inherit] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color,transform] [transition-timing-function:ease] disabled:!cursor-not-allowed disabled:!border-[var(--interactive-disabled-border)] disabled:!bg-[var(--interactive-disabled-bg)] disabled:!text-[var(--interactive-disabled-ink)] disabled:!opacity-100 disabled:!shadow-none disabled:hover:!border-[var(--interactive-disabled-border)] disabled:hover:!bg-[var(--interactive-disabled-bg)] disabled:hover:!text-[var(--interactive-disabled-ink)] disabled:hover:!shadow-none disabled:hover:!translate-y-0 ${instructionButtonFocusRingClassName}`;
-const instructionPrimaryButtonClassName =
-  `${instructionButtonBaseClassName} border-[var(--interactive-accent-border)] bg-[var(--interactive-accent-bg)] shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),var(--interactive-accent-shadow)] hover:border-[var(--interactive-accent-border-strong)] hover:bg-[var(--interactive-accent-bg-hover)] hover:-translate-y-px active:bg-[var(--interactive-accent-bg-pressed)] active:translate-y-0 focus-visible:shadow-[inset_0_0_0_1px_var(--interactive-accent-outline),0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer),var(--interactive-accent-shadow)]`;
-const instructionSecondaryButtonClassName =
-  `${instructionButtonBaseClassName} border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg-strong)] hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)]`;
-const qualifierChoiceButtonClassName =
-  `${instructionSecondaryButtonClassName} justify-start text-left data-[selected=true]:border-[var(--interactive-accent-border)] data-[selected=true]:bg-[var(--interactive-accent-bg)]`;
-const qualifierContinueButtonClassName =
-  `${instructionPrimaryButtonClassName} disabled:!cursor-not-allowed disabled:!border-[var(--interactive-disabled-border)] disabled:!bg-[var(--interactive-disabled-bg)] disabled:!text-[var(--interactive-disabled-ink)] disabled:!opacity-100 disabled:!shadow-none ${instructionButtonFocusRingClassName}`;
+  `test-instruction-card grid gap-4 p-5 ${testFloatingClassName} max-[767px]:min-h-full max-[767px]:w-full max-[767px]:content-start max-[767px]:rounded-none max-[767px]:border-0 max-[767px]:pt-[88px]`;
+const instructionNoteClassName = `test-instruction-note ${testCaptionClassName}`;
 
 interface InstructionOverlayProps {
   title: string;
@@ -58,34 +63,35 @@ export function InstructionOverlay({
 }: InstructionOverlayProps) {
   return (
     <div
-      className="test-instruction-overlay fixed inset-0 z-[1050] grid place-items-center bg-[var(--overlay-scrim-soft)] p-6 max-[767px]:p-0"
+      className={`test-instruction-overlay fixed inset-0 z-[1050] grid place-items-center p-6 max-[767px]:p-0 ${testScrimClassName}`}
       data-testid="test-instruction-overlay"
     >
       <div className={instructionCardClassName}>
         {qualifierStep ? (
-          <div className="grid gap-[14px]" data-testid="test-qualifier-step">
-            <h2 className="m-0">{qualifierStep.item.questionText}</h2>
-            <div className="grid gap-[10px]">
+          <div className="grid gap-4" data-testid="test-qualifier-step">
+            <h2 className={testTitleClassName}>{qualifierStep.item.questionText}</h2>
+            <div className="grid gap-2">
               {qualifierStep.item.choices.map((choice) => (
                 <button
                   key={choice.token}
                   type="button"
-                  className={qualifierChoiceButtonClassName}
+                  className={testAnswerChoiceClassName}
                   data-selected={qualifierStep.selectedToken === choice.token ? 'true' : 'false'}
                   data-testid={`test-qualifier-choice-${choice.token.toLowerCase()}`}
                   onClick={() => {
                     qualifierStep.onSelect(choice.token);
                   }}
                 >
-                  {choice.label}
+                  <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
+                  <span className={testAnswerChoiceTextClassName}>{choice.label}</span>
                 </button>
               ))}
             </div>
-            <div className={instructionActionRowClassName}>
+            <div className={`${instructionActionRowClassName} justify-end`}>
               {qualifierStep.showBack ? (
                 <button
                   type="button"
-                  className={instructionSecondaryButtonClassName}
+                  className={testSecondaryButtonClassName}
                   onClick={qualifierStep.onBack}
                   data-testid={
                     qualifierStep.isReentry
@@ -98,7 +104,7 @@ export function InstructionOverlay({
               ) : null}
               <button
                 type="button"
-                className={qualifierContinueButtonClassName}
+                className={testPrimaryButtonClassName}
                 onClick={onPrimaryAction}
                 disabled={qualifierStep.continueDisabled}
                 data-testid="test-qualifier-continue-button"
@@ -109,8 +115,8 @@ export function InstructionOverlay({
           </div>
         ) : (
           <>
-            <h2 className="m-0">{title}</h2>
-            <p className="m-0" data-testid="test-instruction-body">
+            <h2 className={testTitleClassName}>{title}</h2>
+            <p className={testBodyClassName} data-testid="test-instruction-body">
               {instructionText}
             </p>
             {showDivider ? (
@@ -124,11 +130,13 @@ export function InstructionOverlay({
                 {consentNote}
               </p>
             ) : null}
-            <div className={instructionActionRowClassName}>
+            {/* 동의 거부는 quiet 무게를 받는다. 종전에는 「이전」과 똑같은 중립 채움이어서
+                동의 거부와 문항 이동이 같은 시각 무게를 가졌다. */}
+            <div className={`${instructionActionRowClassName} justify-end`}>
               {secondaryLabel && onSecondaryAction ? (
                 <button
                   type="button"
-                  className={instructionSecondaryButtonClassName}
+                  className={testQuietButtonClassName}
                   onClick={onSecondaryAction}
                   data-testid={secondaryTestId}
                 >
@@ -137,7 +145,7 @@ export function InstructionOverlay({
               ) : null}
               <button
                 type="button"
-                className={instructionPrimaryButtonClassName}
+                className={testPrimaryButtonClassName}
                 onClick={onPrimaryAction}
                 data-testid={primaryTestId}
               >
