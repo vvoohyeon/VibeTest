@@ -117,8 +117,16 @@
   opacity: var(--unavailable-thumb-opacity);
 }
 
-.root[data-card-viewport-tier='mobile'] :global(.landing-grid-card-title-normal),
-.root[data-card-viewport-tier='mobile'] :global(.landing-grid-card-subtitle-normal) {
+/* D-06. `design.md` §4.3 states ONE global wrapping rule; this was scoped to the
+   mobile tier, so Korean broke mid-word at desktop widths. Measured 2026-09-07 inside
+   real cards at their real content boxes (258px inside the 292px card, 363px inside
+   the 397px one), reading only the two lines the clamp leaves visible: seven of ten
+   cards broke mid-word on at least one desktop width, the rule fixes every one, and
+   line counts do not move in any case, so nothing reflows. `overflow-wrap: anywhere`
+   is the other half of the pair §4.3 specifies and still fires -- `rhythm-b`'s long
+   unbreakable Latin token breaks identically with and without `keep-all`. */
+.root :global(.landing-grid-card-title-normal),
+.root :global(.landing-grid-card-subtitle-normal) {
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
@@ -165,13 +173,38 @@
   text-decoration: none;
 }
 
+/* D-07. This carried `display: none` next to a 140ms opacity transition on the same
+   element, and a `display: none` element has no rendered previous frame, so the
+   transition never ran. The decided mechanism is `opacity` + `visibility`
+   (`catalog-components.css`): `visibility` keeps the hidden CTA out of the tab order
+   and the accessibility tree, which `display: none` was doing and must not be lost,
+   and -- found while checking that -- `display: none` also takes the CTA out of
+   layout, so at any width where it competes with the tag row the reveal REFLOWS that
+   row (measured at 250px: the tags lose 23.33px and the last tag ellipsizes a further
+   3.92px under the pointer). The `visibility` mechanism measures zero shift at 397,
+   292 and 250px.
+
+   The delayed `visibility` is what makes the hide animate too: on the way out the
+   flip waits for the opacity fade, on the way in it is immediate. The opacity halves
+   and the duration live on the element's utilities. */
 .blogReadMoreHover {
-  display: none;
+  visibility: hidden;
+  transition-property: opacity, visibility;
+  transition-delay: 0s, var(--dur-fast);
 }
 
 .root.blogCard:hover .blogReadMoreHover,
 .root.blogCard:focus-within .blogReadMoreHover {
-  display: inline-flex;
+  visibility: visible;
+  transition-delay: 0s, 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blogReadMoreHover,
+  .root.blogCard:hover .blogReadMoreHover,
+  .root.blogCard:focus-within .blogReadMoreHover {
+    transition-delay: 0s, 0s;
+  }
 }
 
 /* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */

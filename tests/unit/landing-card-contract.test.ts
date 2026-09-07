@@ -341,16 +341,21 @@ describe('landing card slot contract', () => {
   it('anchors Wave 12 mobile Normal typography, shared tag, and Blog CTA source contracts', () => {
     const cardCss = readLandingGridCardCss();
     const cardSource = readLandingGridCardSource();
-    const mobileNormalTextRule = cardCss.match(
-      /\.root\[data-card-viewport-tier=['"]mobile['"]\]\s+:global\(\.landing-grid-card-title-normal\),\s*\.root\[data-card-viewport-tier=['"]mobile['"]\]\s+:global\(\.landing-grid-card-subtitle-normal\)\s*\{(?<body>[^}]*)\}/u
+    // D-06: `design.md` §4.3 states ONE global wrapping rule, so this is no longer
+    // scoped to the mobile tier. The tier attribute must NOT reappear on it.
+    const normalTextRule = cardCss.match(
+      /\.root\s+:global\(\.landing-grid-card-title-normal\),\s*\.root\s+:global\(\.landing-grid-card-subtitle-normal\)\s*\{(?<body>[^}]*)\}/u
     )?.groups?.body;
     const sharedTagRule = cardCss.match(/\.root\s+:global\(\.landing-grid-card-tag-chip\)\s*\{(?<body>[^}]*)\}/u)
       ?.groups?.body;
     const blogReadMoreRule = cardCss.match(/\.blogReadMore\s*\{(?<body>[^}]*)\}/u)?.groups?.body;
 
-    expect(mobileNormalTextRule).toBeDefined();
-    expect(mobileNormalTextRule).toContain('word-break: keep-all;');
-    expect(mobileNormalTextRule).toContain('overflow-wrap: anywhere;');
+    expect(normalTextRule).toBeDefined();
+    expect(normalTextRule).toContain('word-break: keep-all;');
+    expect(normalTextRule).toContain('overflow-wrap: anywhere;');
+    expect(cardCss).not.toMatch(
+      /\.root\[data-card-viewport-tier=['"]mobile['"]\]\s+:global\(\.landing-grid-card-title-normal\)/u
+    );
     expect(sharedTagRule).toBeDefined();
     expect(sharedTagRule).toContain('line-height: 1.35;');
     // 2026-09-07 theme cut: 이 토큰은 카드 모듈의 스코프 리터럴에서 전역 계층으로 올라갔다
@@ -475,9 +480,25 @@ describe('landing card slot contract', () => {
     expect(readMore?.textContent?.replace(/\s+/gu, '')).toBe('Readmore→');
     expect(readMore?.className).toContain('inline-flex');
     expect(readMore?.className).toContain('gap-[6px]');
-    expect(readMore?.className).toContain('invisible');
-    expect(readMore?.className).toContain('group-hover:visible');
-    expect(readMore?.className).toContain('group-focus-within:visible');
+    expect(readMore?.className).toContain('opacity-0');
+    expect(readMore?.className).toContain('group-hover:opacity-100');
+    expect(readMore?.className).toContain('group-focus-within:opacity-100');
+
+    // D-07: the CTA is hidden by `visibility`, never by `display`. `display: none`
+    // gives the element no rendered previous frame, so the fade cannot run, and it
+    // also drops the CTA out of layout, which reflows the tag row on reveal.
+    const cardModuleCss = readLandingGridCardCss();
+    const hiddenCtaRule = cardModuleCss.match(/\.blogReadMoreHover\s*\{(?<body>[^}]*)\}/u)?.groups?.body;
+    const revealedCtaRule = cardModuleCss.match(
+      /\.root\.blogCard:hover\s+\.blogReadMoreHover,\s*\.root\.blogCard:focus-within\s+\.blogReadMoreHover\s*\{(?<body>[^}]*)\}/u
+    )?.groups?.body;
+    expect(hiddenCtaRule).toBeDefined();
+    expect(hiddenCtaRule).toContain('visibility: hidden;');
+    expect(hiddenCtaRule).toContain('transition-property: opacity, visibility;');
+    expect(hiddenCtaRule).not.toContain('display:');
+    expect(revealedCtaRule).toBeDefined();
+    expect(revealedCtaRule).toContain('visibility: visible;');
+    expect(revealedCtaRule).not.toContain('display:');
     expect(readMore?.querySelector('[data-slot="blogReadMoreLabel"]')?.textContent).toBe('Read more');
     expect(readMore?.querySelector('[data-slot="blogReadMoreArrow"]')?.textContent).toBe('→');
     expect(readMore?.querySelector('a, button, [tabindex]')).toBeNull();
@@ -698,8 +719,9 @@ describe('landing card slot contract', () => {
     const closeClassName = mobileOpenDoc.querySelector('[data-slot="mobileClose"]')?.getAttribute('class') ?? '';
     const choiceClassName = mobileOpenDoc.querySelector('[data-slot="answerChoiceA"]')?.getAttribute('class') ?? '';
 
-    expect(closeClassName).toContain('min-h-10');
-    expect(closeClassName).toContain('min-w-10');
+    // D-09: design.md 4.10 names the close button among the 44x44 targets.
+    expect(closeClassName).toContain('min-h-[var(--tap-min)]');
+    expect(closeClassName).toContain('min-w-[var(--tap-min)]');
     expect(choiceClassName).toContain('py-3');
   });
 });

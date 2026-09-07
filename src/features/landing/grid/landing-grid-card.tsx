@@ -267,8 +267,9 @@ const LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME =
   'landing-grid-card-expanded-shadow pointer-events-none absolute inset-0 z-0 rounded-[var(--landing-card-radius)] [box-shadow:var(--expanded-card-shadow)]';
 const LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME =
   'landing-grid-card-expanded-surface relative z-[1] min-h-full w-full rounded-[var(--landing-card-radius)] [background:var(--expanded-card-surface)] [box-shadow:0_0_0_1px_var(--expanded-card-border)] pointer-events-auto';
+// D-09, the card's instance of it. design.md 4.10 names the close button at 44x44.
 const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
-  'landing-grid-card-mobile-close relative inline-flex min-h-10 min-w-10 shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
+  'landing-grid-card-mobile-close relative inline-flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
 const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
   `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} cursor-pointer disabled:cursor-default disabled:opacity-70`;
 const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
@@ -498,7 +499,7 @@ function NormalCardTagRow({
         interactionMode === 'hover'
           ? joinClassNames(
               styles.blogReadMoreHover,
-              'invisible opacity-0 transition-opacity duration-[140ms] group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 motion-reduce:transition-none'
+              'opacity-0 duration-[140ms] ease-out group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none'
             )
           : 'opacity-100'
       )}
