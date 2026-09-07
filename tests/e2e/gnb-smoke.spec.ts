@@ -379,14 +379,19 @@ test.describe('Phase 3 gnb shell smoke', () => {
   }) => {
     await page.setViewportSize({width: 1280, height: 900});
 
+    // The realized `--theme-preview-*` literals from `src/app/globals.css`. They are
+    // written out rather than read from the tokens on purpose: reading them back would
+    // make this assertion agree with whatever the product currently is. Refreshed for
+    // the 2026-09-07 theme cut, which replaced the legacy cool palette (#121821 /
+    // #eff2f8) these previously carried.
     const themePreviewRestStylesByTheme = {
       light: {
         backgroundColor: 'rgb(255, 255, 255)',
-        color: 'rgb(22, 26, 32)'
+        color: 'rgb(30, 26, 22)'
       },
       dark: {
-        backgroundColor: 'rgb(18, 24, 33)',
-        color: 'rgb(239, 242, 248)'
+        backgroundColor: 'rgb(30, 26, 22)',
+        color: 'rgb(251, 250, 247)'
       }
     } as const;
 
@@ -414,9 +419,18 @@ test.describe('Phase 3 gnb shell smoke', () => {
         ]);
 
       expect.soft(selectedLocaleBeforeHover.hasVisibleBorder).toBe(false);
-      expect.soft(currentThemeBeforeHover.hasVisibleBorder).toBe(false);
       expect.soft(selectedLocaleBeforeHover.boxShadow).toBe('none');
-      expect.soft(currentThemeBeforeHover.boxShadow).toBe('none');
+
+      // A theme swatch's content IS a colour, so selection cannot be the usual fill
+      // swap -- it would paint over the thing the control is showing. The selected
+      // swatch keeps its own preview surface and takes a ring instead.
+      await expect(currentButton).toHaveAttribute('data-chip-surface', `theme-preview-${theme}`);
+      expect.soft(currentThemeBeforeHover.backgroundColor).toBe(
+        themePreviewRestStylesByTheme[theme].backgroundColor
+      );
+      expect.soft(currentThemeBeforeHover.color).toBe(themePreviewRestStylesByTheme[theme].color);
+      expect.soft(currentThemeBeforeHover.hasVisibleBorder).toBe(true);
+      expect.soft(currentThemeBeforeHover.boxShadow).not.toBe('none');
       await expect(alternateButton).toHaveAttribute('data-chip-surface', `theme-preview-${alternateTheme}`);
       expect.soft(alternateThemeBeforeHover.backgroundColor).toBe(
         themePreviewRestStylesByTheme[alternateTheme].backgroundColor

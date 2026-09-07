@@ -450,6 +450,17 @@
 }
 
 /* Base / Reset */
-a {
-  color: var(--link-ink);
+/* `@layer base` is not cosmetic. `@import "tailwindcss"` puts every utility into a
+   cascade layer, and an UNLAYERED rule beats any layered one regardless of
+   specificity — so while this rule sat outside a layer it silently defeated every
+   `text-*` colour utility written on an `<a>`. Measured before the move: both GNB
+   desktop nav links resolved to `--ink` instead of the `--muted-ink` their class
+   asked for, on all four routes that render them, in both themes; no other anchor
+   in the app carries a text-colour utility, so those two were the whole blast
+   radius. Keep base element defaults layered — a default must be beatable by a
+   class, which is exactly what a layer buys. */
+@layer base {
+  a {
+    color: var(--link-ink);
+  }
 }

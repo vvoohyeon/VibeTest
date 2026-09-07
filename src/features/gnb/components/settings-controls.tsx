@@ -6,7 +6,8 @@ import {ThemeModeIcon} from '@/features/gnb/components/theme-mode-icon';
 const settingsControlsBaseClassName = 'gnb-settings-controls grid gap-3';
 const settingsControlsDesktopClassName =
   `${settingsControlsBaseClassName} gnb-settings-controls-desktop relative z-[1] col-start-1 row-start-2 min-w-0 pb-[var(--gnb-settings-panel-inner-bottom)]`;
-const settingsControlsMobileClassName = `${settingsControlsBaseClassName} gnb-settings-controls-mobile`;
+const settingsControlsMobileClassName =
+  `${settingsControlsBaseClassName} gnb-settings-controls-mobile`;
 const settingsGridRowClassName = 'gnb-settings-row grid gap-2';
 const settingsThemeRowClassName = 'gnb-settings-row gnb-settings-row-theme flex items-center justify-between gap-3';
 const settingsThemeHeadingClassName =
@@ -15,9 +16,31 @@ const settingsThemeActionsClassName = 'gnb-settings-theme-actions flex shrink-0 
 const settingsLabelClassName =
   'gnb-settings-label text-[0.78rem] font-bold uppercase tracking-[0.03em] text-[var(--muted-ink)]';
 const chipRowClassName = 'gnb-chip-row flex flex-wrap gap-2';
+// 32px is deliberate for the 12-locale grid on the desktop layer: WCAG 2.2 AA's
+// target floor there is 24px, design.md 4.10's 44px list names choices, Read more,
+// the close button and the hamburger -- not these -- and at 44 each the grid becomes
+// a wall. Inside the drawer the same chips are a primary touch target and take the
+// floor, which is what the mobile scope below does.
 const chipBaseClassName =
-  "gnb-chip inline-flex cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)] disabled:cursor-default disabled:opacity-70 [--gnb-chip-bg:var(--interactive-neutral-bg)] [--gnb-chip-border:var(--interactive-neutral-border)] [--gnb-chip-ink:var(--interactive-neutral-ink)] [--gnb-chip-hover-bg:var(--landing-answer-bg-hover)] [--gnb-chip-hover-border:var(--landing-answer-border-hover)] [--gnb-chip-hover-shadow:var(--landing-answer-shadow-hover)]";
-const chipSelectedStateClassName = 'border-transparent bg-[var(--interactive-accent-bg-strong)] [box-shadow:none]';
+  "gnb-chip inline-flex min-h-8 cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink,var(--interactive-neutral-ink))] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)] disabled:cursor-default disabled:opacity-70 [--gnb-chip-bg:var(--interactive-neutral-bg)] [--gnb-chip-border:var(--interactive-neutral-border)] [--gnb-chip-hover-bg:var(--landing-answer-bg-hover)] [--gnb-chip-hover-border:var(--landing-answer-border-hover)] [--gnb-chip-hover-shadow:var(--landing-answer-shadow-hover)]";
+// design.md 7.6 fixes the active chip: `--sage-muted` fill, `--accent-fg` text,
+// transparent border, no hover.
+// The ink goes through `--gnb-chip-ink`, and the base above supplies its default as a
+// CSS fallback rather than as a second definition. Two arbitrary-property utilities on
+// one element carry equal specificity, so which one lands is decided by Tailwind's emit
+// order, not by this file -- measured: `var(--accent-fg)` lost to the base's
+// `var(--interactive-neutral-ink)` while `var(--theme-preview-dark-ink)` beat it. With
+// the default moved into the fallback, exactly one rule ever defines the variable.
+const chipSelectedStateClassName =
+  'border-transparent bg-[var(--sage-muted)] [--gnb-chip-ink:var(--accent-fg)] [box-shadow:none]';
+// A swatch's content IS a colour, so selection cannot be a fill swap: painting the
+// light swatch sage hides the very thing it is showing, and the unselected swatch --
+// still wearing its own strong colour -- then reads as the chosen one. Selection is
+// a ring instead. Its inner gap is `--surface-raised` -- the surface both the
+// settings layer and the drawer are painted with -- so the ring reads as a ring
+// rather than as a halo floating on a mismatched ground.
+const chipSwatchSelectedStateClassName =
+  'border-[var(--gnb-chip-border)] [box-shadow:0_0_0_2px_var(--surface-raised),0_0_0_4px_var(--accent)]';
 const chipUnselectedStateClassName =
   'hover:border-[var(--gnb-chip-hover-border)] hover:bg-[var(--gnb-chip-hover-bg)] hover:shadow-[var(--gnb-chip-hover-shadow)]';
 const chipThemePreviewLightClassName =
@@ -86,8 +109,9 @@ export function SettingsControls({
   const themeChipClassName =
     scope === 'desktop'
       ? `${chipBaseClassName} gnb-chip-theme min-h-[var(--gnb-settings-trigger-size)] min-w-[var(--gnb-settings-trigger-size)] p-0`
-      : `${chipBaseClassName} gnb-chip-theme min-h-9 min-w-9 p-0`;
-  const localeChipClassName = chipBaseClassName;
+      : `${chipBaseClassName} gnb-chip-theme min-h-[var(--tap-min)] min-w-[var(--tap-min)] p-0`;
+  const localeChipClassName =
+    scope === 'desktop' ? chipBaseClassName : `${chipBaseClassName} min-h-[var(--tap-min)] px-[14px]`;
   const themeIconClassName =
     scope === 'desktop'
       ? 'gnb-chip-icon h-[var(--gnb-settings-trigger-icon-size)] w-[var(--gnb-settings-trigger-icon-size)] shrink-0'
@@ -110,7 +134,7 @@ export function SettingsControls({
           {orderedThemeOptions.map((theme) => {
             const isCurrentTheme = resolvedTheme === theme;
             const themeLabel = theme === 'light' ? labels.light : labels.dark;
-            const chipSurface = isCurrentTheme ? undefined : (`theme-preview-${theme}` as const);
+            const chipSurface = `theme-preview-${theme}` as const;
 
             return (
               <button
@@ -119,7 +143,7 @@ export function SettingsControls({
                 className={joinClassNames(
                   themeChipClassName,
                   resolveChipSurfaceClassName(chipSurface),
-                  isCurrentTheme ? chipSelectedStateClassName : chipUnselectedStateClassName
+                  isCurrentTheme ? chipSwatchSelectedStateClassName : chipUnselectedStateClassName
                 )}
                 aria-pressed={isCurrentTheme}
                 aria-label={themeLabel}
