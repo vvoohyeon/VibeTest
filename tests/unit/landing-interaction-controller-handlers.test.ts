@@ -9,7 +9,10 @@ import type {
 } from 'react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {DESKTOP_EXPAND_DELAY_MS} from '../../src/features/landing/grid/hover-intent';
+import {
+  DESKTOP_COLLAPSE_DELAY_MS,
+  DESKTOP_EXPAND_DELAY_MS
+} from '../../src/features/landing/grid/hover-intent';
 import type {LandingCardViewportTier} from '../../src/features/landing/grid/landing-grid-card';
 import {MOBILE_EXPANDED_DURATION_MS} from '../../src/features/landing/grid/mobile-lifecycle';
 import {useLandingInteractionController} from '../../src/features/landing/grid/use-landing-interaction-controller';
@@ -225,6 +228,57 @@ describe('landing interaction controller handlers', () => {
 
     expect(result.current.interactionState.focusedCardVariant).toBe(secondTestCard.variant);
     expect(result.current.interactionState.expandedCardVariant).toBe(secondTestCard.variant);
+  });
+
+  /**
+   * 포인터 아래 노드가 unmount 되면 `mouseout` 이 갈 곳을 잃고 카드의 `onMouseLeave` 가
+   * 한 번도 실행되지 않는다 — collapse 가 **예약조차 되지 않아** 카드가 hover 에 갇힌다.
+   * 2026-09-10 실측(chromium): handoff 직후 중간 이동 없이 카드 밖으로 나가면 4/6 재현,
+   * 포인터가 카드 안에서 한 번이라도 움직이면 0/6. 브라우저에서는 제거 시점과 hit-test
+   * 시점의 경쟁이라 E2E 로 결정론이 되지 않으므로(원장 `L14`) 유실 조건을 여기서 직접 만든다:
+   * `onMouseEnter` 로 확장시킨 뒤 **`onMouseLeave` 를 부르지 않고** 카드 밖을 target 으로 하는
+   * window `pointermove` 만 보낸다. 실측한 이벤트 순서가
+   * `mouseout → mouseover → pointermove` 이므로, 정상 경로였다면 이 시점에 직전 값은 이미
+   * `null` 이다 — 여기서 카드 이름이 남아 있다는 것이 곧 leave 가 유실됐다는 뜻이다.
+   */
+  it('collapses a hover-expanded Test when the leave event is lost because the pointer node unmounted', () => {
+    vi.useFakeTimers();
+    const {testCard, secondTestCard} = selectFixtureCards();
+    const shell = mountShell([testCard, secondTestCard]);
+    const {result} = renderController({
+      cards: [testCard, secondTestCard],
+      viewportWidth: 1280,
+      viewportTier: 'desktop',
+      shellRef: {current: shell}
+    });
+    const cardRoot = shell.querySelector<HTMLElement>(
+      `[data-testid="landing-grid-card"][data-card-variant="${testCard.variant}"]`
+    );
+    if (!cardRoot) {
+      throw new Error(`Missing test card root for ${testCard.variant}`);
+    }
+
+    act(() => {
+      result.current.resolveCardInteractionBindings(testCard).onMouseEnter(createMouseEvent(cardRoot));
+    });
+    act(() => {
+      vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+    });
+    expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+    // 카드 밖으로 나가는 포인터. `onMouseLeave` 는 오지 않는다 — 그것이 이 결함이다.
+    // jsdom 의 rect 는 전부 0×0 이므로 경계 밖임을 분명히 하려고 좌표를 멀리 둔다.
+    act(() => {
+      document.body.dispatchEvent(
+        new MouseEvent('pointermove', {bubbles: true, clientX: 999, clientY: 999})
+      );
+    });
+    act(() => {
+      vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+    });
+
+    expect(result.current.interactionState.expandedCardVariant).toBeNull();
+    expect(result.current.interactionState.hoverLock.enabled).toBe(false);
   });
 
   it('keeps the real focus event after queued Test handoff idempotent', () => {
