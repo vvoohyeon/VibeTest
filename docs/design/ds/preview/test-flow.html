@@ -55,9 +55,9 @@
     <div style="display:grid;gap:var(--space-3)">
       <h4 style="font:var(--t-expanded-question);color:var(--ink);margin:0">긴 회의가 끝난 직후, 당신은 무엇을 먼저 합니까?</h4>
       <div style="display:grid;gap:var(--space-2)">
-        <button class="vt-choice vt-choice--answer"><span class="vt-choice__mark"></span><span class="vt-choice__text">바로 다음 작업으로 넘어간다</span></button>
-        <button class="vt-choice vt-choice--answer is-selected"><span class="vt-choice__mark"></span><span class="vt-choice__text">잠깐 걷거나 자리를 뜬다</span></button>
-        <button class="vt-choice vt-choice--answer is-hover"><span class="vt-choice__mark"></span><span class="vt-choice__text">메모를 정리하고 다음을 계획한다</span></button>
+        <button class="vt-choice vt-choice--answer"><span class="vt-choice__text">바로 다음 작업으로 넘어간다</span><span class="vt-choice__mark"></span></button>
+        <button class="vt-choice vt-choice--answer is-selected"><span class="vt-choice__text">잠깐 걷거나 자리를 뜬다</span><span class="vt-choice__mark"></span></button>
+        <button class="vt-choice vt-choice--answer is-hover"><span class="vt-choice__text">메모를 정리하고 다음을 계획한다</span><span class="vt-choice__mark"></span></button>
       </div>
     </div>
     <div class="actions" style="justify-content:space-between">
@@ -112,7 +112,7 @@
 <div class="side vive full">
   <h2>What changed, and why</h2>
   <p class="note"><b>Three geometry values came off the ramp.</b> The realized surfaces use <b>18px</b> radius for panels, <b>16px</b> for shell cards and <b>14px</b> for every button. The VIVE ramp is 5 / 8 / 12 / 16 / 24 / 999 — only 16 is on it. Panels move to <span class="t-code">--radius-lg</span> (16), dialogs and drawers to <span class="t-code">--radius-xl</span> (24) per §6.8, buttons to <span class="t-code">--radius-md</span> (12). The one realized value kept as-is is <b>min-height 46px</b> on buttons: it is off the 4px grid but it clears §4.10's 44px floor, and a real value that satisfies a real rule is not worth rounding.</p>
-  <p class="note"><b>The answer button was already decided.</b> Step 2 established <span class="t-code">.vt-choice--answer</span> — the catalog's choice row with a radio mark instead of an arrow — and the filled CTA for submit. Nothing here revisits that; the question surface just uses it. What is new is the third button weight, <span class="t-code">.vt-btn--quiet</span>, which the flow needs and never had: "Deny and start" was rendering with the same neutral fill as "Previous", so a consent refusal and a navigation step carried identical visual weight.</p>
+  <p class="note"><b>The answer button was already decided.</b> Step 2 established <span class="t-code">.vt-choice--answer</span> — the catalog's choice row with a radio mark in the trailing slot, where the arrow used to be — and the filled CTA for submit. Nothing here revisits that; the question surface just uses it. What is new is the third button weight, <span class="t-code">.vt-btn--quiet</span>, which the flow needs and never had: "Deny and start" was rendering with the same neutral fill as "Previous", so a consent refusal and a navigation step carried identical visual weight.</p>
   <p class="note"><b>Placeholder copy is out of scope and stays visible.</b> The history page renders <span class="t-code">Locale: en</span> as body text, the test-error heading is a hardcoded Korean string served to all twelve locales, and both 404s are hardcoded English with no shell. Those are content defects, not visual ones; they are recorded in the extraction and left for the owner of those strings rather than designed around.</p>
 </div>
 
