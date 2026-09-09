@@ -209,11 +209,11 @@ const LANDING_GRID_CARD_TRIGGER_BASE_CLASSNAME =
 const LANDING_GRID_CARD_CONTENT_CLASSNAME =
   'landing-grid-card-content relative z-[1] flex min-w-0 flex-col justify-start';
 const LANDING_GRID_CARD_TITLE_BASE_CLASSNAME =
-  'landing-grid-card-title relative z-[3] m-0 text-[20px] font-semibold leading-[1.3] tracking-[-0.01em] [overflow-wrap:anywhere]';
+  'landing-grid-card-title relative z-[3] m-0 [font:var(--t-card-title)] [letter-spacing:var(--track-tight)] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_SUBTITLE_BASE_CLASSNAME =
-  'landing-grid-card-subtitle min-w-0 text-[15px] font-normal leading-[1.45] text-[var(--normal-subtitle-ink)] [overflow-wrap:anywhere]';
+  'landing-grid-card-subtitle min-w-0 [font:var(--t-card-subtitle)] text-[var(--normal-subtitle-ink)] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_THUMBNAIL_SLOT_CLASSNAME =
-  'landing-grid-card-thumbnail-slot relative aspect-[16/6] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--chip-bg)_85%,transparent)]';
+  'landing-grid-card-thumbnail-slot relative aspect-[16/6] w-full min-w-0 shrink-0 overflow-hidden rounded-[var(--normal-thumb-radius)] bg-[color-mix(in_srgb,var(--surface-muted)_85%,transparent)]';
 const LANDING_GRID_CARD_TAGS_CLASSNAME =
   'landing-grid-card-tags m-0 flex min-h-7 min-w-0 shrink-0 list-none items-center gap-2 overflow-hidden p-0';
 const LANDING_GRID_CARD_TAGS_GAP_CLASSNAME =
@@ -222,14 +222,14 @@ const LANDING_GRID_CARD_TAG_ITEM_CLASSNAME = 'landing-grid-card-tag-item min-w-0
 const LANDING_GRID_CARD_TAG_CHIP_CLASSNAME =
   'landing-grid-card-tag-chip block max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--normal-tag-radius)] bg-[var(--normal-tag-bg)] px-[9px] py-1 text-[13px] font-medium text-[var(--normal-tag-ink)]';
 const LANDING_GRID_CARD_PREVIEW_QUESTION_CLASSNAME =
-  'landing-grid-card-preview-question m-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'landing-grid-card-preview-question m-0 [font:var(--t-expanded-question)] [letter-spacing:var(--track-tight)] text-[var(--expanded-question-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_GRID_CLASSNAME = 'landing-grid-card-answer-grid grid gap-2';
 const LANDING_GRID_CARD_ANSWER_CHOICE_CLASSNAME =
   'landing-grid-card-answer-choice group/answerChoice flex items-start gap-3 cursor-pointer overflow-visible rounded-[12px] border border-[var(--expanded-choice-border)] bg-[var(--expanded-choice-surface)] px-3.5 py-3 text-left text-clip transition-[border-color,background-color] duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none disabled:cursor-default hover:border-[var(--expanded-choice-accent)] hover:bg-[var(--expanded-choice-accent-surface)] focus-visible:[outline:2px_solid_var(--expanded-choice-accent)] focus-visible:[outline-offset:2px]';
 const LANDING_GRID_CARD_ANSWER_CHOICE_TEXT_CLASSNAME =
-  'landing-grid-card-answer-choice-text min-w-0 flex-1 text-[15px] font-normal leading-[1.45] text-[var(--expanded-choice-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'landing-grid-card-answer-choice-text min-w-0 flex-1 [font:var(--t-choice)] text-[var(--expanded-choice-ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 const LANDING_GRID_CARD_ANSWER_CHOICE_ARROW_CLASSNAME =
-  'landing-grid-card-answer-choice-arrow shrink-0 text-[15px] leading-[1.45] text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
+  'landing-grid-card-answer-choice-arrow shrink-0 [font:var(--t-choice)] text-[var(--expanded-choice-arrow-ink)] transition-colors duration-[140ms] [transition-timing-function:ease] motion-reduce:transition-none group-hover/answerChoice:text-[var(--expanded-choice-accent)]';
 // design §6.10 quiet data row: horizontal wrapping row, dot separators, 13px/500/--muted,
 // with the complete duration item emphasized. Inline value+label per item (no dt/dd stack).
 const LANDING_GRID_CARD_META_ROW_CLASSNAME =
@@ -245,7 +245,7 @@ const LANDING_GRID_CARD_META_VALUE_LEAD_CLASSNAME =
   'landing-grid-card-meta-value landing-grid-card-meta-value-lead';
 const LANDING_GRID_CARD_META_LABEL_CLASSNAME = 'landing-grid-card-meta-label';
 const LANDING_GRID_CARD_EXPANDED_CONTEXT_CLASSNAME =
-  'landing-grid-card-title text-[14px] font-medium leading-[1.4] text-[var(--expanded-context-ink)] [overflow-wrap:anywhere]';
+  'landing-grid-card-title [font:var(--label)] text-[var(--expanded-context-ink)] [overflow-wrap:anywhere]';
 // Desktop overlay expandedBody is a flex column so the BQ-24 height-floor surplus can be absorbed
 // by a single spacer (design §7.3). Mobile expanded/transient bodies keep their own grid layout.
 const LANDING_GRID_CARD_EXPANDED_CLASSNAME = 'landing-grid-card-expanded mt-0 flex min-w-0 flex-col gap-[10px] p-4';
@@ -269,7 +269,7 @@ const LANDING_GRID_CARD_EXPANDED_SURFACE_CLASSNAME =
   'landing-grid-card-expanded-surface relative z-[1] min-h-full w-full rounded-[var(--landing-card-radius)] [background:var(--expanded-card-surface)] [box-shadow:0_0_0_1px_var(--expanded-card-border)] pointer-events-auto';
 // D-09, the card's instance of it. design.md 4.10 names the close button at 44x44.
 const LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME =
-  'landing-grid-card-mobile-close relative inline-flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--chip-border)] bg-[var(--interactive-neutral-bg-strong)] p-0 font-semibold [color:var(--link-ink)]';
+  'landing-grid-card-mobile-close relative inline-flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] shrink-0 basis-auto items-center justify-center rounded-full border border-[var(--hairline-strong)] bg-[var(--surface-strong)] p-0 font-semibold [color:var(--ink)]';
 const LANDING_GRID_CARD_MOBILE_CLOSE_CLASSNAME =
   `${LANDING_GRID_CARD_MOBILE_CLOSE_BASE_CLASSNAME} cursor-pointer disabled:cursor-default disabled:opacity-70`;
 const LANDING_GRID_CARD_MOBILE_CLOSE_GHOST_CLASSNAME =
@@ -1010,7 +1010,7 @@ export function LandingGridCard({
     : isMobileExpanded
       ? '[background:var(--expanded-card-surface)] [box-shadow:none]'
       : isMobileOpening || isMobileClosing
-        ? '[background:color-mix(in_srgb,var(--panel-solid)_90%,transparent)] [box-shadow:none]'
+        ? '[background:color-mix(in_srgb,var(--canvas-elevated)_90%,transparent)] [box-shadow:none]'
         : '[background:var(--normal-card-surface)] [box-shadow:var(--normal-card-shadow)] [border:1px_solid_var(--normal-card-border)]';
   const resolvedRootClassName = joinClassNames(
     LANDING_GRID_CARD_ROOT_CLASSNAME,

@@ -51,11 +51,11 @@ const colorTransitionPropertyClassName = '[transition-property:background-color,
  * 44px 바닥을 이미 넘고, 실제 규칙을 만족하는 실제 값은 토큰에 맞춰 반올림할 이유가 없다.
  */
 export const buttonShapeClassName =
-  'inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border px-4 py-3 text-[15px] font-semibold leading-none tracking-[-0.01em]';
+  'inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border px-4 py-3 [font:var(--button)] [letter-spacing:var(--track-tight)]';
 
 /** 비활성. `!` 는 hover 변종까지 눌러야 해서 붙는다. */
 export const buttonDisabledClassName =
-  'disabled:!cursor-not-allowed disabled:!border-[var(--interactive-disabled-border)] disabled:!bg-[var(--interactive-disabled-bg)] disabled:!text-[var(--interactive-disabled-ink)] disabled:!opacity-100 disabled:!shadow-none disabled:!translate-y-0 disabled:hover:!border-[var(--interactive-disabled-border)] disabled:hover:!bg-[var(--interactive-disabled-bg)] disabled:hover:!text-[var(--interactive-disabled-ink)] disabled:hover:!shadow-none disabled:hover:!translate-y-0';
+  'disabled:!cursor-not-allowed disabled:!border-[var(--hairline)] disabled:!bg-[var(--surface-sunken)] disabled:!text-[var(--fg-disabled)] disabled:!opacity-100 disabled:!shadow-none disabled:!translate-y-0 disabled:hover:!border-[var(--hairline)] disabled:hover:!bg-[var(--surface-sunken)] disabled:hover:!text-[var(--fg-disabled)] disabled:hover:!shadow-none disabled:hover:!translate-y-0';
 
 /** 색을 전이하는 바탕. 동의 배너가 그대로 쓴다. */
 export const buttonBaseClassName =
@@ -92,7 +92,7 @@ export const buttonPrimaryLiftClassName =
 
 /** 중립. 테스트 표면과 동의 배너가 같은 문자열을 쓴다. */
 export const buttonSecondaryClassName =
-  'border-[var(--hairline-strong)] bg-[var(--panel-solid)] text-[var(--ink-soft)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)]';
+  'border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] text-[var(--ink-soft)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)]';
 
 /**
  * Quiet — 제품이 필요로 하면서 이름을 준 적 없는 세 번째 무게. 「동의하지 않고 시작」·「취소」

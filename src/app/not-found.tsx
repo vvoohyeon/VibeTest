@@ -10,12 +10,12 @@ import {RouteBuilder} from '@/lib/routes/route-builder';
 // 따른 영어다. 로케일 레이아웃 밖이라 아직 번역되지 않는다(내용 결함으로 남김).
 const notFoundMainClassName = 'grid min-h-screen place-items-center px-4 py-6';
 const notFoundPanelClassName =
-  'w-full max-w-[520px] rounded-[var(--radius-lg)] border border-[var(--surface-divider)] bg-[var(--panel-solid)] p-5 shadow-[var(--card-shadow)]';
+  'w-full max-w-[520px] rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--canvas-elevated)] p-5 shadow-[var(--shadow-rest)]';
 const notFoundEmptyClassName = 'mx-auto grid max-w-[460px] justify-items-center gap-4 px-4 py-10 text-center';
 const notFoundMarkClassName =
   'grid h-11 w-11 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-fg)]';
-const notFoundTitleClassName = 'm-0 text-[20px] font-semibold leading-[1.3] text-[var(--ink)]';
-const notFoundBodyClassName = 'm-0 text-[14px] leading-[1.55] text-[var(--muted-aa)]';
+const notFoundTitleClassName = 'm-0 [font:var(--h3)] text-[var(--ink)]';
+const notFoundBodyClassName = 'm-0 [font:var(--body-sm)] text-[var(--muted-aa)]';
 // 두 404 는 같은 완성형을 쓴다 — 어휘가 갈라진 자리였다(`@/features/ui/button-class-names`).
 const notFoundActionClassName = linkButtonPrimaryClassName;
 

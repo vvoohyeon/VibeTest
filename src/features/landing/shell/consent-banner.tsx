@@ -116,7 +116,7 @@ export function ConsentBanner({
           aria-label={regionLabel}
           data-testid={rootTestId}
         >
-          <p className="telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] text-[14px] leading-[1.55] text-[var(--ink-body)] max-[719px]:basis-full">
+          <p className="telemetry-consent-banner-message m-0 min-w-0 flex-1 basis-[520px] [font:var(--body-sm)] text-[var(--ink-body)] max-[719px]:basis-full">
             {message}
           </p>
           <div className="telemetry-consent-banner-actions flex shrink-0 flex-wrap items-center justify-end gap-2 max-[719px]:basis-full max-[719px]:justify-start">

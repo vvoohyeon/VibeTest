@@ -54,12 +54,12 @@ const testQuestionNumberClassName = `test-question-number ${testOverlineClassNam
 // `--t-expanded-question`(600 21px/1.3). 확장된 카탈로그 카드가 미리 보여 주는 질문과 같은
 // 타입이다 — 랜딩에서 본 문항과 테스트 안의 문항이 같은 것으로 읽혀야 한다.
 const testQuestionClassName =
-  'm-0 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'm-0 [font:var(--t-expanded-question)] [letter-spacing:var(--track-tight)] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 // 진행 표시는 표면이 아니라 표시다. 종전 트랙은 24px 높이에 퍼센트 라벨이 채움 **안에서**
 // 떠다니다가 채움이 좁으면 `right: -2.5rem` 로 탈출했다 — 컨트롤 하나에 레이아웃이 둘이고,
 // 답할 때마다 숫자가 좌우로 자리를 옮겼다. 라벨은 트랙 밖 고정 위치로, 트랙은 6px 로 내린다.
 const testProgressHeadClassName = 'flex items-baseline justify-between gap-3';
-const testProgressLabelClassName = 'text-[13px] font-normal leading-[1.45] text-[var(--muted-aa)]';
+const testProgressLabelClassName = '[font:var(--caption)] text-[var(--muted-aa)]';
 const testProgressValueClassName =
   'text-[13px] font-semibold leading-[1.45] tabular-nums text-[var(--ink-body)]';
 const testProgressTrackClassName = 'h-1.5 overflow-hidden rounded-full bg-[var(--surface-strong)]';

@@ -8,12 +8,12 @@ import {RouteBuilder} from '@/lib/routes/route-builder';
 // 로케일 전부에 나가고 있고 raw variant id 가 그 안에 끼워지지만, 그것은 시각 결함이 아니라
 // 내용 결함이라 보고 대상이다(BQ-21). routing-smoke 도 이 문자열을 그대로 검사한다.
 const testErrorPanelClassName =
-  'grid rounded-[var(--radius-lg)] border border-[var(--surface-divider)] bg-[var(--panel-solid)] p-5 shadow-[var(--card-shadow)]';
+  'grid rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--canvas-elevated)] p-5 shadow-[var(--shadow-rest)]';
 const testErrorEmptyClassName = 'mx-auto grid max-w-[460px] justify-items-center gap-4 px-4 py-8 text-center';
 const testErrorMarkClassName =
   'grid h-11 w-11 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-fg)]';
 const testErrorTitleClassName =
-  'm-0 text-[20px] font-semibold leading-[1.3] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'm-0 [font:var(--h3)] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 
 export default async function TestErrorPage({
   params,

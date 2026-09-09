@@ -209,7 +209,7 @@
 
 /* Semantic style classes are the CSS contract; data-* stays on the DOM as QA/debug anchors only. */
 .root.desktopOverlayLayer:has(:focus-visible) {
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-rest);
 }
 
 .root.desktopOverlayLayer:has(:focus-visible) .expandedSurface {

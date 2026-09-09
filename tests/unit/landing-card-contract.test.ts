@@ -360,8 +360,9 @@ describe('landing card slot contract', () => {
     expect(sharedTagRule).toContain('line-height: 1.35;');
     // 2026-09-07 theme cut: 이 토큰은 카드 모듈의 스코프 리터럴에서 전역 계층으로 올라갔다
     // (BQ-21 namespace 정착). 모듈이 값을 갖지 않는 것이 이제 계약이며, 값 자체는 전역이 갖는다.
-    // 지킬 불변식은 CTA 가 자기 잉크 토큰을 갖는다는 것 — 아래 두 줄과 `--muted-ink` 금지 —
-    // 이지 특정 hex 가 어느 파일에 있느냐가 아니다.
+    // 지킬 불변식은 CTA 가 자기 잉크 토큰을 갖는다는 것 — 아래 두 줄과 본문 잉크 금지 —
+    // 이지 특정 hex 가 어느 파일에 있느냐가 아니다. 5c 묶음 C 에서 `--muted-ink` 별칭이
+    // 은퇴하며 그것이 가리키던 `--ink-body` 로 옮겼다: 금지 대상은 이름이 아니라 역할이다.
     expect(cardCss).not.toContain('--blog-read-more-ink:');
     expect(readGlobalTokens()).toMatch(/^\s*--blog-read-more-ink:\s*#[0-9a-f]{6};/mu);
     expect(blogReadMoreRule).toContain('color: var(--blog-read-more-ink);');
@@ -369,7 +370,7 @@ describe('landing card slot contract', () => {
     expect(extractSourceAssignment(cardSource, 'LANDING_GRID_CARD_TAG_CHIP_CLASSNAME')).not.toContain(
       'leading-[1.2]'
     );
-    expect(extractReadMoreClassSource(cardSource)).not.toContain('text-[var(--muted-ink)]');
+    expect(extractReadMoreClassSource(cardSource)).not.toContain('text-[var(--ink-body)]');
   });
 
   it('forces unavailable cards to stay normal even when expanded state is requested', () => {
@@ -583,9 +584,9 @@ describe('landing card slot contract', () => {
     expect(expandedTitle).not.toBeNull();
     expect(line1).not.toBeNull();
     expect(overflow).not.toBeNull();
-    expect(expandedTitle?.className).toContain('text-[14px]');
-    expect(expandedTitle?.className).toContain('font-medium');
-    expect(expandedTitle?.className).toContain('leading-[1.4]');
+    // 크기·굵기·행간 셋은 이제 `--label`(= 500 14px/1.4) 한 이름이 갖는다. 그 값을 설계
+    // 정의에 붙들어 두는 것은 `design-tokens-dark-parity.test.ts` 의 미러 대조다.
+    expect(expandedTitle?.className).toContain('[font:var(--label)]');
     expect(expandedTitle?.className).toContain('text-[var(--expanded-context-ink)]');
     expect(expandedTitle?.textContent).toBe(card.title);
     expect(doc.querySelector('[data-slot="cardTitle"]')?.textContent).toBe(card.title);
@@ -621,9 +622,7 @@ describe('landing card slot contract', () => {
     ]) {
       const className = title?.getAttribute('class') ?? '';
       expect(title?.textContent).toBe(card.title);
-      expect(className).toContain('text-[14px]');
-      expect(className).toContain('font-medium');
-      expect(className).toContain('leading-[1.4]');
+      expect(className).toContain('[font:var(--label)]'); // = 500 14px/1.4, 미러가 값을 고정한다
       expect(className).toContain('text-[var(--expanded-context-ink)]');
       expect(className).not.toContain('line-clamp');
       expect(className).not.toContain('truncate');

@@ -213,7 +213,7 @@ export function InstructionOverlay({
             </p>
             {showDivider ? (
               <hr
-                className="test-instruction-divider m-0 h-px w-full border-0 bg-[var(--surface-divider)]"
+                className="test-instruction-divider m-0 h-px w-full border-0 bg-[var(--hairline)]"
                 data-testid="test-instruction-divider"
               />
             ) : null}

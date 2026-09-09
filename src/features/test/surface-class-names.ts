@@ -38,15 +38,15 @@ import {
 
 /** `.vt-panel` — 페이지 위에 놓이는 면. */
 export const testPanelClassName =
-  'rounded-[var(--radius-lg)] border border-[var(--surface-divider)] bg-[var(--panel-solid)] p-5 shadow-[var(--card-shadow)]';
+  'rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--canvas-elevated)] p-5 shadow-[var(--shadow-rest)]';
 
 /** `.vt-floating` — 페이지 위로 뜨는 면(다이얼로그·메뉴·팝오버). */
 export const testFloatingClassName =
-  'rounded-[var(--radius-xl)] border border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--dialog-shadow)]';
+  'rounded-[var(--radius-xl)] border border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--shadow-overlay)]';
 
 /** `.vt-well` — 패널 안에 잠기는 면. */
 export const testWellClassName =
-  'rounded-[var(--radius-md)] border border-[var(--surface-divider)] bg-[var(--surface-sunken)] shadow-none';
+  'rounded-[var(--radius-md)] border border-[var(--hairline)] bg-[var(--surface-sunken)] shadow-none';
 
 /** `.vt-scrim`. */
 export const testScrimClassName = 'bg-[var(--overlay-scrim-medium)]';
@@ -80,35 +80,35 @@ export const testQuietButtonClassName = `${buttonFormBaseClassName} ${buttonQuie
  * (구성 표본)은 앞. 컴포넌트 정의와 명세 산문이 일치하는 쪽을 따른다.
  */
 export const testAnswerChoiceClassName =
-  `group/answer flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--panel-solid)] px-3.5 py-3 text-left [transition-property:border-color,background-color] ${skinTransitionClassName} hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)] disabled:cursor-default ${focusRingClassName}`;
+  `group/answer flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] px-3.5 py-3 text-left [transition-property:border-color,background-color] ${skinTransitionClassName} hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)] disabled:cursor-default ${focusRingClassName}`;
 
 export const testAnswerChoiceMarkClassName =
   `mt-1 h-3.5 w-3.5 flex-none rounded-full bg-transparent shadow-[inset_0_0_0_1px_var(--hairline-strong)] [transition-property:background-color,box-shadow] ${skinTransitionClassName} group-data-[selected=true]/answer:bg-[var(--accent)] group-data-[selected=true]/answer:shadow-[inset_0_0_0_1px_var(--accent)]`;
 
 export const testAnswerChoiceTextClassName =
-  'min-w-0 flex-1 text-[15px] font-normal leading-[1.45] text-[var(--ink-soft)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'min-w-0 flex-1 [font:var(--t-choice)] text-[var(--ink-soft)] [word-break:keep-all] [overflow-wrap:anywhere]';
 
 /** `.vt-chip` — 자격 문항 재진입 칩. */
 export const testChipClassName =
-  `inline-flex w-fit min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] bg-[var(--panel-solid)] px-[11px] py-[5px] text-[13px] font-semibold leading-[1.45] text-[var(--ink-body)] [transition-property:background-color,border-color] ${skinTransitionClassName} hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] ${focusRingClassName}`;
+  `inline-flex w-fit min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] px-[11px] py-[5px] text-[13px] font-semibold leading-[1.45] text-[var(--ink-body)] [transition-property:background-color,border-color] ${skinTransitionClassName} hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] ${focusRingClassName}`;
 
 /** `.vt-datarow` — 라벨과 값의 조용한 한 줄(`design.md` §6.10). */
 export const testDataRowClassName =
-  'flex items-baseline justify-between gap-4 border-b border-[var(--surface-divider)] py-3 last:border-b-0';
+  'flex items-baseline justify-between gap-4 border-b border-[var(--hairline)] py-3 last:border-b-0';
 
-export const testDataRowKeyClassName = 'm-0 text-[13px] leading-[1.45] text-[var(--muted-aa)]';
+export const testDataRowKeyClassName = 'm-0 [font:var(--caption)] text-[var(--muted-aa)]';
 
 export const testDataRowValueClassName =
-  'm-0 text-right text-[14px] leading-[1.55] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'm-0 text-right [font:var(--body-sm)] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 
 /** 타이포 역할. VIVE 의 `--h3` / `--body-sm` / `--caption` / `--overline` 을 값으로 옮긴 것이다
  *  — 런타임 토큰 계층은 제품이 실제로 소비하는 이름만 미러하므로 타입 역할은 아직 그 안에
  *  없다(`globals.css` §1). `site-gnb.tsx` 와 `landing-grid-card.tsx` 도 같은 방식으로 쓴다. */
-export const testTitleClassName = 'm-0 text-[20px] font-semibold leading-[1.3] text-[var(--ink)]';
+export const testTitleClassName = 'm-0 [font:var(--h3)] text-[var(--ink)]';
 
-export const testBodyClassName = 'm-0 text-[14px] font-normal leading-[1.55] text-[var(--ink-body)]';
+export const testBodyClassName = 'm-0 [font:var(--body-sm)] text-[var(--ink-body)]';
 
-export const testCaptionClassName = 'm-0 text-[13px] font-normal leading-[1.45] text-[var(--muted-aa)]';
+export const testCaptionClassName = 'm-0 [font:var(--caption)] text-[var(--muted-aa)]';
 
 export const testOverlineClassName =
-  'm-0 text-[12px] font-semibold leading-[1.4] tracking-[0.08em] text-[var(--muted-aa)]';
+  'm-0 [font:var(--overline)] [letter-spacing:var(--track-over)] text-[var(--muted-aa)]';

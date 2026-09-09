@@ -14,7 +14,7 @@ const settingsThemeHeadingClassName =
   'gnb-settings-theme-heading flex min-h-[var(--gnb-settings-trigger-size,40px)] flex-1 items-center';
 const settingsThemeActionsClassName = 'gnb-settings-theme-actions flex shrink-0 items-center justify-end gap-2';
 const settingsLabelClassName =
-  'gnb-settings-label text-[0.78rem] font-bold uppercase tracking-[0.03em] text-[var(--muted-ink)]';
+  'gnb-settings-label text-[0.78rem] font-bold uppercase tracking-[0.03em] text-[var(--ink-body)]';
 const chipRowClassName = 'gnb-chip-row flex flex-wrap gap-2';
 // 32px is deliberate for the 12-locale grid on the desktop layer: WCAG 2.2 AA's
 // target floor there is 24px, design.md 4.10's 44px list names choices, Read more,
@@ -22,14 +22,14 @@ const chipRowClassName = 'gnb-chip-row flex flex-wrap gap-2';
 // a wall. Inside the drawer the same chips are a primary touch target and take the
 // floor, which is what the mobile scope below does.
 const chipBaseClassName =
-  "gnb-chip inline-flex min-h-8 cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink,var(--interactive-neutral-ink))] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)] disabled:cursor-default disabled:opacity-70 [--gnb-chip-bg:var(--interactive-neutral-bg)] [--gnb-chip-border:var(--interactive-neutral-border)] [--gnb-chip-hover-bg:var(--landing-answer-bg-hover)] [--gnb-chip-hover-border:var(--landing-answer-border-hover)] [--gnb-chip-hover-shadow:var(--landing-answer-shadow-hover)]";
+  "gnb-chip inline-flex min-h-8 cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink,var(--ink))] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)] disabled:cursor-default disabled:opacity-70 [--gnb-chip-bg:var(--surface-muted)] [--gnb-chip-border:var(--hairline)] [--gnb-chip-hover-bg:var(--surface-sunken)] [--gnb-chip-hover-border:var(--border-strong)] [--gnb-chip-hover-shadow:var(--shadow-sm)]";
 // design.md 7.6 fixes the active chip: `--sage-muted` fill, `--accent-fg` text,
 // transparent border, no hover.
 // The ink goes through `--gnb-chip-ink`, and the base above supplies its default as a
 // CSS fallback rather than as a second definition. Two arbitrary-property utilities on
 // one element carry equal specificity, so which one lands is decided by Tailwind's emit
 // order, not by this file -- measured: `var(--accent-fg)` lost to the base's
-// `var(--interactive-neutral-ink)` while `var(--theme-preview-dark-ink)` beat it. With
+// `var(--ink)` while `var(--theme-preview-dark-ink)` beat it. With
 // the default moved into the fallback, exactly one rule ever defines the variable.
 const chipSelectedStateClassName =
   'border-transparent bg-[var(--sage-muted)] [--gnb-chip-ink:var(--accent-fg)] [box-shadow:none]';

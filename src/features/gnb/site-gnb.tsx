@@ -34,7 +34,7 @@ interface SiteGnbProps {
 // shadow on scroll -- so the resting state was the loud one. req-landing.md 6.4
 // accepts either mark above `scrollY > 4px`; the hairline is the one 6.7 asks for.
 const gnbShellClassName =
-  'gnb-shell sticky top-0 z-[1100] border-b border-transparent bg-[var(--gnb-surface)] [backdrop-filter:blur(12px)] [-webkit-backdrop-filter:blur(12px)] [transition:border-color_180ms_ease] motion-reduce:transition-none data-[elevated=true]:border-[var(--surface-divider)]';
+  'gnb-shell sticky top-0 z-[1100] border-b border-transparent bg-[var(--gnb-surface)] [backdrop-filter:blur(12px)] [-webkit-backdrop-filter:blur(12px)] [transition:border-color_180ms_ease] motion-reduce:transition-none data-[elevated=true]:border-[var(--hairline)]';
 const gnbInnerClassName = 'gnb-inner mx-auto flex max-w-[1280px] items-center px-4 md:px-6 min-[768px]:max-[899px]:px-5';
 const gnbDesktopInnerClassName = `${gnbInnerClassName} gnb-desktop hidden h-16 md:flex`;
 const gnbMobileInnerClassName = `${gnbInnerClassName} gnb-mobile flex h-14 md:hidden`;
@@ -54,7 +54,7 @@ const gnbDesktopLinkCurrentMarkerClassName =
 // D-09: design.md 4.10 names the hamburger and the close button at 44x44. Fixed on
 // the shared pill rather than on one button, so back / menu / settings all clear it.
 const gnbInteractiveButtonBaseClassName =
-  'inline-flex min-h-[var(--tap-min)] cursor-pointer items-center justify-center rounded-full border border-[var(--interactive-neutral-border)] bg-[var(--interactive-neutral-bg)] px-3 py-[7px] text-[0.88rem] font-semibold text-[var(--interactive-neutral-ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] hover:border-[var(--interactive-neutral-border-strong)] hover:bg-[var(--interactive-neutral-bg-hover)] active:bg-[var(--interactive-neutral-bg-pressed)] focus-visible:outline-none focus-visible:[box-shadow:0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
+  'inline-flex min-h-[var(--tap-min)] cursor-pointer items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-muted)] px-3 py-[7px] text-[0.88rem] font-semibold text-[var(--ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)] focus-visible:outline-none focus-visible:[box-shadow:0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
 const gnbSettingsRootClassName =
   'gnb-settings-root relative flex items-stretch [--gnb-settings-trigger-size:var(--tap-min)] [--gnb-settings-trigger-icon-size:18px] [--gnb-settings-panel-base-width:324px] [--gnb-settings-panel-extra-top:12px] [--gnb-settings-panel-inner-left:15px] [--gnb-settings-panel-extra-right:var(--gnb-settings-panel-inner-left)] [--gnb-settings-panel-inner-bottom:15px]';
 const gnbSettingsTriggerClassName =
@@ -65,11 +65,11 @@ const gnbSettingsTriggerIconClassName =
 // `--border-strong` edge, the same pair the drawer takes and for the same measured
 // reason in dark. Identical to the previous fill in light (both resolve to #fff).
 const gnbSettingsPanelClassName =
-  "gnb-settings-panel absolute z-[1] grid isolate rounded-b-[12px] top-[calc(var(--gnb-settings-panel-extra-top)*-1)] right-[calc(var(--gnb-settings-panel-extra-right)*-1)] [width:min(calc(var(--gnb-settings-panel-base-width)_+_var(--gnb-settings-panel-extra-right)),calc(100vw_-_24px_+_var(--gnb-settings-panel-extra-right)))] [grid-template-columns:minmax(0,1fr)_var(--gnb-settings-panel-extra-right)] [grid-template-rows:var(--gnb-settings-panel-extra-top)_auto] before:pointer-events-none before:absolute before:z-0 before:content-[''] before:[inset:-1px_0_0_0] before:rounded-[inherit] before:bg-[var(--surface-raised)] after:pointer-events-none after:absolute after:z-0 after:content-[''] after:inset-0 after:rounded-[inherit] after:[border-right:1px_solid_var(--border-strong)] after:[border-bottom:1px_solid_var(--border-strong)] after:[border-left:1px_solid_var(--border-strong)] after:shadow-[var(--panel-shadow)]";
+  "gnb-settings-panel absolute z-[1] grid isolate rounded-b-[12px] top-[calc(var(--gnb-settings-panel-extra-top)*-1)] right-[calc(var(--gnb-settings-panel-extra-right)*-1)] [width:min(calc(var(--gnb-settings-panel-base-width)_+_var(--gnb-settings-panel-extra-right)),calc(100vw_-_24px_+_var(--gnb-settings-panel-extra-right)))] [grid-template-columns:minmax(0,1fr)_var(--gnb-settings-panel-extra-right)] [grid-template-rows:var(--gnb-settings-panel-extra-top)_auto] before:pointer-events-none before:absolute before:z-0 before:content-[''] before:[inset:-1px_0_0_0] before:rounded-[inherit] before:bg-[var(--surface-raised)] after:pointer-events-none after:absolute after:z-0 after:content-[''] after:inset-0 after:rounded-[inherit] after:[border-right:1px_solid_var(--border-strong)] after:[border-bottom:1px_solid_var(--border-strong)] after:[border-left:1px_solid_var(--border-strong)] after:shadow-[var(--shadow-overlay)]";
 const gnbBackButtonClassName = `${gnbInteractiveButtonBaseClassName} gnb-back-button`;
 const gnbMenuTriggerClassName = `${gnbInteractiveButtonBaseClassName} gnb-menu-trigger`;
-const gnbDesktopTimerClassName = 'gnb-desktop-timer m-0 font-semibold tabular-nums text-[var(--muted-ink)]';
-const gnbMobileTimerClassName = 'gnb-mobile-timer m-0 font-semibold tabular-nums text-[var(--muted-ink)]';
+const gnbDesktopTimerClassName = 'gnb-desktop-timer m-0 font-semibold tabular-nums text-[var(--ink-body)]';
+const gnbMobileTimerClassName = 'gnb-mobile-timer m-0 font-semibold tabular-nums text-[var(--ink-body)]';
 const gnbMobileLayerClassName = 'gnb-mobile-layer fixed inset-0 z-[1200]';
 const gnbMobileBackdropClassName =
   'gnb-mobile-backdrop absolute inset-0 bg-[var(--overlay-scrim-strong)] [transition:opacity_180ms_ease] data-[state=closing]:opacity-0';
@@ -77,7 +77,7 @@ const gnbMobileBackdropClassName =
 // load-bearing in dark: the scrim can only dim a near-black page 1.04:1, so the
 // panel's own boundary is what separates it (4.73:1 against the scrimmed ground).
 const gnbMobilePanelClassName =
-  'gnb-mobile-panel absolute right-0 top-0 flex h-screen max-h-screen w-[min(87vw,340px)] flex-col gap-5 overflow-y-auto border-l border-[var(--border-strong)] bg-[var(--surface-raised)] px-4 pt-4 pb-[calc(32px+env(safe-area-inset-bottom,0px))] opacity-100 shadow-[var(--sheet-shadow)] overscroll-contain [height:100dvh] [max-height:100dvh] [-webkit-overflow-scrolling:touch] [transform:translateX(0)] [transition:transform_180ms_ease,opacity_180ms_ease] motion-reduce:[transition:opacity_180ms_ease] motion-reduce:data-[state=closing]:translate-x-0 data-[state=closing]:translate-x-[12px] data-[state=closing]:opacity-0';
+  'gnb-mobile-panel absolute right-0 top-0 flex h-screen max-h-screen w-[min(87vw,340px)] flex-col gap-5 overflow-y-auto border-l border-[var(--border-strong)] bg-[var(--surface-raised)] px-4 pt-4 pb-[calc(32px+env(safe-area-inset-bottom,0px))] opacity-100 shadow-[var(--shadow-overlay)] overscroll-contain [height:100dvh] [max-height:100dvh] [-webkit-overflow-scrolling:touch] [transform:translateX(0)] [transition:transform_180ms_ease,opacity_180ms_ease] motion-reduce:[transition:opacity_180ms_ease] motion-reduce:data-[state=closing]:translate-x-0 data-[state=closing]:translate-x-[12px] data-[state=closing]:opacity-0';
 // The head names the surface, matching the foot's overline. It deliberately carries
 // NO close control: the panel sits above the bar (z 1200 over 1100) and covers the
 // hamburger, so while the drawer is open there is no visible close affordance --

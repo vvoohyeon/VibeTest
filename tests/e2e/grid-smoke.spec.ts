@@ -912,7 +912,7 @@ test.describe('Phase 4 grid smoke', () => {
     await page.waitForTimeout(180);
     const restingSkin = await readBlogCardSkin(card);
     expect(restingSkin.borderTopColor).toBe('rgb(230, 226, 216)');
-    // `--card-shadow` = `--shadow-rest` = `--shadow-xs`(0 1px 2px #1e1a160a).
+    // `--shadow-rest` = `--shadow-xs`(0 1px 2px #1e1a160a). 5c 묶음 C 가 `--card-shadow` 별칭을 은퇴시켰다.
     expect(restingSkin.boxShadow).toContain('rgba(30, 26, 22, 0.04)');
     expect(restingSkin.transitionProperty).toBe('border-color, box-shadow');
     expect(restingSkin.transitionDuration).toBe('0.14s, 0.14s');

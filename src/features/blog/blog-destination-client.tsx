@@ -24,23 +24,23 @@ interface BlogDestinationClientProps {
 
 // `.vt-panel` — 페이지 위에 놓이는 불투명한 면. 종전에는 90% 반투명 + 테두리 없음이었다.
 const blogShellCardClassName =
-  'landing-shell-card blog-shell-card grid gap-5 rounded-[var(--radius-lg)] border border-[var(--surface-divider)] bg-[var(--panel-solid)] p-5 shadow-[var(--card-shadow)]';
+  'landing-shell-card blog-shell-card grid gap-5 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--canvas-elevated)] p-5 shadow-[var(--shadow-rest)]';
 // 읽기 폭은 `--container-narrow`(760px). 토큰 파일에 있었지만 소비자가 없던 값이다.
 const blogSelectedArticleClassName = 'blog-selected-article grid max-w-[760px] gap-2';
 // 상세에서 제목의 무게는 기사 제목이 갖는다 — `headingLabel`("Selected article")은 그 위의
 // 작은 kicker 다. 목록에서는 같은 라벨이 그 페이지의 제목이므로 `--h1` 을 받는다.
-const blogKickerClassName = 'm-0 text-[12px] font-semibold leading-[1.4] tracking-[0.08em] text-[var(--muted-aa)]';
-const blogPageTitleClassName = 'm-0 text-[30px] font-bold leading-[1.2] tracking-[-0.01em] text-[var(--ink)]';
+const blogKickerClassName = 'm-0 [font:var(--overline)] [letter-spacing:var(--track-over)] text-[var(--muted-aa)]';
+const blogPageTitleClassName = 'm-0 [font:var(--h1)] [letter-spacing:var(--track-tight)] text-[var(--ink)]';
 const blogArticleTitleClassName =
-  'm-0 text-[30px] font-bold leading-[1.2] tracking-[-0.01em] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
+  'm-0 [font:var(--h1)] [letter-spacing:var(--track-tight)] text-[var(--ink)] [word-break:keep-all] [overflow-wrap:anywhere]';
 // 본문은 16px/1.6 — 일반 `--body` 역할이 맞는 유일한 자리이고, 카탈로그의 15px 는 여기서 틀리다.
-const blogArticleBodyClassName = 'm-0 text-[16px] leading-[1.6] text-[var(--ink-body)]';
-const blogSectionTitleClassName = 'm-0 text-[20px] font-semibold leading-[1.3] text-[var(--ink)]';
+const blogArticleBodyClassName = 'm-0 [font:var(--body)] text-[var(--ink-body)]';
+const blogSectionTitleClassName = 'm-0 [font:var(--h3)] text-[var(--ink)]';
 const blogArticleListClassName = 'blog-article-list grid gap-3';
 const blogArticleItemsClassName = 'm-0 grid list-none gap-2 p-0';
 // 목록 행은 카탈로그의 선택 행과 같은 처리를 받는다 — 어딘가로 데려가는 행이라는 점이 같다.
 const blogArticleListItemClassName =
-  'blog-article-list-item rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--panel-solid)] [transition-property:border-color,background-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)]';
+  'blog-article-list-item rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--canvas-elevated)] [transition-property:border-color,background-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)]';
 const blogArticleLinkClassName =
   'blog-article-link grid gap-1 px-3.5 py-3 [color:inherit] no-underline hover:no-underline focus-visible:no-underline focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
 const blogArticleLinkTitleClassName =
@@ -48,7 +48,7 @@ const blogArticleLinkTitleClassName =
 // 잉크가 `--muted-aa` 가 아니라 `--ink-body` 인 이유: 선택된 행의 바닥은 흰 면이 아니라
 // `--sage-muted` 이고, 그 위에서 `--muted-aa` 는 실측 4.38:1 로 AA 아래다. 이름이 AA 를
 // 말하는 토큰이라도 그것이 측정된 바닥에서만 AA 다.
-const blogArticleLinkSubtitleClassName = 'text-[13px] leading-[1.45] text-[var(--ink-body)]';
+const blogArticleLinkSubtitleClassName = '[font:var(--caption)] text-[var(--ink-body)]';
 
 export function BlogDestinationClient({
   locale,
@@ -138,7 +138,7 @@ export function BlogDestinationClient({
           </ul>
         </section>
       ) : (
-        <p className="text-[14px] leading-[1.55] text-[var(--muted-aa)]" data-testid="blog-empty-state">
+        <p className="[font:var(--body-sm)] text-[var(--muted-aa)]" data-testid="blog-empty-state">
           No article available.
         </p>
       )}

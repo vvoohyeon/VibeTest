@@ -59,17 +59,21 @@
    there and re-mirror. `tests/unit/design-tokens-dark-parity.test.ts` fails the
    build if the two disagree, so a one-sided edit cannot land.
 
-   Only the tokens the runtime actually consumes are mirrored — 73 of the design
+   Only the tokens the runtime actually consumes are mirrored — 87 of the design
    definition's 198, counted the way the parity guard counts them. Mirroring all
    of them would re-import the dead weight this step is removing, and a mirrored
    name that nothing reads is that same dead weight arriving one name at a time,
-   so `tests/unit/design-tokens-dark-parity.test.ts` now fails on one.
+   so `tests/unit/design-tokens-dark-parity.test.ts` now fails on one. That guard
+   is why the type roles arrive as fourteen and not as the scale's full twenty-one:
+   `--h2`, `--h4`, `--body-lg`, `--display-*`, `--code`, `--track-display`, and the
+   catalog's `--t-tag` / `--t-context-label` / `--t-eyebrow` have no reader in this
+   product, and a scale is not a reason to declare one.
 
-   SECTION 2 IS THE PRODUCT LAYER: the component vocabulary this app's markup
-   already speaks, re-expressed in section 1's terms. Keeping those names is
-   deliberate. There are 119 `var(--…)` references across `src/`, and a renamed
-   token does not error — it silently stops applying. Values move in this commit;
-   names do not. That is what makes the diff reviewable and the failure mode loud.
+   SECTION 2 IS WHAT VIVE CANNOT SAY. It was the app's whole component
+   vocabulary until 5c 묶음 C: 24 of its names were one VIVE role under a second
+   word, kept through the theme cut so that commit's diff would read as "values
+   moved, names did not". They are retired; what is left is the handful of roles
+   the design system has no word for, each with the reason it survived.
 
    WHAT IS DELIBERATELY NOT HERE. Eleven tokens were declared and consumed by
    nothing (`--card-shadow-elevated`, the three `--card-shadow-expanded-*`,
@@ -197,35 +201,63 @@
   --tap-min:             44px;
   --tag-min-width:       56px;
 
-  /* type */
+  /* type — roles */
+  --h1: 700 30px/1.2  var(--font-sans);
+  --h3: 600 20px/1.3  var(--font-sans);
+  --body:    400 16px/1.6  var(--font-sans);
+  --body-sm: 400 14px/1.55 var(--font-sans);
+  --label:   500 14px/1.4  var(--font-sans);
+  --caption: 400 13px/1.45 var(--font-sans);
+  --overline:600 12px/1.4  var(--font-sans);
+  --button:  600 15px/1    var(--font-sans);
+
+  /* type — tracking helpers */
+  --track-tight:   -0.01em;
+  --track-over:     0.08em;
+
+  /* type — catalog roles */
+  --t-card-title:        600 20px/1.3  var(--font-sans);
+  --t-card-subtitle:     400 15px/1.45 var(--font-sans);
+  --t-expanded-question: 600 21px/1.3  var(--font-sans);
+  --t-choice:            400 15px/1.45 var(--font-sans);
+
+  /* type — family */
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', 'PingFang TC', 'Segoe UI', 'Yu Gothic UI', 'Microsoft YaHei', 'Microsoft JhengHei', Roboto, 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans Devanagari', 'Helvetica Neue', Arial, sans-serif;
 }
 /* @mirror-end light */
 
 /* ---------------------------------------------------------------------------
-   2. PRODUCT LAYER — this app's component vocabulary, in VIVE terms
+   2. PRODUCT LAYER — the roles VIVE does not have
 
-   Every name below already exists in the markup. Each maps to the VIVE role
-   that matches HOW IT IS USED, which is not always what its name suggests —
-   the mapping was made from a consumer census, not from the names.
+   This section used to be the whole component vocabulary: 24 names that each
+   said one VIVE role in a different word. The theme cut kept them so its diff
+   would read as "values moved, names did not"; that commit is over, and a name
+   whose only content is a second name costs a lookup on every read while
+   hiding which role a surface actually uses. They are gone. Every consumer now
+   names the role directly — `--panel-solid → --canvas-elevated`,
+   `--surface-divider → --hairline`, `--card-shadow → --shadow-rest`,
+   `--dialog-shadow / --panel-shadow / --sheet-shadow → --shadow-overlay`,
+   `--muted-ink → --ink-body`, `--link-ink → --ink`, `--bg → --canvas`,
+   `--chip-*`, `--interactive-neutral-*`, `--interactive-disabled-*`, and the
+   `--landing-answer-*` misnomer whose only reader was the GNB settings chip.
+   The mappings were made from a consumer census, not from the names, and the
+   retirement changed no rendered value.
+
+   Two of those mappings are judgements and not lookups, so they are recorded
+   here rather than left to the diff. `--muted-ink` went to `--ink-body` and
+   NOT to `--muted-aa`: measured before the cut it composites to #4c4f54 and
+   reads 7.66:1 on the page floor, so it was never the sub-AA token BQ-29 is
+   about, and sending it to `--muted-aa` (4.86:1) would have dropped legibility
+   while appearing to be a fix. `--link-ink` folded into `--ink` because it
+   existed only to give the blog card's title a different colour from every
+   other card title in the same grid, which no design decided (D-05).
+
+   WHAT REMAINS IS EVERYTHING VIVE CANNOT SAY. Each one below is here because
+   the system has no role for it, or has one that would render differently —
+   not because renaming it was inconvenient. That is the test for adding
+   another.
    --------------------------------------------------------------------------- */
 :root {
-  /* -- ground and ink ------------------------------------------------------
-     `--muted-ink` goes to `--ink-body`, NOT to `--muted-aa`. Measured before
-     the cut it composites to #4c4f54 and reads 7.66:1 on the page floor — it
-     was never the sub-AA token BQ-29 is about. Sending it to `--muted-aa`
-     (4.86:1) would have dropped legibility while appearing to be a fix.
-     `--link-ink` folds into `--ink`: it existed only to give the blog card's
-     title a different colour from every other card title in the same grid,
-     which no design decided (D-05). */
-  --bg:              var(--canvas);
-  --muted-ink:       var(--ink-body);
-  --link-ink:        var(--ink);
-  --panel-solid:     var(--canvas-elevated);
-  --surface-divider: var(--hairline);
-  --chip-bg:         var(--surface-muted);
-  --chip-border:     var(--hairline-strong);
-
   /* The sticky navigation is translucent over its own canvas so content shows
      through the blur. VIVE's `--surface` is an opaque step and cannot serve
      here — importing it under that name would flatten the bar with no error,
@@ -233,52 +265,25 @@
      own name; `site-gnb.tsx` is the only consumer and moves with it. */
   --gnb-surface: color-mix(in srgb, var(--canvas) 88%, transparent);
 
-  /* -- interactive: neutral ------------------------------------------------ */
-  --interactive-neutral-bg:            var(--surface-muted);
-  --interactive-neutral-bg-strong:     var(--surface-strong);
-  --interactive-neutral-bg-hover:      var(--surface-sunken);
-  --interactive-neutral-bg-pressed:    var(--surface-strong);
-  --interactive-neutral-border:        var(--hairline);
-  --interactive-neutral-border-strong: var(--hairline-strong);
-  --interactive-neutral-ink:           var(--ink);
-
-  /* -- disabled ------------------------------------------------------------ */
-  --interactive-disabled-bg:     var(--surface-sunken);
-  --interactive-disabled-border: var(--hairline);
-  --interactive-disabled-ink:    var(--fg-disabled);
-
   /* -- focus ---------------------------------------------------------------
      The two-layer ring is `0 0 0 2px inner, 0 0 0 4px outer`: the inner layer
      is the OFFSET, so it takes the ground rather than a colour of its own —
      which is exactly how VIVE writes `--ring`. It was white at 78% before,
-     which only reads as an offset on a light theme. */
+     which only reads as an offset on a light theme. The pair stays because the
+     names carry the two-layer construction; `--focus-ring` alone cannot say
+     which layer a call site means. */
   --focus-ring-outer: var(--focus-ring);
   --focus-ring-inner: var(--canvas);
 
-  /* -- elevation -----------------------------------------------------------
-     `design.md` §4.7: depth is a whisper. The legacy ladder was heavier at
-     every step; these are the system's, and the flattening is intended. */
-  --card-shadow:   var(--shadow-rest);
-  --panel-shadow:  var(--shadow-overlay);
-  --sheet-shadow:  var(--shadow-overlay);
-  --dialog-shadow: var(--shadow-overlay);
-
   /* -- scrims --------------------------------------------------------------
-     Three strengths, one ink. D-05 recorded the mobile scrim as the largest
-     surface the flow paints and the furthest from its own palette: §5.7 asks
-     for warm ink at 48% and the product covered the viewport in a cool
-     near-black at 64%. */
+     A strength ladder, one ink. VIVE names the ink (`--overlay-scrim`) and not
+     the strengths, so the two steps above it stay: the dark branch below
+     collapses both onto the system scrim, which is a value difference and not
+     a rename. D-05 recorded the mobile scrim as the largest surface the flow
+     paints and the furthest from its own palette: §5.7 asks for warm ink at
+     48% and the product covered the viewport in a cool near-black at 64%. */
   --overlay-scrim-medium: var(--overlay-scrim);
   --overlay-scrim-strong: color-mix(in srgb, var(--warm-900) 60%, transparent);
-
-  /* -- GNB chip hover ------------------------------------------------------
-     Named `--landing-answer-*` but consumed only by the settings chips in
-     `settings-controls.tsx`; the landing answer buttons never read them. The
-     names are left alone in this commit for the same reason as everything else
-     in this section, and the misnomer is recorded rather than fixed here. */
-  --landing-answer-bg-hover:     var(--surface-sunken);
-  --landing-answer-border-hover: var(--border-strong);
-  --landing-answer-shadow-hover: var(--shadow-sm);
 
   /* -- theme preview swatches ----------------------------------------------
      The one part of this file that is deliberately NOT theme-aware. These two
@@ -390,6 +395,6 @@
    class, which is exactly what a layer buys. */
 @layer base {
   a {
-    color: var(--link-ink);
+    color: var(--ink);
   }
 }
