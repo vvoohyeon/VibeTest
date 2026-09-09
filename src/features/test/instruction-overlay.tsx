@@ -1,5 +1,7 @@
 'use client';
 
+import {useCallback, useEffect, useId, useRef, type KeyboardEvent} from 'react';
+
 import type {QualifierOverlayItem} from './qualifier-overlay-model';
 import {
   testAnswerChoiceClassName,
@@ -23,6 +25,12 @@ const instructionActionRowClassName = 'flex flex-wrap items-center gap-2';
 const instructionCardClassName =
   `test-instruction-card grid gap-4 p-5 ${testFloatingClassName} max-[767px]:min-h-full max-[767px]:w-full max-[767px]:content-start max-[767px]:rounded-none max-[767px]:border-0 max-[767px]:pt-[88px]`;
 const instructionNoteClassName = `test-instruction-note ${testCaptionClassName}`;
+// 열리면 포커스가 다이얼로그 컨테이너 자체로 들어온다 — 첫 컨트롤이 아니라. 첫 컨트롤에 두면
+// Enter 한 번이 곧 「동의하고 시작」이 되는데, 동의를 묻는 창에서 그것은 기본값으로 삼을
+// 행동이 아니다. 컨테이너는 컨트롤이 아니므로 UA 링을 그리지 않는다.
+const instructionDialogClassName = `${instructionCardClassName} outline-none`;
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface InstructionOverlayProps {
   title: string;
@@ -61,15 +69,97 @@ export function InstructionOverlay({
   secondaryTestId = 'test-secondary-instruction-button',
   qualifierStep
 }: InstructionOverlayProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  // 어느 단계든 왼쪽(dismiss) 행동이 Esc 의 행동이다: 지시 단계는 secondary CTA(「동의하지
+  // 않고 시작」이면 그대로 시작, 「동의하지 않고 나가기」면 랜딩으로), qualifier 단계는
+  // Back / Cancel. secondary 가 없는 창(「시작」 하나뿐)에서는 Esc 가 아무것도 하지 않는다 —
+  // 동의를 묻는 문을 Esc 로 열어 주는 것은 닫는 것이 아니다.
+  const dismissAction = qualifierStep ? qualifierStep.onBack : onSecondaryAction;
+  const stepKey = qualifierStep ? qualifierStep.item.canonicalIndex : 'instruction';
+
+  // 열릴 때 그 전에 포커스가 있던 곳을 적어 두고, 닫힐 때 거기로 돌려보낸다. 재진입(칩 → 창 →
+  // 취소)에서는 그것이 칩이다. 처음 페이지가 열릴 때는 body 라 돌려보낼 곳이 없다.
+  useEffect(() => {
+    const previous = document.activeElement;
+    restoreFocusRef.current = previous instanceof HTMLElement && previous !== document.body ? previous : null;
+    return () => {
+      const target = restoreFocusRef.current;
+      if (target && target.isConnected) {
+        target.focus();
+      }
+    };
+  }, []);
+
+  // 단계가 바뀌면(지시 → qualifier, 재진입 뒤로) 눌렀던 버튼이 언마운트되어 포커스가 body 로
+  // 새어 나간다. 컨테이너로 되돌려 트랩 안에 둔다.
+  useEffect(() => {
+    dialogRef.current?.focus({preventScroll: true});
+  }, [stepKey]);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Escape') {
+        if (!dismissAction) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        dismissAction();
+        return;
+      }
+      if (event.key !== 'Tab') {
+        return;
+      }
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey) {
+        if (active === first || active === dialog) {
+          event.preventDefault();
+          last.focus();
+        }
+        return;
+      }
+      if (active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    },
+    [dismissAction]
+  );
+
   return (
     <div
       className={`test-instruction-overlay fixed inset-0 z-[1050] grid place-items-center p-6 max-[767px]:p-0 ${testScrimClassName}`}
       data-testid="test-instruction-overlay"
     >
-      <div className={instructionCardClassName}>
+      <div
+        ref={dialogRef}
+        className={instructionDialogClassName}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={qualifierStep ? undefined : descriptionId}
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+      >
         {qualifierStep ? (
           <div className="grid gap-4" data-testid="test-qualifier-step">
-            <h2 className={testTitleClassName}>{qualifierStep.item.questionText}</h2>
+            <h2 id={titleId} className={testTitleClassName}>
+              {qualifierStep.item.questionText}
+            </h2>
             <div className="grid gap-2">
               {qualifierStep.item.choices.map((choice) => (
                 <button
@@ -115,8 +205,10 @@ export function InstructionOverlay({
           </div>
         ) : (
           <>
-            <h2 className={testTitleClassName}>{title}</h2>
-            <p className={testBodyClassName} data-testid="test-instruction-body">
+            <h2 id={titleId} className={testTitleClassName}>
+              {title}
+            </h2>
+            <p id={descriptionId} className={testBodyClassName} data-testid="test-instruction-body">
               {instructionText}
             </p>
             {showDivider ? (

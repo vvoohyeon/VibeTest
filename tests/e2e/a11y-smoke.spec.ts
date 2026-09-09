@@ -3,7 +3,7 @@ import {expect, test, type Page} from '@playwright/test';
 import {locales} from '../../src/config/site';
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
 import {expectPageToBeAxeClean} from './helpers/axe';
-import {seedTelemetryConsent} from './helpers/consent';
+import {clearTelemetryConsent, seedTelemetryConsent} from './helpers/consent';
 import {
   buildLocalizedBlogDetailRoute,
   buildLocalizedBlogIndexRoute,
@@ -533,6 +533,108 @@ test.describe('Canonical accessibility smoke', () => {
       'data-mobile-phase',
       'OPEN'
     );
+    await expectPageToBeAxeClean(page);
+  });
+
+  test('@smoke instruction overlay is a modal dialog — labelled, focus-trapped, Esc is the dismiss action', async ({
+    page
+  }) => {
+    // The describe seeds OPTED_IN; this case needs consent UNKNOWN + available variant so the
+    // secondary CTA is "Deny and abandon" (redirects home). The later init script wins.
+    await clearTelemetryConsent(page);
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto(buildLocalizedPrimaryTestRoute('en'));
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await expect(dialog).toHaveAccessibleName('Before we start');
+    await expect(dialog).toBeFocused();
+    await expectPageToBeAxeClean(page);
+
+    // Tab never leaves the dialog: 6 presses over 2 controls must land inside every time.
+    for (let index = 0; index < 6; index += 1) {
+      await page.keyboard.press('Tab');
+      await expect(dialog.locator(':focus')).toHaveCount(1);
+    }
+    // 6 Tabs over 2 controls ends on the last (accept); Shift+Tab steps back to deny natively,
+    // and one more Shift+Tab from the first control must wrap to the last, not leave.
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByTestId('test-deny-and-abandon-button')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByTestId('test-accept-all-and-start-button')).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/en$/u);
+    await expect
+      .poll(() => page.evaluate(() => window.localStorage.getItem('vivetest-telemetry-consent')))
+      .toBe('OPTED_OUT');
+  });
+
+  test('@smoke instruction overlay ignores Esc when Start is the only way forward, and Esc on a qualifier step is Back', async ({
+    page
+  }) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en/test/egtt');
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/test\/egtt$/u);
+
+    await page.getByTestId('test-start-button').click();
+    await expect(page.getByTestId('test-qualifier-step')).toBeVisible();
+    await expect(page.getByRole('dialog')).toBeFocused();
+    await expectPageToBeAxeClean(page);
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('test-qualifier-step')).toHaveCount(0);
+    await expect(page.getByTestId('test-instruction-body')).toBeVisible();
+  });
+
+  test('@smoke test flow question and result surfaces are axe-clean and re-entry returns focus to the chip', async ({
+    page
+  }) => {
+    await seedTelemetryConsent(page, 'OPTED_IN');
+    await page.setViewportSize({width: 1280, height: 900});
+    await page.goto('/en/test/egtt');
+    await page.getByTestId('test-start-button').click();
+    await page.getByTestId('test-qualifier-choice-m').click();
+    await page.getByTestId('test-qualifier-continue-button').click();
+    await expect(page.getByTestId('test-question-panel')).toBeVisible();
+    await expectPageToBeAxeClean(page);
+
+    const chip = page.getByTestId('test-qualifier-chip');
+    await chip.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('test-qualifier-reentry-cancel-button')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(chip).toBeFocused();
+
+    for (let index = 0; index < 14; index += 1) {
+      const submit = page.getByTestId('test-submit-button');
+      if ((await submit.count()) > 0 && (await submit.isEnabled({timeout: 0}))) {
+        await submit.click();
+        break;
+      }
+      const number = page.getByTestId('test-question-number');
+      const previous = await number.textContent();
+      await page.getByTestId(index % 2 === 0 ? 'test-choice-a' : 'test-choice-b').click();
+      await page
+        .waitForFunction(
+          (prev) => {
+            const current = document.querySelector('[data-testid="test-question-number"]')?.textContent;
+            const submitButton = document.querySelector('[data-testid="test-submit-button"]');
+            return current !== prev || (submitButton instanceof HTMLButtonElement && !submitButton.disabled);
+          },
+          previous ?? '',
+          {timeout: 2000}
+        )
+        .catch(() => {});
+    }
+    await expect(page.getByTestId('test-result-panel')).toBeVisible();
     await expectPageToBeAxeClean(page);
   });
 });

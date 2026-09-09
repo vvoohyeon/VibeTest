@@ -219,3 +219,155 @@ describe('InstructionOverlay', () => {
     expect(continueButton?.disabled).toBe(true);
   });
 });
+
+function pressKey(target: Element | null, key: string, init: KeyboardEventInit = {}) {
+  const event = new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...init});
+  act(() => {
+    target?.dispatchEvent(event);
+  });
+  return event;
+}
+
+describe('InstructionOverlay — modal dialog contract', () => {
+  it('M-1 is a labelled modal dialog and takes focus on open', () => {
+    const view = renderOverlay({
+      title: 'Instruction title',
+      instructionText: 'Read this carefully.',
+      showDivider: false,
+      primaryLabel: 'Start',
+      onPrimaryAction: vi.fn()
+    });
+
+    const dialog = view.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.getAttribute('aria-modal')).toBe('true');
+    const labelledBy = dialog?.getAttribute('aria-labelledby') ?? '';
+    expect(document.getElementById(labelledBy)?.textContent).toBe('Instruction title');
+    const describedBy = dialog?.getAttribute('aria-describedby') ?? '';
+    expect(document.getElementById(describedBy)?.textContent).toBe('Read this carefully.');
+    expect(document.activeElement).toBe(dialog);
+  });
+
+  it('M-2 Escape performs the secondary (dismiss) action on the instruction step', () => {
+    const onPrimaryAction = vi.fn();
+    const onSecondaryAction = vi.fn();
+    const view = renderOverlay({
+      title: 'Instruction title',
+      instructionText: 'Read this carefully.',
+      showDivider: true,
+      primaryLabel: 'Accept all and start',
+      secondaryLabel: 'Deny and start',
+      onPrimaryAction,
+      onSecondaryAction
+    });
+
+    const event = pressKey(view.querySelector('[role="dialog"]'), 'Escape');
+
+    expect(onSecondaryAction).toHaveBeenCalledTimes(1);
+    expect(onPrimaryAction).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('M-3 Escape does nothing when the only way forward is the primary action', () => {
+    const onPrimaryAction = vi.fn();
+    const view = renderOverlay({
+      title: 'Instruction title',
+      instructionText: 'Read this carefully.',
+      showDivider: false,
+      primaryLabel: 'Start',
+      onPrimaryAction
+    });
+
+    const event = pressKey(view.querySelector('[role="dialog"]'), 'Escape');
+
+    expect(onPrimaryAction).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    expect(view.querySelector('[data-testid="test-instruction-overlay"]')).not.toBeNull();
+  });
+
+  it('M-4 Escape on a qualifier step is Back / Cancel', () => {
+    const onBack = vi.fn();
+    const view = renderOverlay({
+      title: 'Instruction title',
+      instructionText: 'Read this carefully.',
+      showDivider: false,
+      primaryLabel: 'Start',
+      onPrimaryAction: vi.fn(),
+      qualifierStep: {
+        item: qualifierItem,
+        selectedToken: 'M',
+        onSelect: vi.fn(),
+        onBack,
+        continueLabel: 'Confirm',
+        continueDisabled: false,
+        showBack: true,
+        isReentry: true,
+        backLabel: 'Cancel'
+      }
+    });
+
+    pressKey(view.querySelector('[data-testid="test-qualifier-choice-m"]'), 'Escape');
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('M-5 Tab wraps inside the dialog in both directions', () => {
+    const view = renderOverlay({
+      title: 'Instruction title',
+      instructionText: 'Read this carefully.',
+      showDivider: true,
+      primaryLabel: 'Accept all and start',
+      secondaryLabel: 'Deny and start',
+      onPrimaryAction: vi.fn(),
+      onSecondaryAction: vi.fn()
+    });
+
+    const first = view.querySelector<HTMLButtonElement>('[data-testid="test-secondary-instruction-button"]');
+    const last = view.querySelector<HTMLButtonElement>('[data-testid="test-start-button"]');
+
+    act(() => {
+      last?.focus();
+    });
+    const forward = pressKey(last, 'Tab');
+    expect(forward.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(first);
+
+    const backward = pressKey(first, 'Tab', {shiftKey: true});
+    expect(backward.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(last);
+
+    // From the container itself, Shift+Tab must not leak out of the dialog either.
+    const dialog = view.querySelector<HTMLElement>('[role="dialog"]');
+    act(() => {
+      dialog?.focus();
+    });
+    const fromContainer = pressKey(dialog, 'Tab', {shiftKey: true});
+    expect(fromContainer.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(last);
+  });
+
+  it('M-6 returns focus to the opener when it closes', () => {
+    const opener = document.createElement('button');
+    opener.textContent = 'chip';
+    document.body.appendChild(opener);
+    opener.focus();
+    expect(document.activeElement).toBe(opener);
+
+    renderOverlay({
+      title: 'Instruction title',
+      instructionText: 'Read this carefully.',
+      showDivider: false,
+      primaryLabel: 'Start',
+      onPrimaryAction: vi.fn()
+    });
+    expect(document.activeElement).not.toBe(opener);
+
+    act(() => {
+      root?.unmount();
+    });
+    root = null;
+
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+});

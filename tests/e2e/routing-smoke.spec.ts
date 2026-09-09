@@ -78,11 +78,12 @@ test.describe('Phase 1 routing smoke', () => {
     const previewLogBefore = readPreviewLog();
     const unmatchedResponse = await page.goto('/foo');
     expect(unmatchedResponse?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
+    await expect(page.getByTestId('global-not-found').getByRole('heading', {name: 'That page is not here'})).toBeVisible();
+    await expect(page).toHaveTitle(/Page not found/u);
 
     const duplicateLocaleResponse = await page.goto('/ja/ja/blog');
     expect(duplicateLocaleResponse?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Global Not Found'})).toBeVisible();
+    await expect(page.getByTestId('global-not-found').getByRole('heading', {name: 'That page is not here'})).toBeVisible();
 
     if (isPreviewServerMode) {
       await page.waitForTimeout(100);
@@ -93,7 +94,8 @@ test.describe('Phase 1 routing smoke', () => {
   test('@smoke segment-local domain errors resolve to segment not-found', async ({page}) => {
     const response = await page.goto('/en/test/INVALID!');
     expect(response?.status()).toBe(404);
-    await expect(page.getByRole('heading', {name: 'Segment Not Found'})).toBeVisible();
+    await expect(page.getByTestId('segment-not-found').getByRole('heading', {name: 'That page is not here'})).toBeVisible();
+    await expect(page.getByTestId('global-not-found')).toHaveCount(0);
   });
 
   test('@smoke assertion:B30-runtime-lazy-validation-error-route lazy validation failure redirects to the test error recovery stub without mounting runtime', async ({

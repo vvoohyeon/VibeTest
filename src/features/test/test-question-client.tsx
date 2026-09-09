@@ -334,7 +334,10 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
             aria-hidden={instructionVisible ? 'true' : undefined}
             data-testid="test-question-panel"
           >
-            {entryCommitted && qualifierItems.length > 0 && overlayMode !== 'reentry' ? (
+            {/* 칩은 재진입 창이 열려 있는 동안에도 마운트를 유지한다. 칩이 그 창을 연 원소이고,
+                창이 닫힐 때 포커스가 돌아갈 곳이기 때문이다 — 언마운트하면 돌아갈 원소가 사라진다.
+                열려 있는 동안 이 패널은 aria-hidden 이고 창이 포커스를 가두므로 칩에 닿을 수 없다. */}
+            {entryCommitted && qualifierItems.length > 0 ? (
               <QualifierChip
                 label={qualifierChipLabel}
                 ariaLabel={t('qualifierChipAriaLabel')}

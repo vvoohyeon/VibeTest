@@ -399,6 +399,8 @@ staged entry는 landing ingress 전용의 미소비 임시 진입 상태다.
 - instruction은 별도 route가 아니라 `/test/{variant}` 위 overlay다. overlay는 booting/sync 대기, runtime entry committed, redirecting 상태에서는 표시되지 않는다. qualifier re-entry mode에서는 runtime이 이미 active여도 표시된다.
 - entry overlay는 아래 중 하나라도 참이면 표시된다: 현재 qualifier step이 active, `instructionSeen`이 false, 현재 entry policy가 `instructionSeen` 이후 auto-commit 불가, 또는 qualifier fields가 존재함. 반대로 qualifier가 없는 variant에서 `instructionSeen=true`이고 현재 policy가 auto-commit 가능한 경우에는 overlay를 재표시하지 않고 내부 auto-commit으로 runtime에 진입한다.
 - qualifier fields가 있는 variant는 `instructionSeen=true`만으로 auto-commit하지 않는다. valid qualifier answer가 있는 Direct Resume 경로에서만 instruction/qualifier overlay를 생략할 수 있다.
+- overlay는 modal dialog다: `role="dialog"` · `aria-modal="true"` · 제목(`aria-labelledby`)은 instruction step에서 instruction title, qualifier step에서 qualifier question text. 열릴 때 포커스는 다이얼로그 컨테이너로 들어오고(첫 컨트롤이 아니다 — Enter 한 번이 곧 동의 행동이 되면 안 된다), Tab/Shift+Tab은 다이얼로그 안에서 순환하며, 닫힐 때 포커스는 열기 전 원소(re-entry면 recap chip)로 돌아간다.
+- **`Esc`는 그 단계의 dismiss action과 같다.** instruction step에서는 secondary CTA(`deny_and_start`면 그대로 시작, `deny_and_abandon`·`keep_current_preference`면 랜딩으로) — action identity·consent write·redirect 는 버튼을 눌렀을 때와 동일하다. qualifier step에서는 Back(entry) / Cancel(re-entry)이다. secondary CTA가 없는 instruction step(`start` 하나뿐)에서는 `Esc`가 아무것도 하지 않는다 — 동의를 묻는 문을 `Esc`로 통과시키지 않는다.
 
 **Instruction contract 분기 조건 (SSOT: Landing Requirements §13.5)**:
 - instruction 본문은 variant별 고유 `instruction` 데이터가 소유한다. generic fallback을 금지한다.
