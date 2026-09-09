@@ -364,8 +364,8 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 }}
                 data-testid="test-choice-a"
               >
-                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
                 <span className={testAnswerChoiceTextClassName}>{currentQuestion?.answerA}</span>
+                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -377,8 +377,8 @@ export function TestQuestionClient({locale, card}: TestQuestionClientProps) {
                 }}
                 data-testid="test-choice-b"
               >
-                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
                 <span className={testAnswerChoiceTextClassName}>{currentQuestion?.answerB}</span>
+                <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
               </button>
             </motion.div>
 

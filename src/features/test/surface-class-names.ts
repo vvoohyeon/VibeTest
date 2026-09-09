@@ -101,6 +101,11 @@ export const testQuietButtonClassName =
  *
  * 화살표가 없는 이유: 카탈로그에서 `→` 는 「이것이 테스트로 데려간다」는 뜻인데, 테스트 안에서
  * 답하는 것은 아무 데도 데려가지 않는다.
+ *
+ * **표식은 라벨 뒤(trailing slot)에 온다.** 카탈로그 선택 행에서 화살표가 있던 자리이고,
+ * 명세가 「그 자리는 무언가 골라질 때까지 비어 있다」고 적은 자리다. 표본 둘이 서로 어긋나
+ * 있다 — `preview/comp-answer-button.html`(컴포넌트 정의)은 뒤, `preview/test-flow.html`
+ * (구성 표본)은 앞. 컴포넌트 정의와 명세 산문이 일치하는 쪽을 따른다.
  */
 export const testAnswerChoiceClassName =
   `group/answer flex w-full cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border border-[var(--hairline-strong)] bg-[var(--panel-solid)] px-3.5 py-3 text-left [transition-property:border-color,background-color] ${skinTransitionClassName} hover:border-[var(--accent)] hover:bg-[var(--sage-muted)] data-[selected=true]:border-[var(--accent)] data-[selected=true]:bg-[var(--sage-muted)] disabled:cursor-default ${focusRingClassName}`;

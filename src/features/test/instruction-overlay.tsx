@@ -82,8 +82,8 @@ export function InstructionOverlay({
                     qualifierStep.onSelect(choice.token);
                   }}
                 >
-                  <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
                   <span className={testAnswerChoiceTextClassName}>{choice.label}</span>
+                  <span className={testAnswerChoiceMarkClassName} aria-hidden="true" />
                 </button>
               ))}
             </div>
