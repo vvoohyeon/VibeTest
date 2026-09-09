@@ -14,12 +14,31 @@
  */
 import {describe, expect, it} from 'vitest';
 
-import {readdirSync} from 'node:fs';
+import {readdirSync, readFileSync, statSync} from 'node:fs';
 import path from 'node:path';
 
 import {readRepoFile, REPO_ROOT} from './helpers/repo';
 
 const TOKENS_PATH = 'docs/design/ds/colors_and_type.css';
+
+/**
+ * 커스텀 프로퍼티를 읽는 런타임 파일 전부 — `src/**` 와 테마 부트스트랩 하나.
+ * 부트스트랩은 하이드레이션 전에 도는 독립 스크립트라 `src/` 밖에 있다.
+ */
+function runtimeSourceTexts(): string[] {
+  const files: string[] = [];
+  const walk = (absolute: string) => {
+    for (const entry of readdirSync(absolute)) {
+      const next = path.join(absolute, entry);
+      if (statSync(next).isDirectory()) walk(next);
+      else files.push(next);
+    }
+  };
+
+  walk(path.join(REPO_ROOT, 'src'));
+  files.push(path.join(REPO_ROOT, 'public/theme-bootstrap.js'));
+  return files.map((absolute) => readFileSync(absolute, 'utf8'));
+}
 
 /**
  * 블록 본문에서 `--name: value;` 선언만 순서대로 뽑는다.
@@ -171,8 +190,65 @@ describe('runtime token layer mirrors the design definition', () => {
     expect(drifted, `미러가 표류했다 — 설계 정의를 고치고 다시 베껴라:\n${drifted.join('\n')}`).toEqual([]);
   });
 
+  /**
+   * 하한은 전멸 방지용 눈금이지 계약이 아니다.
+   *
+   * 종전 값 80·30 은 theme cut 직후의 개체수(113·49)에서 나온 스모크 상수였고, 소비자 없는
+   * 46 개를 걷어내면서 light 가 79 로 내려갔다. 개체수에서 유도된 숫자는 개체수와 함께
+   * 움직여야 하지만, 숫자를 낮추는 것으로 끝내면 이 파일은 앞으로도 「무엇이 몇 개여야
+   * 하는가」를 모른다. 그래서 하한은 눈금으로만 남기고, 실제 불변식 둘을 아래에 세운다.
+   */
   it('미러가 비어 있지 않다', () => {
-    expect(declarations(sentinel(runtime, 'light')).length).toBeGreaterThan(80);
+    expect(declarations(sentinel(runtime, 'light')).length).toBeGreaterThan(60);
     expect(declarations(sentinel(runtime, 'dark')).length).toBeGreaterThan(30);
+  });
+
+  /**
+   * 이 파일이 선언하는 이름은 전부 소비자를 갖는다.
+   *
+   * 머리말이 "런타임이 실제로 소비하는 이름만 미러한다"고 적지만 그것을 지키는 것은 지금까지
+   * 사람의 주의뿐이었고, 소비자 없는 커스텀 프로퍼티는 아무 렌더링에도 영향을 주지 않으므로
+   * **어떤 게이트에도 나타나지 않는다.** 2026-09-09 전수 조사에서 166 개 중 46 개가 그랬다.
+   * 죽은 채로 살아 있는 이름은 다음 세션에게 「이건 쓰이는 값」으로 읽히고, 그 위에서 내린
+   * 판단은 조용히 틀린다.
+   *
+   * 미러 구간만이 아니라 파일 전체를 본다 — 죽은 무게에는 출처가 상관없다. globals.css 자신도
+   * 소비자로 친다: `--warm-700` 처럼 오직 다른 토큰이 읽는 램프 단계가 있기 때문이다.
+   */
+  it('globals.css 가 선언하는 이름은 전부 런타임 소비자를 갖는다', () => {
+    const sources = runtimeSourceTexts();
+    const declared = [...new Set(declarations(runtime).map((line) => line.split(':')[0].trim()))];
+    const unread = declared.filter(
+      (name) => !sources.some((text) => new RegExp(`var\\(\\s*${name}\\s*[,)]`, 'u').test(text))
+    );
+
+    expect(unread, `읽는 곳이 없는 토큰이 남아 있다:\n${unread.join('\n')}`).toEqual([]);
+  });
+
+  /**
+   * 반대 방향 — 런타임이 읽는 이름은 전부 어딘가에 선언돼 있다.
+   *
+   * 선언 없는 `var(--x)` 는 오류가 아니라 **빈 값**이고, 그 속성은 조용히 초기값으로 돌아간다
+   * (L10 이 기록한 실패 모양과 같다). 미러가 통째로 잘려도 위의 검사는 진공으로 통과하므로
+   * 잘림을 잡는 것은 이 방향이다. 모듈 지역 변수와 TSX 인라인 style 로 넘기는 이름도 선언으로
+   * 친다 — 선언 위치가 아니라 「해석되는가」가 문제다.
+   */
+  it('런타임이 읽는 이름은 전부 선언돼 있다', () => {
+    const sources = runtimeSourceTexts();
+    const declared = new Set<string>();
+    for (const text of sources) {
+      for (const match of text.replace(/\/\*[\s\S]*?\*\//gu, '').matchAll(/(--[a-z0-9-]+)\s*:/gu)) {
+        declared.add(match[1]);
+      }
+      for (const match of text.matchAll(/['"](--[a-z0-9-]+)['"]\s*:/gu)) {
+        declared.add(match[1]);
+      }
+    }
+
+    const unresolved = [
+      ...new Set(sources.flatMap((text) => [...text.matchAll(/var\(\s*(--[a-z0-9-]+)/gu)].map((m) => m[1])))
+    ].filter((name) => !declared.has(name));
+
+    expect(unresolved, `선언 없는 참조가 있다:\n${unresolved.join('\n')}`).toEqual([]);
   });
 });

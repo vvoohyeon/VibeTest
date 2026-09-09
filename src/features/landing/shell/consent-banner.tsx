@@ -2,6 +2,14 @@
 
 import {useEffect, useRef, useState} from 'react';
 
+import {
+  buttonBaseClassName,
+  buttonPrimaryClassName,
+  buttonPrimaryPressedClassName,
+  buttonQuietClassName,
+  buttonSecondaryClassName
+} from '@/features/ui/button-class-names';
+
 const DEFAULT_BANNER_HEIGHT_PX = 120;
 const CONSENT_BANNER_SPACER_CLASS = 'telemetry-consent-banner-spacer flex-none';
 const CONSENT_BANNER_LAYER_CLASS =
@@ -11,24 +19,14 @@ const CONSENT_BANNER_LAYER_CLASS =
 // `--surface-divider` 를 두르고 18px 반경이었다.
 const CONSENT_BANNER_SURFACE_CLASS =
   'rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--surface-raised)] shadow-[var(--shadow-lg)]';
-// L10: `outline-none` 을 같은 `focus-visible` 의 outline shorthand 와 함께 쓰면 링 두께가
-// 0 으로 계산된다. shorthand 만 쓴다.
-const CONSENT_BUTTON_FOCUS_RING_CLASS =
-  'focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
-// 테두리 **색**은 변종만 정한다 — 바탕이 함께 정하면 명시도가 같아 emit 순서가 승자를 정한다.
-const CONSENT_BUTTON_BASE_CLASS = [
-  'telemetry-consent-banner-button',
-  'inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border px-4 py-3',
-  'text-[15px] font-semibold leading-none tracking-[-0.01em]',
-  '[transition-property:background-color,border-color,box-shadow,color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none',
-  CONSENT_BUTTON_FOCUS_RING_CLASS
-].join(' ');
+// 어휘는 `@/features/ui/button-class-names` 가 갖는다. 배너가 더하는 것은 표식 클래스뿐이고,
+// 조합은 셋 다 색만 전이하는 바탕이다 — 배너의 버튼은 이동하지 않으므로 lift 도 disabled 도 없다.
+const CONSENT_BUTTON_BASE_CLASS = ['telemetry-consent-banner-button', buttonBaseClassName].join(' ');
 const CONSENT_PRIMARY_BUTTON_CLASS = [
   CONSENT_BUTTON_BASE_CLASS,
   'telemetry-consent-banner-button-accent',
-  'border-[var(--accent-solid)] bg-[var(--accent-solid)] text-[var(--fg-on-accent)]',
-  'hover:border-[var(--accent-solid-hover)] hover:bg-[var(--accent-solid-hover)]',
-  'active:border-[var(--accent-solid-pressed)] active:bg-[var(--accent-solid-pressed)]'
+  buttonPrimaryClassName,
+  buttonPrimaryPressedClassName
 ].join(' ');
 // 거부는 수락과 **같은 버튼 무게**를 유지한다. 명세 표본은 이 자리에 quiet 를 두지만, 배너의
 // 두 선택지는 서로 대칭인 동의 응답이고 어느 한쪽을 텍스트로 낮추면 그 대칭이 깨진다. quiet 는
@@ -36,15 +34,12 @@ const CONSENT_PRIMARY_BUTTON_CLASS = [
 const CONSENT_SECONDARY_BUTTON_CLASS = [
   CONSENT_BUTTON_BASE_CLASS,
   'telemetry-consent-banner-button-neutral',
-  'border-[var(--hairline-strong)] bg-[var(--panel-solid)] text-[var(--ink-soft)]',
-  'hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)]',
-  'active:bg-[var(--surface-strong)]'
+  buttonSecondaryClassName
 ].join(' ');
 const CONSENT_LINK_CLASS = [
   CONSENT_BUTTON_BASE_CLASS,
   'telemetry-consent-banner-link',
-  'min-h-[var(--tap-min)] border-[transparent] bg-transparent px-3 py-[10px] text-[var(--muted-aa)]',
-  'hover:bg-[var(--surface-sunken)] hover:text-[var(--ink-body)]'
+  buttonQuietClassName
 ].join(' ');
 
 interface ConsentBannerProps {

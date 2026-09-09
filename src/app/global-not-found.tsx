@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import {APP_BODY_CLASSNAME} from '@/app/app-body-class';
 import {defaultLocale} from '@/config/site';
+import {linkButtonPrimaryClassName} from '@/features/ui/button-class-names';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
 import './globals.css';
@@ -22,8 +23,9 @@ const globalNotFoundMarkClassName =
   'grid h-11 w-11 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-fg)]';
 const globalNotFoundTitleClassName = 'm-0 text-[20px] font-semibold leading-[1.3] text-[var(--ink)]';
 const globalNotFoundBodyClassName = 'm-0 text-[14px] leading-[1.55] text-[var(--muted-aa)]';
-const globalNotFoundActionClassName =
-  'inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--accent-solid)] bg-[var(--accent-solid)] px-4 py-3 text-[15px] font-semibold leading-none tracking-[-0.01em] text-[var(--fg-on-accent)] no-underline [transition-property:background-color,border-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent-solid-hover)] hover:bg-[var(--accent-solid-hover)] focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
+// `not-found.tsx` 와 같은 완성형(`@/features/ui/button-class-names`). 종전에는 두 파일이
+// 같은 문자열을 각자 한 벌씩 갖고 있었다.
+const globalNotFoundActionClassName = linkButtonPrimaryClassName;
 
 // `global-not-found` 는 레이아웃을 거치지 않으므로 문서 제목도 여기서 낸다(Next 는 404 에 noindex 를 붙인다).
 export const metadata: Metadata = {

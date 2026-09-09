@@ -21,6 +21,7 @@
 | `src/features/test/schema-registry.ts` | Owns variant → ScoringLogicType → ScoringSchema mapping |
 | `src/features/test/response-projection.ts` | Reserved placeholder — currently unimplemented |
 | `src/features/variant-registry/**` | Fixture source, builder, resolver, generated runtime registry |
+| `src/features/ui/**` | 기능 무관 공용 표면 어휘(버튼·패널·빈 상태). 컴포넌트가 아니라 클래스 문자열만 갖는다 — 조합은 호출부가 한다. 현재 `button-class-names.ts` 한 파일이며 `src/features/test/**` · `src/features/landing/shell/consent-banner.tsx` · `src/app/{not-found,global-not-found}.tsx` 가 소비한다. GNB 의 pill(`.vt-pill`)은 다른 컴포넌트라 여기 오지 않는다 |
 | `scripts/sync/**` | Sheets loading (`sheets-loader.ts`), sync (`sync.ts`), dry-run (`sync-dry-run.ts`), serialization (`registry-serializer.ts`). Contract: `docs/req-test.md §2` |
 | `src/i18n/**` | Locale resolution, request policy, SSR `html lang` sync |
 | `src/lib/routes/**` | Locale-free typed route authoring |
@@ -32,7 +33,7 @@
 | `docs/blocker-traceability.json` | Blocker evidence registry — 67 entries across blockers `1..30` (58 `automated_assertion`, 7 `manual_checkpoint`, 2 `scenario_test`; verified 2026-06-27) |
 | `tests/e2e/helpers/landing-fixture.ts` | Representative route anchor SSOT |
 
-Path audit *(2026-06-27)*: the ownership paths above exist in the current
+Path audit *(2026-09-09)*: the ownership paths above exist in the current
 source tree. `src/features/test/response-projection.ts` is present but exports
 no runtime helper; it remains a reserved projection placeholder.
 

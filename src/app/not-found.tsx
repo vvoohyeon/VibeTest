@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import {linkButtonPrimaryClassName} from '@/features/ui/button-class-names';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 
 // `.vt-empty*` 안에 놓인 `.vt-panel`. 이 라우트는 `PageShell` 밖에서 렌더되므로 GNB 도
@@ -15,8 +16,8 @@ const notFoundMarkClassName =
   'grid h-11 w-11 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-fg)]';
 const notFoundTitleClassName = 'm-0 text-[20px] font-semibold leading-[1.3] text-[var(--ink)]';
 const notFoundBodyClassName = 'm-0 text-[14px] leading-[1.55] text-[var(--muted-aa)]';
-const notFoundActionClassName =
-  'inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--accent-solid)] bg-[var(--accent-solid)] px-4 py-3 text-[15px] font-semibold leading-none tracking-[-0.01em] text-[var(--fg-on-accent)] no-underline [transition-property:background-color,border-color] [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none hover:border-[var(--accent-solid-hover)] hover:bg-[var(--accent-solid-hover)] focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
+// 두 404 는 같은 완성형을 쓴다 — 어휘가 갈라진 자리였다(`@/features/ui/button-class-names`).
+const notFoundActionClassName = linkButtonPrimaryClassName;
 
 export default function NotFound() {
   return (

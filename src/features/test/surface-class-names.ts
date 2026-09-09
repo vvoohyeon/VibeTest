@@ -20,21 +20,21 @@
  * 필요하다면 그건 테마가 아니라 집어 든 토큰이 틀린 것이다. 유일한 예외는 floating 인데,
  * 그것도 분기가 아니라 `--border-strong` 한 선언이 라이트에서 hairline · 다크에서 보이는
  * 모서리로 해석되면서 흡수한다 — 다크에서 scrim 은 바닥을 1.04:1 밖에 어둡게 못 한다.
+ *
+ * **버튼 어휘는 여기 없다.** 같은 어휘를 동의 배너와 404 두 장도 쓰므로 정본은
+ * `@/features/ui/button-class-names` 다. 포커스 링과 스킨 전이도 그 파일이 갖는다 — 버튼
+ * 전용이 아니라 이 파일의 답변 행·칩이 같은 처리를 쓰기 때문이다.
  */
-
-/** 포커스 링. 명세(`.vt-btn:focus-visible`)의 outline + offset 형태다. 종전 제품의 2 층
- *  box-shadow 링은 안쪽 층이 `--canvas` 를 칠하는데, `--surface-raised` 위에 뜬 다이얼로그
- *  에서는 그 바닥색이 표면색과 달라 어두운 후광으로 보인다. outline 은 실제 뒷면을 그대로
- *  둔다. 랜딩 카드의 답변 행(`landing-grid-card.tsx`)이 이미 쓰는 형태이기도 하다. */
-/** `focus-visible:outline-none` 을 함께 쓰지 않는다. 둘 다 `outline` 계열이라 명시도가 같고,
- *  Tailwind 가 `outline-none`(= `outline-style: none`)을 뒤에 내보내면 링은 색과 offset 만
- *  남고 **두께가 0 으로 계산된다** — 실측 `0px none`, 즉 링이 아예 그려지지 않았다. 랜딩 카드의
- *  답변 행도 같은 이유로 shorthand 만 쓴다. */
-const focusRingClassName =
-  'focus-visible:[outline:2px_solid_var(--focus-ring)] focus-visible:[outline-offset:2px]';
-
-const skinTransitionClassName =
-  '[transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-standard)] motion-reduce:transition-none';
+import {
+  buttonFormBaseClassName,
+  buttonPrimaryClassName,
+  buttonPrimaryLiftClassName,
+  buttonPrimaryPressedClassName,
+  buttonQuietClassName,
+  buttonSecondaryClassName,
+  focusRingClassName,
+  skinTransitionClassName
+} from '@/features/ui/button-class-names';
 
 /** `.vt-panel` — 페이지 위에 놓이는 면. */
 export const testPanelClassName =
@@ -52,43 +52,15 @@ export const testWellClassName =
 export const testScrimClassName = 'bg-[var(--overlay-scrim-medium)]';
 
 /**
- * `.vt-btn` — 하나의 바탕과 세 가지 의도.
- *
- * `min-height: 46px` 는 실현값 그대로 둔다. 4px 그리드에서 벗어나 있지만 `design.md` §4.10 의
- * 44px 바닥을 이미 넘고, 실제 규칙을 만족하는 실제 값은 토큰에 맞춰 반올림할 이유가 없다.
- * radius 만 ramp 밖의 14px 에서 `--radius-md`(12) 로 옮긴다.
- *
- * **바탕은 border-color 를 정하지 않는다.** 한 원소 위에서 같은 속성을 두 유틸리티가 정하면
- * 명시도가 같아 Tailwind 의 emit 순서가 승자를 정한다(L10). 바탕에 `border-transparent` 를
- * 두었을 때 실측: 세 변종이 각자 적은 `border-[var(…)]` 가 **전부 졌고** 모든 버튼의 테두리가
- * 투명이었다 — 규칙은 만들어졌고 조용히 진 것이다. 그래서 색은 변종만 정한다.
- */
-const buttonBaseClassName =
-  `inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border px-4 py-3 text-center text-[15px] font-semibold leading-none tracking-[-0.01em] no-underline [transition-property:background-color,border-color,box-shadow,color,transform] ${skinTransitionClassName} disabled:!cursor-not-allowed disabled:!border-[var(--interactive-disabled-border)] disabled:!bg-[var(--interactive-disabled-bg)] disabled:!text-[var(--interactive-disabled-ink)] disabled:!opacity-100 disabled:!shadow-none disabled:!translate-y-0 disabled:hover:!border-[var(--interactive-disabled-border)] disabled:hover:!bg-[var(--interactive-disabled-bg)] disabled:hover:!text-[var(--interactive-disabled-ink)] disabled:hover:!shadow-none disabled:hover:!translate-y-0 ${focusRingClassName}`;
-
-/**
- * 채워진 accent. **`--accent` 가 아니라 `--accent-solid` 를 읽는다**(D-12): accent 는 선이나
- * 링일 때 3:1 이면 되고 3.75 로 넘지만, 제 라벨 아래 깔린 **면**일 때는 그 라벨에 대해 4.5:1 이
- * 필요하고 흰 라벨이 3.75 다. 라벨을 어둡게 뒤집어도 해결되지 않는다 — 쉴 때 4.61 에서
- * 눌릴수록 3.39 · 2.44 로 *내려간다*. 면을 한 단 깊게 하면 흰 라벨을 유지한 채 5.09 → 7.09 →
- * 9.76 으로 올라간다.
- *
- * lift 는 1px, primary 에만. `design.md` §4.8 은 bounce 와 overshoot 를 금지하고, 140ms ease
- * 아래의 1px 이동이 제스처의 전부다.
+ * `.vt-btn` — 어휘는 `@/features/ui/button-class-names` 가 갖고, 여기서는 이 표면의 조합만
+ * 짓는다. 폼·다이얼로그의 바탕에 세 의도를 얹은 것이며, primary 만 눌림과 1px lift 를 갖는다.
  */
 export const testPrimaryButtonClassName =
-  `${buttonBaseClassName} border-[var(--accent-solid)] bg-[var(--accent-solid)] text-[var(--fg-on-accent)] hover:border-[var(--accent-solid-hover)] hover:bg-[var(--accent-solid-hover)] hover:-translate-y-px hover:shadow-[var(--shadow-md)] active:border-[var(--accent-solid-pressed)] active:bg-[var(--accent-solid-pressed)] active:translate-y-0 active:shadow-none motion-reduce:hover:translate-y-0`;
+  `${buttonFormBaseClassName} ${buttonPrimaryClassName} ${buttonPrimaryPressedClassName} ${buttonPrimaryLiftClassName}`;
 
-export const testSecondaryButtonClassName =
-  `${buttonBaseClassName} border-[var(--hairline-strong)] bg-[var(--panel-solid)] text-[var(--ink-soft)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)]`;
+export const testSecondaryButtonClassName = `${buttonFormBaseClassName} ${buttonSecondaryClassName}`;
 
-/**
- * Quiet — 제품이 필요로 하면서 이름을 준 적 없는 세 번째 무게. 「동의하지 않고 시작」·「취소」
- * 처럼 경쟁하면 안 되는 행동이다. 종전에는 이것이 「이전」과 똑같은 중립 채움으로 그려져
- * 동의 거부와 문항 이동이 같은 시각 무게를 가졌다.
- */
-export const testQuietButtonClassName =
-  `${buttonBaseClassName} min-h-[var(--tap-min)] border-[transparent] bg-transparent px-3 py-[10px] text-[var(--muted-aa)] hover:bg-[var(--surface-sunken)] hover:text-[var(--ink-body)]`;
+export const testQuietButtonClassName = `${buttonFormBaseClassName} ${buttonQuietClassName}`;
 
 /**
  * `.vt-choice--answer` — 카탈로그의 선택 행에 화살표 대신 라디오 표식을 단 변종.

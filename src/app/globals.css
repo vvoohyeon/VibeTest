@@ -59,9 +59,11 @@
    there and re-mirror. `tests/unit/design-tokens-dark-parity.test.ts` fails the
    build if the two disagree, so a one-sided edit cannot land.
 
-   Only the tokens the runtime actually consumes are mirrored — 113 of the
-   system's 186. Mirroring all of them would re-import the dead weight this step
-   is removing.
+   Only the tokens the runtime actually consumes are mirrored — 73 of the design
+   definition's 198, counted the way the parity guard counts them. Mirroring all
+   of them would re-import the dead weight this step is removing, and a mirrored
+   name that nothing reads is that same dead weight arriving one name at a time,
+   so `tests/unit/design-tokens-dark-parity.test.ts` now fails on one.
 
    SECTION 2 IS THE PRODUCT LAYER: the component vocabulary this app's markup
    already speaks, re-expressed in section 1's terms. Keeping those names is
@@ -91,14 +93,12 @@
 
   /* neutral ramp */
   --warm-0:   #ffffff;
-  --warm-25:  #fdfcfa;
   --warm-50:  #fbfaf7;
   --warm-100: #f4f1ea;
   --warm-150: #ece8df;
   --warm-200: #e6e2d8;
   --warm-300: #d6d1c4;
   --warm-400: #b3aea1;
-  --warm-500: #ada59d;
   --warm-600: #817a72;
   --warm-700: #504a43;
   --warm-800: #332e28;
@@ -107,7 +107,6 @@
   --warm-975: #0c0a09;
 
   /* sage ramp */
-  --sage-50:  #f4f8f6;
   --sage-100: #e8f0ec;
   --sage-200: #c9dbd1;
   --sage-300: #a6c5b5;
@@ -120,30 +119,20 @@
 
   /* surfaces */
   --canvas:         var(--warm-50);
-  --surface:        var(--warm-25);
   --surface-raised: var(--warm-0);
   --surface-sunken: var(--warm-100);
   --surface-strong: var(--warm-150);
 
   /* foreground */
-  --fg1:          var(--warm-900);
-  --fg2:          var(--warm-700);
-  --fg3:          var(--warm-600);
-  --fg4:          var(--warm-500);
   --fg-disabled:  var(--warm-400);
   --fg-on-accent: #ffffff;
 
   /* lines */
-  --border:        var(--warm-200);
   --border-strong: var(--warm-300);
-  --border-focus:  var(--sage-500);
 
   /* accent */
   --accent:               var(--sage-500);
-  --accent-hover:         var(--sage-600);
-  --accent-pressed:       var(--sage-700);
   --accent-subtle:        var(--sage-100);
-  --accent-subtle-2:      var(--sage-50);
   --accent-fg:            var(--sage-700);
   --accent-solid:         var(--sage-600);
   --accent-solid-hover:   var(--sage-700);
@@ -166,7 +155,6 @@
   --ink-soft:   var(--warm-800);
   --ink-body:   var(--warm-700);
   --muted:      var(--warm-600);
-  --muted-soft: var(--warm-500);
   --muted-aa:   #756d66;
 
   /* catalog aliases — lines */
@@ -174,8 +162,6 @@
   --hairline-strong: var(--warm-300);
 
   /* catalog aliases — accent */
-  --sage:       var(--sage-500);
-  --sage-soft:  var(--sage-200);
   --sage-muted: var(--sage-100);
 
   /* catalog aliases — tags */
@@ -191,49 +177,25 @@
 
   /* catalog aliases — elevation roles */
   --shadow-rest:       var(--shadow-xs);
-  --shadow-hover:      var(--shadow-md), 0 0 0 1px var(--hairline-strong);
   --shadow-blog-hover: 0 4px 14px var(--focus-ring-soft);
   --shadow-expanded:   var(--shadow-lg), 0 0 0 1px var(--hairline-strong);
   --shadow-overlay:    var(--shadow-xl);
 
   /* radius */
-  --radius-2xs:  4px;
   --radius-xs:   5px;
-  --radius-sm:   8px;
   --radius-md:   12px;
   --radius-lg:   16px;
   --radius-xl:   24px;
-  --radius-pill: 999px;
 
   /* motion */
   --ease-standard:  cubic-bezier(0.2, 0, 0, 1);
-  --ease-out:       cubic-bezier(0.0, 0, 0.2, 1);
-  --ease-in:        cubic-bezier(0.4, 0, 1, 1);
   --ease-in-out:    cubic-bezier(0.45, 0, 0.2, 1);
-  --dur-micro:      120ms;
   --dur-fast:       140ms;
-  --dur-base:       180ms;
   --dur-slow:       280ms;
-  --dur-expand:     var(--dur-slow);
-  --dur-reduced:    var(--dur-base);
-  --stagger-1:      40ms;
-  --stagger-2:      100ms;
-  --stagger-3:      160ms;
-  --stagger-exit-1: 20ms;
-  --stagger-exit-2: 80ms;
-  --stagger-exit-3: 140ms;
 
   /* layout & component metrics */
-  --container:           1280px;
   --tap-min:             44px;
-  --thumb-ratio:         16 / 6;
-  --card-pad:            16px;
-  --choice-pad:          12px 14px;
-  --tag-pad:             4px 9px;
   --tag-min-width:       56px;
-  --grid-gutter-mobile:  15px;
-  --grid-gutter-tablet:  20px;
-  --grid-gutter-desktop: 24px;
 
   /* type */
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Hiragino Sans', 'PingFang SC', 'PingFang TC', 'Segoe UI', 'Yu Gothic UI', 'Microsoft YaHei', 'Microsoft JhengHei', Roboto, 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans Devanagari', 'Helvetica Neue', Arial, sans-serif;
@@ -257,12 +219,10 @@
      title a different colour from every other card title in the same grid,
      which no design decided (D-05). */
   --bg:              var(--canvas);
-  --text-strong:     var(--ink);
   --muted-ink:       var(--ink-body);
   --link-ink:        var(--ink);
   --panel-solid:     var(--canvas-elevated);
   --surface-divider: var(--hairline);
-  --surface-shadow:  var(--shadow-md);
   --chip-bg:         var(--surface-muted);
   --chip-border:     var(--hairline-strong);
 
@@ -275,28 +235,12 @@
 
   /* -- interactive: neutral ------------------------------------------------ */
   --interactive-neutral-bg:            var(--surface-muted);
-  --interactive-neutral-bg-soft:       var(--surface-sunken);
   --interactive-neutral-bg-strong:     var(--surface-strong);
   --interactive-neutral-bg-hover:      var(--surface-sunken);
   --interactive-neutral-bg-pressed:    var(--surface-strong);
   --interactive-neutral-border:        var(--hairline);
   --interactive-neutral-border-strong: var(--hairline-strong);
   --interactive-neutral-ink:           var(--ink);
-
-  /* -- interactive: accent -------------------------------------------------
-     The legacy `--accent-solid` is gone rather than remapped. It was the hue
-     source for this whole family and had zero consumers outside this file, so
-     removing it costs nothing — and keeping it would have collided with VIVE's
-     `--accent-solid`, which means something else entirely (the fill under a
-     label, D-12). The family now derives from `--accent` directly. */
-  --interactive-accent-bg:            var(--accent-subtle);
-  --interactive-accent-bg-strong:     var(--sage-soft);
-  --interactive-accent-bg-hover:      var(--sage-soft);
-  --interactive-accent-bg-pressed:    var(--sage-300);
-  --interactive-accent-border:        var(--accent);
-  --interactive-accent-border-strong: var(--accent-hover);
-  --interactive-accent-outline:       var(--focus-ring-soft);
-  --interactive-accent-shadow:        var(--shadow-md);
 
   /* -- disabled ------------------------------------------------------------ */
   --interactive-disabled-bg:     var(--surface-sunken);
@@ -324,7 +268,6 @@
      surface the flow paints and the furthest from its own palette: §5.7 asks
      for warm ink at 48% and the product covered the viewport in a cool
      near-black at 64%. */
-  --overlay-scrim-soft:   color-mix(in srgb, var(--warm-900) 40%, transparent);
   --overlay-scrim-medium: var(--overlay-scrim);
   --overlay-scrim-strong: color-mix(in srgb, var(--warm-900) 60%, transparent);
 
@@ -369,30 +312,20 @@
 
   /* surfaces */
   --canvas:         var(--warm-950);
-  --surface:        var(--warm-900);
   --surface-raised: var(--warm-800);
   --surface-sunken: var(--warm-975);
   --surface-strong: var(--warm-700);
 
   /* foreground */
-  --fg1:          var(--warm-50);
-  --fg2:          var(--warm-200);
-  --fg3:          var(--warm-400);
-  --fg4:          var(--warm-600);
   --fg-disabled:  var(--warm-700);
   --fg-on-accent: var(--warm-950);
 
   /* lines */
-  --border:        var(--warm-700);
   --border-strong: var(--warm-600);
-  --border-focus:  var(--sage-400);
 
   /* accent */
   --accent:               var(--sage-400);
-  --accent-hover:         var(--sage-300);
-  --accent-pressed:       var(--sage-200);
   --accent-subtle:        var(--sage-800);
-  --accent-subtle-2:      var(--sage-900);
   --accent-fg:            var(--sage-300);
   --accent-solid:         var(--sage-400);
   --accent-solid-hover:   var(--sage-300);
@@ -415,7 +348,6 @@
   --ink-soft:   var(--warm-150);
   --ink-body:   var(--warm-200);
   --muted:      var(--warm-400);
-  --muted-soft: var(--warm-600);
   --muted-aa:   var(--warm-400);
 
   /* catalog aliases — lines */
@@ -423,8 +355,6 @@
   --hairline-strong: var(--warm-600);
 
   /* catalog aliases — accent */
-  --sage:       var(--sage-400);
-  --sage-soft:  var(--sage-800);
   --sage-muted: var(--sage-900);
 
   /* catalog aliases — tags */
@@ -444,7 +374,6 @@
   /* The scrim ink inverts with the theme; in dark it is already near-black and
      dimming buys almost nothing (measured 1.04:1), so all three strengths
      collapse onto the system scrim and the overlay's EDGE does the separating. */
-  --overlay-scrim-soft:   var(--overlay-scrim);
   --overlay-scrim-medium: var(--overlay-scrim);
   --overlay-scrim-strong: var(--overlay-scrim);
 }

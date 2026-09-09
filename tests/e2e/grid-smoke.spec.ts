@@ -635,7 +635,8 @@ test.describe('Phase 4 grid smoke', () => {
       titleFontWeight: '600',
       titleLetterSpacing: '-0.2px',
       titleLineHeight: '26px',
-      subtitleColor: 'rgb(74, 74, 85)',
+      // `--ink-body`(= `--warm-700`, #504a43). theme cut 이전에는 legacy cool grey 였다.
+      subtitleColor: 'rgb(80, 74, 67)',
       subtitleFontSize: '15px',
       subtitleFontWeight: '400',
       subtitleLineClamp: '2',
@@ -770,10 +771,12 @@ test.describe('Phase 4 grid smoke', () => {
       backgroundColor: 'rgb(255, 255, 255)',
       boxShadow: 'rgb(92, 142, 120) 0px 0px 0px 1px'
     });
-    expect(expandedMetrics.shadow).toContain('rgba(26, 26, 31, 0.08) 0px 12px 32px 0px');
+    // `--shadow-expanded` 의 앞 성분 = `--shadow-lg`(0 12px 32px #1e1a1614), 뒤 성분 = `--hairline-strong`.
+    expect(expandedMetrics.shadow).toContain('rgba(30, 26, 22, 0.08) 0px 12px 32px 0px');
     expect(expandedMetrics.shadow).toContain('rgb(214, 209, 196) 0px 0px 0px 1px');
     expect(expandedMetrics.context).toEqual({
-      color: 'rgb(117, 117, 128)',
+      // `--muted-aa`(#756d66). 캔버스 위 4.5:1 을 넘는 muted 잉크다(BQ-29).
+      color: 'rgb(117, 109, 102)',
       fontSize: '14px',
       fontWeight: '500',
       lineHeight: '19.6px',
@@ -781,13 +784,13 @@ test.describe('Phase 4 grid smoke', () => {
     });
     expect(expandedMetrics.meta[0]?.tagName).toBe('strong');
     expect(expandedMetrics.meta[0]?.fontWeight).toBe('600');
-    expect(expandedMetrics.meta[0]?.color).toBe('rgb(74, 74, 85)');
+    expect(expandedMetrics.meta[0]?.color).toBe('rgb(80, 74, 67)'); // `--ink-body`
     expect(expandedMetrics.meta[1]?.tagName).toBe('span');
     expect(expandedMetrics.meta[1]?.fontWeight).toBe('500');
-    expect(expandedMetrics.meta[1]?.color).toBe('rgb(117, 117, 128)');
+    expect(expandedMetrics.meta[1]?.color).toBe('rgb(117, 109, 102)'); // `--muted-aa`
     expect(expandedMetrics.meta[2]?.tagName).toBe('span');
     expect(expandedMetrics.meta[2]?.fontWeight).toBe('500');
-    expect(expandedMetrics.meta[2]?.color).toBe('rgb(117, 117, 128)');
+    expect(expandedMetrics.meta[2]?.color).toBe('rgb(117, 109, 102)'); // `--muted-aa`
     expect(expandedMetrics.meta[2]?.text.toLowerCase()).toContain('completed');
     expect(expandedMetrics.question).toEqual({fontSize: '21px', fontWeight: '600', lineHeight: '27.3px'});
     expect(expandedMetrics.choice).toEqual({
@@ -849,7 +852,8 @@ test.describe('Phase 4 grid smoke', () => {
     });
 
     expect(expandedStyle).toEqual({
-      color: 'rgb(117, 117, 128)',
+      // `--muted-aa`(#756d66) — 확장 맥락 타입은 데스크톱과 같은 잉크를 쓴다.
+      color: 'rgb(117, 109, 102)',
       fontSize: '14px',
       fontWeight: '500',
       lineClamp: 'none',
@@ -908,7 +912,8 @@ test.describe('Phase 4 grid smoke', () => {
     await page.waitForTimeout(180);
     const restingSkin = await readBlogCardSkin(card);
     expect(restingSkin.borderTopColor).toBe('rgb(230, 226, 216)');
-    expect(restingSkin.boxShadow).toContain('rgba(26, 26, 31, 0.04)');
+    // `--card-shadow` = `--shadow-rest` = `--shadow-xs`(0 1px 2px #1e1a160a).
+    expect(restingSkin.boxShadow).toContain('rgba(30, 26, 22, 0.04)');
     expect(restingSkin.transitionProperty).toBe('border-color, box-shadow');
     expect(restingSkin.transitionDuration).toBe('0.14s, 0.14s');
     expect(await readOpacity(readMore)).toBeLessThanOrEqual(0.05);
@@ -1125,7 +1130,8 @@ test.describe('Phase 4 grid smoke', () => {
       expect(blogMetrics).toMatchObject({
         ariaHidden: 'true',
         childControlCount: 0,
-        color: 'rgb(107, 107, 118)',
+        // `--blog-read-more-ink`(#716b64).
+        color: 'rgb(113, 107, 100)',
         columnGap: '6px',
         textDecorationLine: 'none',
         whiteSpace: 'nowrap'

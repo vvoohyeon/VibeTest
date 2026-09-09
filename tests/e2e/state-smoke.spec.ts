@@ -201,13 +201,22 @@ async function readDocumentCanvasMetrics(page: Page) {
   return page.evaluate(() => {
     const bodyStyle = getComputedStyle(document.body);
 
+    // `--canvas` 는 `var(--warm-50)` 을 가리키는 참조라 `getPropertyValue` 로는 계산된 색이
+    // 나오지 않는다. 임시 원소에 얹어 되읽어야 body 의 계산값과 같은 형식으로 비교된다.
+    const tokenProbe = document.createElement('div');
+    tokenProbe.style.backgroundColor = 'var(--canvas)';
+    document.body.appendChild(tokenProbe);
+    const canvasToken = getComputedStyle(tokenProbe).backgroundColor;
+    tokenProbe.remove();
+
     return {
       scrollHeight: document.documentElement.scrollHeight,
       clientHeight: document.documentElement.clientHeight,
       rootClientWidth: document.documentElement.clientWidth,
       bodyClientWidth: document.body.clientWidth,
       bodyBackgroundColor: bodyStyle.backgroundColor,
-      bodyBackgroundImage: bodyStyle.backgroundImage
+      bodyBackgroundImage: bodyStyle.backgroundImage,
+      canvasToken
     };
   });
 }
@@ -254,7 +263,10 @@ test.describe('Phase 7 state + capability smoke', () => {
     expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
     expect(metrics.rootClientWidth).toBe(metrics.bodyClientWidth);
     expect(metrics.bodyBackgroundColor).not.toBe('rgba(0, 0, 0, 0)');
-    expect(metrics.bodyBackgroundImage).not.toBe('none');
+    // 4 단계 theme cut 이 teal/blue radial wash 두 겹을 걷어냈다(`src/app/app-body-class.ts`).
+    // 바닥은 이제 `--canvas` 한 겹이며, 검사의 이름이 말하는 「body-owned background」가 그것이다.
+    expect(metrics.bodyBackgroundColor).toBe(metrics.canvasToken);
+    expect(metrics.bodyBackgroundImage).toBe('none');
   });
 
   test('@smoke capability gate keeps tap on mobile and hover on desktop-capable environments', async ({page}) => {
