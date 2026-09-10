@@ -2167,4 +2167,91 @@ test.describe('Phase 4 grid smoke', () => {
     await expect(firstCard).toHaveAttribute('data-desktop-shell-phase', 'handoff-target');
     await expect(firstCard).toHaveAttribute('data-card-state', 'expanded');
   });
+
+  /**
+   * `req-landing.md` §14.2 항목 4 의 「폭 변경 시 강제 종료 후 재계산」과 §6 Automated 5·11.
+   *
+   * 이 계약은 두 곳에 적혀 있으면서 어느 단언도 청구하지 않고 있었다 — §14.3 의 닫힘 조건이
+   * **항목 단위**라 항목 4는 다른 단언 둘로 이미 닫혀 있었기 때문이다. 그래서 확장 상태에서
+   * 폭을 바꾸는 검사가 저장소에 하나도 없었다.
+   *
+   * 끝 상태만 보지 않고 **순서**를 단언한다. §6 Automated 11 이 요구하는 것은 「강제 종료
+   * 이후에만 재측정/재배치」이므로, 새 plan 이 처음 관측되는 프레임에서 활성 Expanded 는 이미
+   * 비어 있어야 한다. 끝 상태만 보면 「먼저 재계산하고 나중에 닫는」 구현도 통과한다.
+   */
+  test('@smoke assertion:B4-width-change-force-close expanded card is force-closed to Normal settled before the grid plan is recomputed', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+
+    const shell = page.getByTestId('landing-grid-shell');
+    const card = page.locator(`[data-card-variant="${PRIMARY_AVAILABLE_TEST_VARIANT}"]`);
+
+    await hoverDesktopExpandedCard(card);
+    await expect(shell).toHaveAttribute('data-interaction-expanded-card-variant', PRIMARY_AVAILABLE_TEST_VARIANT);
+    await expect(shell).toHaveAttribute('data-baseline-phase', 'BASELINE_FROZEN');
+
+    const columnModeBefore = await shell.getAttribute('data-grid-column-mode');
+    expect(columnModeBefore).not.toBeNull();
+
+    // shell 속성이 바뀔 때마다 (plan, 활성 Expanded) 쌍을 기록한다.
+    await shell.evaluate((element) => {
+      const state = window as Window & {
+        __b4WidthChangeLog?: {frames: Array<{columnMode: string; expandedCardVariant: string; baselinePhase: string}>; observer: MutationObserver};
+      };
+      state.__b4WidthChangeLog?.observer.disconnect();
+
+      const snapshot = () => ({
+        columnMode: element.getAttribute('data-grid-column-mode') ?? '',
+        expandedCardVariant: element.getAttribute('data-interaction-expanded-card-variant') ?? '',
+        baselinePhase: element.getAttribute('data-baseline-phase') ?? ''
+      });
+      const frames = [snapshot()];
+      const observer = new MutationObserver(() => {
+        frames.push(snapshot());
+      });
+      observer.observe(element, {
+        attributes: true,
+        attributeFilter: [
+          'data-grid-column-mode',
+          'data-interaction-expanded-card-variant',
+          'data-baseline-phase'
+        ]
+      });
+      state.__b4WidthChangeLog = {frames, observer};
+    });
+
+    // 폭만 바꾼다: desktop-wide → two-column 으로 컬럼 규칙이 반드시 바뀌는 폭이다.
+    await page.setViewportSize({width: 900, height: 980});
+
+    // 강제 종료 → Normal settled.
+    await expect(shell).toHaveAttribute('data-interaction-expanded-card-variant', '');
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'idle');
+    await expect(shell).toHaveAttribute('data-baseline-phase', 'BASELINE_READY');
+
+    // 재계산이 실제로 일어났다.
+    await expect(shell).not.toHaveAttribute('data-grid-column-mode', columnModeBefore ?? '');
+
+    const log = await page.evaluate(() => {
+      const state = window as Window & {
+        __b4WidthChangeLog?: {frames: Array<{columnMode: string; expandedCardVariant: string; baselinePhase: string}>; observer: MutationObserver};
+      };
+      const value = state.__b4WidthChangeLog;
+      value?.observer.disconnect();
+      return value?.frames ?? [];
+    });
+
+    // 순서: 새 plan 이 처음 보이는 프레임에서 활성 Expanded 는 이미 비어 있어야 한다.
+    const firstRecomputedFrame = log.find((frame) => frame.columnMode !== columnModeBefore);
+    expect(firstRecomputedFrame).toBeDefined();
+    expect(firstRecomputedFrame?.expandedCardVariant).toBe('');
+
+    // 재계산은 한 번만 — 컬럼 모드가 오르내리며 여러 번 바뀌지 않는다.
+    const columnModeChanges = log
+      .map((frame) => frame.columnMode)
+      .filter((mode, index, all) => index === 0 || mode !== all[index - 1]);
+    expect(columnModeChanges).toHaveLength(2);
+  });
 });

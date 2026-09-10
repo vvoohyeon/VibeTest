@@ -1,9 +1,43 @@
 import {createChecker, fileExists, read} from './_utils.mjs';
 
 const traceabilityFile = 'docs/blocker-traceability.json';
+const blockerSourceFile = 'docs/req-landing.md';
 const TRACEABILITY_ASSERTION_ID = 'assertion:B19-traceability-registry';
 const allowedKinds = new Set(['automated_assertion', 'scenario_test', 'manual_checkpoint']);
 const {fail, finish} = createChecker();
+
+/**
+ * §14.2 의 release-blocking 항목 번호를 문서에서 읽는다.
+ *
+ * 종전에는 상한이 `30` 으로 손에 적혀 있었고 §14.2 가 마침 30 개라 우연히 맞았다. 항목이
+ * 하나 늘면 그 항목은 루프에 들어오지 않아 **실패가 아니라 침묵으로** 빠진다(원장 `L02`).
+ * 그래서 개수를 문서에서 읽고, 읽지 못하면 그것 자체를 실패로 만든다 — 파싱이 조용히 0 을
+ * 돌려주면 검사 전체가 무력화되기 때문이다.
+ */
+function readBlockerItemNumbers(content) {
+  // 제목은 줄 단위로 정확히 맞춘다. `indexOf('### 14.2')` 는 `### 14.20` 같은 미래의 절에도
+  // 걸려 엉뚱한 구간을 읽는다.
+  const startMatch = /^### 14\.2\s/mu.exec(content);
+  if (!startMatch) {
+    return null;
+  }
+
+  const rest = content.slice(startMatch.index);
+  const endMatch = /^### 14\.3\s/mu.exec(rest);
+  if (!endMatch) {
+    return null;
+  }
+
+  const numbers = new Set();
+  for (const line of rest.slice(0, endMatch.index).split('\n')) {
+    const matched = /^(\d+)\.\s/u.exec(line);
+    if (matched) {
+      numbers.add(Number(matched[1]));
+    }
+  }
+
+  return numbers.size > 0 ? numbers : null;
+}
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
@@ -94,9 +128,24 @@ if (!fileExists(traceabilityFile)) {
     }
   }
 
-  for (let blocker = 1; blocker <= 30; blocker += 1) {
-    if (!blockers.has(blocker)) {
-      fail(`Traceability registry is missing blocker ${blocker}.`);
+  const declaredBlockers = fileExists(blockerSourceFile)
+    ? readBlockerItemNumbers(read(blockerSourceFile))
+    : null;
+
+  if (!declaredBlockers) {
+    fail(`Could not read the §14.2 release-blocking item numbers from ${blockerSourceFile}.`);
+  } else {
+    // 양방향 대조: 미등재(문서에 있는데 등록부에 없다)와 유령(등록부에 있는데 문서에 없다).
+    for (const blocker of [...declaredBlockers].sort((a, b) => a - b)) {
+      if (!blockers.has(blocker)) {
+        fail(`Traceability registry is missing blocker ${blocker}.`);
+      }
+    }
+
+    for (const blocker of [...blockers].sort((a, b) => a - b)) {
+      if (!declaredBlockers.has(blocker)) {
+        fail(`Traceability registry maps blocker ${blocker}, which ${blockerSourceFile} §14.2 does not declare.`);
+      }
     }
   }
 }

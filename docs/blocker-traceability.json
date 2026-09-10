@@ -36,6 +36,12 @@
     "assertionId": "assertion:B4-geometry-active-frame"
   },
   {
+    "blocker": 4,
+    "kind": "automated_assertion",
+    "file": "tests/e2e/grid-smoke.spec.ts",
+    "assertionId": "assertion:B4-width-change-force-close"
+  },
+  {
     "blocker": 5,
     "kind": "automated_assertion",
     "file": "tests/e2e/state-smoke.spec.ts",
