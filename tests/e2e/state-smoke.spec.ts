@@ -247,6 +247,111 @@ async function expandLandingCardViaTrigger(page: Page, card: Locator) {
   await expect(card).toHaveAttribute('data-card-state', 'expanded');
 }
 
+const SCROLL_HOLD_VIEWPORT = {width: 1280, height: 720} as const;
+const SCROLL_HOLD_WHEEL_DELTA_PX = 180;
+const SCROLL_HOLD_SETTLE_MS = 420;
+const SCROLL_HOLD_CARD_ANCHOR_TOP_PX = 460;
+const SCROLL_HOLD_POINTER_INSET_PX = 40;
+const SCROLL_HOLD_VIEWPORT_INSET_PX = 8;
+
+/**
+ * 확장했을 때 뷰포트 아래로 넘어가는 카드를 고른다. 그 상태가 곧 「더 보려면 스크롤해야
+ * 한다」이며 BQ-39 의 전제다 — 넘지 않는다면 이 검사는 아무것도 재현하지 못하므로 단언으로
+ * 붙들어 조용히 초록이 되지 않게 한다.
+ */
+/**
+ * BQ-39 의 전제 기하를 구성한다: 확장 본문이 뷰포트 아래로 넘어가고, 포인터는 그 본문의
+ * **아래쪽 가장자리 근처**에 놓인다. 그 상태에서만 휠 한 번이 카드를 포인터 밑에서 빼내
+ * `mouseout` 을 만든다 — 실측한 결함 조건이 바로 이것이다. 전제가 하나라도 무너지면 이
+ * 검사는 아무것도 재현하지 못하므로 전부 단언으로 붙들어 조용히 초록이 되지 않게 한다.
+ */
+async function expandCardAcrossTheFold(page: Page): Promise<Locator> {
+  await page.setViewportSize({width: SCROLL_HOLD_VIEWPORT.width, height: SCROLL_HOLD_VIEWPORT.height});
+  await page.goto('/en');
+  await waitForLandingInteractionRamp(page);
+
+  const target = await page.evaluate(
+    ([selector, anchorTop]) => {
+      const cards = Array.from(document.querySelectorAll<HTMLElement>(selector));
+      const last = cards.at(-1);
+      if (!last) {
+        return null;
+      }
+
+      const documentTop = last.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo(0, Math.max(0, documentTop - anchorTop));
+      return last.dataset.cardVariant ?? null;
+    },
+    [AVAILABLE_TEST_CARD_SELECTOR, SCROLL_HOLD_CARD_ANCHOR_TOP_PX] as const
+  );
+  expect(target).not.toBeNull();
+
+  const card = page.locator(`[data-testid="landing-grid-card"][data-card-variant="${target}"]`);
+  await expandLandingCardViaTrigger(page, card);
+  await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+
+  const geometry = await card.evaluate((element) => {
+    const body = element.querySelector('[data-slot="expandedBody"]');
+    if (!body) {
+      throw new Error('Expected an expanded body to measure the interaction boundary.');
+    }
+
+    const rect = body.getBoundingClientRect();
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      centerX: rect.left + rect.width / 2,
+      viewportHeight: window.innerHeight,
+      scrollRoom: document.documentElement.scrollHeight - window.innerHeight - window.scrollY
+    };
+  });
+
+  // 확장 본문이 뷰포트 아래로 넘어간다 — 「더 보려면 스크롤해야 하는」 상태.
+  expect(geometry.bottom).toBeGreaterThan(geometry.viewportHeight);
+  // 굴릴 여지가 실제로 있다.
+  expect(geometry.scrollRoom).toBeGreaterThanOrEqual(SCROLL_HOLD_WHEEL_DELTA_PX);
+
+  const pointerY = Math.min(
+    geometry.bottom - SCROLL_HOLD_POINTER_INSET_PX,
+    geometry.viewportHeight - SCROLL_HOLD_VIEWPORT_INSET_PX
+  );
+  // 포인터는 경계 **안**에 있고, 휠 180px 이면 카드가 그 밑에서 빠져나간다.
+  expect(pointerY).toBeGreaterThan(geometry.top);
+  expect(geometry.bottom - pointerY).toBeLessThan(SCROLL_HOLD_WHEEL_DELTA_PX);
+
+  await page.mouse.move(geometry.centerX, pointerY);
+  await page.waitForTimeout(SCROLL_HOLD_SETTLE_MS);
+  await expect(card).toHaveAttribute('data-card-state', 'expanded');
+  await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+
+  return card;
+}
+
+async function beginDesktopShellPhaseLog(page: Page, card: Locator) {
+  await card.evaluate((element) => {
+    const state = window as Window & {
+      __bq39PhaseLog?: {phases: string[]; observer: MutationObserver};
+    };
+    state.__bq39PhaseLog?.observer.disconnect();
+
+    const phases: string[] = [element.getAttribute('data-desktop-shell-phase') ?? ''];
+    const observer = new MutationObserver(() => {
+      phases.push(element.getAttribute('data-desktop-shell-phase') ?? '');
+    });
+    observer.observe(element, {attributes: true, attributeFilter: ['data-desktop-shell-phase']});
+    state.__bq39PhaseLog = {phases, observer};
+  });
+}
+
+async function readDesktopShellPhaseLog(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const state = window as Window & {
+      __bq39PhaseLog?: {phases: string[]; observer: MutationObserver};
+    };
+    return state.__bq39PhaseLog?.phases ?? [];
+  });
+}
+
 test.describe('Phase 7 state + capability smoke', () => {
   test.beforeEach(async ({page}) => {
     await seedTelemetryConsent(page, 'OPTED_IN');
@@ -1276,4 +1381,129 @@ test.describe('Phase 7 state + capability smoke', () => {
       expect(settledHoverOut?.borderColor).not.toBe('transparent');
     });
   }
+
+  /**
+   * BQ-39 (R1) — 스크롤은 확장을 닫지 않는다.
+   *
+   * 1280×720 에서 아래 행 카드를 확장하면 카드가 뷰포트를 넘고, 그 아랫부분을 읽으려는 휠
+   * 조작이 카드를 포인터 밑에서 빼낸다. 수정 전에는 그 `mouseout` 이 경계 이탈로 판정돼
+   * 180px 만에 `closing → idle` 로 닫혔다 — 포인터는 1px 도 움직이지 않았는데.
+   *
+   * 이 두 검사는 시점 경쟁이 아니라 **입력 종류**(휠이냐 실제 포인터 이동이냐)로 갈리므로
+   * 결정론적이다.
+   */
+  test('@smoke assertion:BQ-39-scroll-hold wheel scrolling keeps a below-the-fold expanded card open without a pointer move', async ({
+    page
+  }) => {
+    const card = await expandCardAcrossTheFold(page);
+
+    await beginDesktopShellPhaseLog(page, card);
+    await page.mouse.wheel(0, SCROLL_HOLD_WHEEL_DELTA_PX);
+    await page.waitForTimeout(SCROLL_HOLD_SETTLE_MS);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+    // 휠만 굴리는 동안 카드는 한 번도 닫힘 경로에 들어가지 않는다.
+    expect(normalizeAdjacent(await readDesktopShellPhaseLog(page))).toEqual(['steady']);
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+  });
+
+  test('@smoke assertion:BQ-39-scroll-hold a real pointer move after the wheel scroll still closes the held card', async ({
+    page
+  }) => {
+    const card = await expandCardAcrossTheFold(page);
+
+    await page.mouse.wheel(0, SCROLL_HOLD_WHEEL_DELTA_PX);
+    await page.waitForTimeout(SCROLL_HOLD_SETTLE_MS);
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+
+    // 사용자가 실제로 얻는 것은 「스크롤해 읽고 나서 치우면 정상적으로 닫힌다」이다.
+    await beginDesktopShellPhaseLog(page, card);
+    await page.mouse.move(8, 8);
+    await expect(card).toHaveAttribute('data-card-state', 'normal');
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'idle');
+
+    const phases = normalizeAdjacent(await readDesktopShellPhaseLog(page));
+    expect(phases[0]).toBe('steady');
+    expect(phases).toContain('closing');
+    expect(phases.at(-1)).toBe('idle');
+    expect(phases).not.toContain('handoff-source');
+  });
+
+  /**
+   * BQ-39 (R1) — 스크롤은 `mouseout` 만 위조하지 않는다. 같은 프레임에 **다른 카드의
+   * `mouseover`** 도 위조하고, 그 카드가 unavailable/blog 면 `onMouseEnter` 가 유예 없이 즉시
+   * 닫는다 — 유예 기반 hold 로는 닿지 않는 경로다. 실측(chromium): 포인터가 `218,431` 에 고정된
+   * 채 `scrollY` 가 `0 → 372` 로 뛰자 `mouseout(qmbti → creativity-profile)` 과
+   * `mouseover(creativity-profile ← qmbti)` 가 좌표 변화 없이 같은 시각에 났다.
+   *
+   * 여기서는 포인터를 고정한 채 **프로그램적으로** 스크롤해 그 조건을 결정론적으로 만든다.
+   */
+  test('@smoke assertion:BQ-39-scroll-hold scrolling another card under a stationary pointer never collapses the expanded card', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: SCROLL_HOLD_VIEWPORT.width, height: SCROLL_HOLD_VIEWPORT.height});
+    await page.goto('/en');
+    await waitForLandingInteractionRamp(page);
+
+    const card = getPrimaryAvailableTestCard(page);
+    const trigger = card.getByTestId('landing-grid-card-trigger');
+    const box = await trigger.boundingBox();
+    expect(box).not.toBeNull();
+    const pointer = {x: box!.x + box!.width / 2, y: box!.y + box!.height / 2};
+
+    await page.mouse.move(pointer.x, pointer.y);
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+    const expandedVariant = await card.getAttribute('data-card-variant');
+
+    // 포인터를 1px 도 움직이지 않고, 다른 카드가 그 좌표 밑으로 오도록 스크롤량을 계산한다.
+    const plan = await page.evaluate(
+      ([point, selfVariant]) => {
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="landing-grid-card"]'));
+        for (const element of cards) {
+          const variant = element.dataset.cardVariant ?? '';
+          if (variant === selfVariant) {
+            continue;
+          }
+
+          const rect = element.getBoundingClientRect();
+          if (point.x < rect.left || point.x > rect.right) {
+            continue;
+          }
+
+          const docTop = rect.top + window.scrollY;
+          const docBottom = rect.bottom + window.scrollY;
+          const scrollY = Math.round(Math.min(Math.max(docTop - point.y + 20, 0), Math.max(docBottom - point.y - 20, 0)));
+          if (scrollY <= 0 || scrollY > maxScroll) {
+            continue;
+          }
+
+          return {variant, scrollY, maxScroll};
+        }
+
+        return null;
+      },
+      [pointer, expandedVariant] as const
+    );
+    expect(plan).not.toBeNull();
+
+    await page.evaluate((scrollY) => window.scrollTo(0, scrollY), plan!.scrollY);
+    await page.waitForTimeout(SCROLL_HOLD_SETTLE_MS);
+
+    // 전제: 고정된 좌표 밑에 이제 **다른 카드**가 있다.
+    const variantUnderPointer = await page.evaluate(
+      (point) =>
+        (document.elementFromPoint(point.x, point.y) as HTMLElement | null)
+          ?.closest('[data-card-variant]')
+          ?.getAttribute('data-card-variant') ?? null,
+      pointer
+    );
+    expect(variantUnderPointer).toBe(plan!.variant);
+
+    // 그래도 확장 카드는 열린 채다 — 포인터가 움직이지 않았기 때문이다.
+    await expect(card).toHaveAttribute('data-card-state', 'expanded');
+    await expect(card).toHaveAttribute('data-desktop-shell-phase', 'steady');
+  });
 });

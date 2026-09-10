@@ -3,7 +3,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   RefObject
 } from 'react';
-import {useCallback, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {isEnterableCard, type LandingCard} from '@/features/variant-registry';
 import {
@@ -54,6 +54,13 @@ interface UseHoverIntentControllerOutput {
 
 type ReactMouseEventHandler = (event: ReactMouseEvent<HTMLElement>) => void;
 
+/**
+ * 「포인터가 움직이지 않았다」를 판정하는 허용 오차. `MouseEvent.clientX` 는 정수로 반올림돼
+ * 오고 `PointerEvent.clientX` 는 소수를 갖기 때문에, 같은 위치라도 두 값은 1px 미만으로
+ * 어긋난다(실측: 기록 `218.66` · 경계 이벤트 `218`). 그보다 큰 차이는 실제 이동이다.
+ */
+const POINTER_STATIONARY_TOLERANCE_PX = 1;
+
 export function useHoverIntentController({
   state,
   dispatch,
@@ -70,6 +77,23 @@ export function useHoverIntentController({
     y: 0,
     valid: false
   });
+  /**
+   * `pointermove` **에서만** 증가한다. `recordPointerInput` 은 window `pointermove` 와
+   * `mousedown` 둘 다에 물려 있으므로(`use-landing-interaction-controller.ts`) 함수 진입에서
+   * 세면 클릭이 「포인터가 움직였다」로 계산돼, 스크롤 hold 중에 들어온 클릭 한 번이 이동 없이
+   * collapse 를 성립시킨다. 그래서 이벤트 종류를 보고 올린다.
+   */
+  const pointerMoveSeqRef = useRef(0);
+  const scrollHeldCardVariantRef = useRef<string | null>(null);
+  const detachScrollHoldListenerRef = useRef<(() => void) | null>(null);
+
+  const releaseScrollHold = useCallback(() => {
+    scrollHeldCardVariantRef.current = null;
+    if (detachScrollHoldListenerRef.current) {
+      detachScrollHoldListenerRef.current();
+      detachScrollHoldListenerRef.current = null;
+    }
+  }, []);
 
   const clearHoverTimerOnly = useCallback(() => {
     if (hoverTimerRef.current !== null) {
@@ -81,13 +105,15 @@ export function useHoverIntentController({
   const clearHoverTimer = useCallback(() => {
     clearHoverTimerOnly();
     pointerWithinCardVariantRef.current = null;
-  }, [clearHoverTimerOnly]);
+    releaseScrollHold();
+  }, [clearHoverTimerOnly, releaseScrollHold]);
 
   const cancelPendingHoverIntent = useCallback(() => {
     clearHoverTimerOnly();
     hoverIntentTokenRef.current += 1;
     pointerWithinCardVariantRef.current = null;
-  }, [clearHoverTimerOnly]);
+    releaseScrollHold();
+  }, [clearHoverTimerOnly, releaseScrollHold]);
 
   const isPointerInsideCardBoundary = useCallback(
     (cardVariant: string) => {
@@ -106,6 +132,93 @@ export function useHoverIntentController({
     },
     [shellRef]
   );
+
+  const collapseCard = useCallback(
+    (cardVariant: string, nowMs: number) => {
+      setDesktopTransitionReason('collapse');
+      dispatch({
+        type: 'CARD_COLLAPSE',
+        nowMs: typeof window !== 'undefined' ? window.performance.now() : nowMs,
+        interactionMode,
+        cardVariant
+      });
+    },
+    [dispatch, interactionMode, setDesktopTransitionReason]
+  );
+
+  /**
+   * hold 를 걸고, 그동안만 존재하는 passive `scroll` 리스너를 단다.
+   *
+   * 해제 조건 ⑵: 카드가 뷰포트를 **완전히** 벗어나면 hold 를 풀고 그 시점 판정으로 collapse
+   * 한다. 「조금 스크롤해 읽는다」와 「지나쳐 버렸다」를 가시성으로 가르는 자리이며, 이것이
+   * 없으면 확장 본문의 답변 버튼·CTA 가 화면 밖 탭 스톱으로 남고 grid plan freeze 도 풀리지
+   * 않는다. 교차 판정은 `IntersectionObserver` 가 아니라 rect 로 한다 — 저장소에 런타임
+   * 선례가 없고 jsdom 이 그것을 제공하지 않는 반면, rect 교차는 바로 위
+   * `isPointerInsideCardBoundary` 가 이미 쓰는 방식이다.
+   */
+  const beginScrollHold = useCallback(
+    (cardVariant: string) => {
+      releaseScrollHold();
+      scrollHeldCardVariantRef.current = cardVariant;
+
+      const handleScroll = (event: Event) => {
+        if (scrollHeldCardVariantRef.current !== cardVariant) {
+          return;
+        }
+
+        const boundaryElement = resolveCardBoundaryElement(shellRef.current, cardVariant);
+        if (!boundaryElement) {
+          return;
+        }
+
+        const rect = boundaryElement.getBoundingClientRect();
+        const intersectsViewport =
+          rect.bottom > 0 &&
+          rect.right > 0 &&
+          rect.top < window.innerHeight &&
+          rect.left < window.innerWidth;
+        if (intersectsViewport) {
+          return;
+        }
+
+        releaseScrollHold();
+        collapseCard(cardVariant, event.timeStamp);
+      };
+
+      const scrollListenerOptions: AddEventListenerOptions = {passive: true};
+      window.addEventListener('scroll', handleScroll, scrollListenerOptions);
+      detachScrollHoldListenerRef.current = () => {
+        window.removeEventListener('scroll', handleScroll, scrollListenerOptions);
+      };
+    },
+    [collapseCard, releaseScrollHold, shellRef]
+  );
+
+  /**
+   * 이 경계 이벤트를 **스크롤이 위조했는가.**
+   *
+   * 스크롤은 `mouseout` 만 위조하지 않는다 — 같은 프레임에 다른 카드의 `mouseover` 도
+   * 위조하고, 그쪽은 `onMouseEnter` 가 유예 없이 즉시 collapse 하므로 유예 기반 hold 로는
+   * 닿지 않는다. 실측(2026-09-10, chromium): 포인터가 `218,431` 에 고정된 채 `scrollY` 가
+   * `0 → 372` 로 뛰자 `mouseout(qmbti → creativity-profile)` 과 그 짝 `mouseover` 가 **좌표
+   * 변화 없이** 같은 시각에 났고, unavailable 카드의 진입이 확장 카드를 즉시 닫았다.
+   *
+   * 판별은 좌표로 한다. 실측한 순서가 `mouseout → mouseover → pointermove` 이므로 정상
+   * 경로에서는 `onMouseEnter` 시점의 기록이 아직 **이전** 위치이고 이벤트가 실어 온 새 좌표와
+   * 크게 어긋난다. 반대로 스크롤이 위조한 진입은 좌표가 그대로다. 기록이 없으면(첫 상호작용)
+   * 판정하지 않는다 — 모르는 것을 위조로 읽지 않는다.
+   */
+  const isPointerStationaryBoundaryEvent = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    const location = pointerLocationRef.current;
+    if (!location.valid) {
+      return false;
+    }
+
+    return (
+      Math.abs(event.clientX - location.x) <= POINTER_STATIONARY_TOLERANCE_PX &&
+      Math.abs(event.clientY - location.y) <= POINTER_STATIONARY_TOLERANCE_PX
+    );
+  }, []);
 
   const scheduleHoverIntent = useCallback(
     (input: {
@@ -131,9 +244,15 @@ export function useHoverIntentController({
 
   /**
    * collapse 예약. `onMouseLeave` 와 아래의 유실 복구가 **같은** 것을 쓴다.
+   *
+   * `scrollHoldEligible` 은 **`mouseout` 이 실어 온 이탈에만** 참이다. 스크롤이 위조할 수 있는
+   * 신호가 그것뿐이기 때문이다 — `pointermove` 에서 시작한 예약은 그 자체로 「포인터가
+   * 움직였다」는 답이므로 hold 대상이 아니며, 유실 leave 복구(`L15`)가 정확히 그 경우다.
    */
   const scheduleCollapseForCard = useCallback(
-    (cardVariant: string, nowMs: number) => {
+    (cardVariant: string, nowMs: number, options: {scrollHoldEligible: boolean} = {scrollHoldEligible: false}) => {
+      const leavePointerMoveSeq = pointerMoveSeqRef.current;
+
       scheduleHoverIntent({
         cardVariant,
         delayMs: DESKTOP_COLLAPSE_DELAY_MS,
@@ -143,17 +262,21 @@ export function useHoverIntentController({
             return;
           }
 
-          setDesktopTransitionReason('collapse');
-          dispatch({
-            type: 'CARD_COLLAPSE',
-            nowMs: typeof window !== 'undefined' ? window.performance.now() : nowMs,
-            interactionMode,
-            cardVariant
-          });
+          // 예약과 실행 사이에 `pointermove` 가 한 번도 없었다면 포인터는 움직이지 않았고,
+          // 경계를 바꾼 것은 스크롤이다. 스크롤한다는 것은 「더 보겠다」이므로 닫지 않고
+          // 붙들어 둔 뒤 다음 실제 포인터 이동에서 재판정한다. 정상 경로에서는 `pointermove`
+          // 가 같은 프레임(<16ms) 안에 도착하고 유예는 `DESKTOP_COLLAPSE_DELAY_MS` 이므로,
+          // 이 가드는 스크롤 경로에서만 발화한다.
+          if (options.scrollHoldEligible && pointerMoveSeqRef.current === leavePointerMoveSeq) {
+            beginScrollHold(cardVariant);
+            return;
+          }
+
+          collapseCard(cardVariant, nowMs);
         }
       });
     },
-    [dispatch, interactionMode, isPointerInsideCardBoundary, scheduleHoverIntent, setDesktopTransitionReason]
+    [beginScrollHold, collapseCard, isPointerInsideCardBoundary, scheduleHoverIntent]
   );
 
   /**
@@ -175,6 +298,10 @@ export function useHoverIntentController({
    */
   const recordPointerInput = useCallback(
     (event: PointerEvent | MouseEvent | WheelEvent) => {
+      if (event.type === 'pointermove') {
+        pointerMoveSeqRef.current += 1;
+      }
+
       if ('clientX' in event && 'clientY' in event) {
         pointerLocationRef.current = {
           x: event.clientX,
@@ -192,6 +319,26 @@ export function useHoverIntentController({
         return;
       }
 
+      // 스크롤 hold 재판정. 해제 조건 ⑴ — 경계 안이면 계속 열어 두고, 밖이면 평소의 유예로
+      // collapse 를 예약한다. 카드 소유권이 이미 다른 카드로 넘어갔으면(handoff 등) 여기서는
+      // 아무것도 하지 않는다: handoff 가 우선이며 두 경로가 각각 collapse 를 예약해 이중
+      // 전이를 만들면 안 된다.
+      const scrollHeldCardVariant = scrollHeldCardVariantRef.current;
+      if (scrollHeldCardVariant !== null && event.type === 'pointermove') {
+        releaseScrollHold();
+
+        if (
+          state.expandedCardVariant === scrollHeldCardVariant &&
+          !state.hoverLock.keyboardMode &&
+          nextCardVariant !== scrollHeldCardVariant &&
+          !isPointerInsideCardBoundary(scrollHeldCardVariant)
+        ) {
+          scheduleCollapseForCard(scrollHeldCardVariant, event.timeStamp);
+        }
+
+        return;
+      }
+
       if (previousCardVariant === null || previousCardVariant === nextCardVariant) {
         return;
       }
@@ -205,11 +352,34 @@ export function useHoverIntentController({
     [
       interactionMode,
       isMobileViewport,
+      isPointerInsideCardBoundary,
+      releaseScrollHold,
       scheduleCollapseForCard,
       state.expandedCardVariant,
       state.hoverLock.keyboardMode
     ]
   );
+
+  /**
+   * 해제 조건 ⑶ — 카드가 다른 이유로 접히거나(Escape · handoff · 전환 시작) hover 모드를
+   * 벗어나면 hold 가 남아 다음 `pointermove` 에서 엉뚱한 카드를 닫는 일이 없어야 한다.
+   */
+  useEffect(() => {
+    const scrollHeldCardVariant = scrollHeldCardVariantRef.current;
+    if (scrollHeldCardVariant === null) {
+      return;
+    }
+
+    if (
+      interactionMode !== 'hover' ||
+      isMobileViewport ||
+      state.expandedCardVariant !== scrollHeldCardVariant
+    ) {
+      releaseScrollHold();
+    }
+  }, [interactionMode, isMobileViewport, releaseScrollHold, state.expandedCardVariant]);
+
+  useEffect(() => releaseScrollHold, [releaseScrollHold]);
 
   const resolveHoverHandlers = useCallback(
     (card: LandingCard) => {
@@ -220,6 +390,17 @@ export function useHoverIntentController({
           if (interactionMode !== 'hover' || isMobileViewport) {
             return;
           }
+
+          // 스크롤이 위조한 진입은 hover 소유권을 바꾸지 않는다 — 유지 중인 카드를 닫지도,
+          // 밀려 들어온 카드를 열지도 않는다. 포인터가 실제로 움직일 때 다시 판정한다.
+          if (isPointerStationaryBoundaryEvent(event)) {
+            return;
+          }
+
+          // 카드 진입은 hold 재판정보다 우선한다. 실측한 이벤트 순서상 `mouseover` 가
+          // `pointermove` 보다 먼저 오므로, 여기서 먼저 지우면 handoff 가 정리한 카드를
+          // 재판정이 다시 닫는 이중 전이가 생기지 않는다.
+          releaseScrollHold();
 
           if (card.type === 'blog') {
             // Blog never expands, so hovering onto it is a plain collapse of any prior
@@ -318,7 +499,7 @@ export function useHoverIntentController({
             return;
           }
 
-          scheduleCollapseForCard(card.variant, event.timeStamp);
+          scheduleCollapseForCard(card.variant, event.timeStamp, {scrollHoldEligible: true});
         }
       };
     },
@@ -327,6 +508,8 @@ export function useHoverIntentController({
       dispatch,
       interactionMode,
       isMobileViewport,
+      isPointerStationaryBoundaryEvent,
+      releaseScrollHold,
       scheduleCollapseForCard,
       scheduleHoverIntent,
       setDesktopTransitionReason,

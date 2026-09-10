@@ -519,38 +519,55 @@
 1. Automated: media feature mocking으로 모드 판정을 검증한다.
 
 ### 8.2 Desktop/Tablet Expanded Trigger
-**Rule**: Desktop/Tablet Expanded 트리거는 지연/취소/handoff 규칙을 모두 준수해야 한다.
-- Hover-capable: hover enter 후 `120~200ms`에 Expanded.
+**Rule**: Desktop/Tablet Expanded 트리거는 지연/취소/handoff 규칙을 모두 준수해야 한다. 이 절의 규칙은 **계약(불변식)**과 **조정값** 두 계층으로 나뉜다(BQ-39). 계약은 개정에 사용자 승인이 필요하고, 조정값은 구현자가 UX 판단으로 바꾸되 **바꾸는 즉시 `docs/decision-register.md` 에 등재한다** — 조정값이라는 지위는 값을 문서에서 지워도 된다는 뜻이 아니다.
+
+**계약(불변식)**:
 - 키보드 Test focus: 포인터 capability와 무관하게 dwell `0ms`로 Expanded하며, 예약된 hover timer·intent token·pointer target을 함께 취소한다.
 - 키보드 Blog focus: focus-only이며 Expanded/opening/geometry target을 소유하지 않는다.
 - 활성 Expanded 카드의 경계는 확장된 카드의 실제 상호작용 영역 전체로 정의한다.
-- hover leave로 위 경계를 완전히 벗어나면 collapse 전이를 수행해야 하며, 다른 카드 hover 여부와 무관하게 동작해야 한다.
-- hover leave 기반 collapse는 허용 유예 `100~180ms` 범위 내에서 수행한다.
+- **포인터 이동으로** 위 경계를 완전히 벗어나면 collapse 전이를 수행해야 하며, 다른 카드 hover 여부와 무관하게 동작해야 한다.
+- collapse 결정은 실행 시점의 최신 경계 판정을 기준으로 수행해야 한다.
 - handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`에서만 성립한다(unavailable 진입은 handoff로 간주하지 않는다).
 - 카드 간 handoff 시 직전 카드의 pending/진행 transition은 즉시 취소하고 마지막 hover 카드만 Expanded로 진입한다.
 - handoff(카드 A→B)에서 카드 A는 scale/높이/빈공간 잔류 없이 즉시 Normal 정착해야 하며, same-row 비대상 카드 하단 여백 증가를 금지한다.
+- handoff는 아래 조정값의 어떤 유지 규칙보다 우선하며, 두 경로가 각각 collapse를 예약해 이중 전이를 만드는 것을 금지한다.
 - Tap Mode fallback(`width>=768`): tap으로 Expanded 진입, 전환 비주얼 계약은 hover 경로와 동일하다.
 - hover intent 스케줄러는 전역 단일 timer + intent token으로 관리한다.
 - 새 hover 진입 시 이전 예약을 즉시 취소한다.
 - 타이머 실행 직전 `현재 hover 대상 == 예약 대상`을 재검증하고 불일치 시 no-op 처리한다.
-- hover leave 기반 collapse 결정은 실행 시점의 최신 경계 판정을 기준으로 수행해야 한다.
 - handoff 경로는 지연 없이 즉시 전환한다.
+- **Expanded 활성 중 폭 변경 시 강제 종료는 이 절의 어떤 규칙으로도 완화되지 않는다**(§14.2 항목 4 · Section 6 Automated 5·11). 아래 유지 규칙은 스크롤 한정이며 resize 경로를 대상으로 하지 않는다.
 - 위 키보드 focus 규칙은 기존 pointer hover enter/leave 지연값을 변경하지 않는다.
+
+**조정값**(변경 시 `docs/decision-register.md` 등재 의무):
+- Hover-capable: hover enter 후 `120~200ms`에 Expanded — 현행 `160ms`.
+- 포인터 이동 기반 collapse는 허용 유예 `100~180ms` 범위 내에서 수행한다 — 현행 `140ms`.
+- **collapse를 유발하는 입력의 정의.** 현행 규칙은 이렇다: collapse 예약과 실행 사이에 `pointermove`가 한 번도 없었다면 경계 변화를 만든 것은 포인터가 아니라 스크롤이므로 카드를 닫지 않고 열린 채 유지한다. 스크롤한다는 것은 곧 「그 콘텐츠를 더 보겠다」이기 때문이다.
+- 유지된 카드의 해제 조건 ⑴: **다음 실제 포인터 이동에서 재판정한다** — 경계 안이면 계속 열어 두고, 밖이면 위 유예를 거쳐 collapse한다.
+- 유지된 카드의 해제 조건 ⑵: **카드가 뷰포트를 완전히 벗어나면 유지를 해제하고 그 시점 판정으로 collapse한다.** 「조금 스크롤해 읽는다」와 「지나쳐 버렸다」를 가시성으로 가르는 자리이며, 이것이 없으면 확장 본문의 답변 버튼·CTA가 화면 밖 탭 스톱으로 남고 grid plan freeze도 풀리지 않는다.
+- **스크롤이 위조하는 것은 이탈만이 아니다 — 진입도 같다.** 포인터가 움직이지 않은 채 스크롤 때문에 다른 카드가 포인터 밑으로 들어오면 그것은 hover 진입이 아니므로, 유지 중인 카드를 닫지도 밀려 들어온 카드를 열지도 않는다. 이 경로를 막지 않으면 unavailable/Blog 카드의 진입이 **유예 없이 즉시** 닫아 위 유지 규칙을 통째로 우회한다.
+- 진입이 위조인지는 **경계 이벤트가 실어 온 좌표와 마지막으로 기록된 포인터 위치의 일치**로 판정한다. 실측 순서가 `mouseout → mouseover → pointermove` 이므로 정상 경로에서는 진입 시점의 기록이 아직 이전 위치이고 새 좌표와 어긋난다.
+- 유지 상태는 카드가 다른 이유로 접히거나(Escape · handoff · 전환 시작) hover 모드를 벗어나면 함께 해제되어야 한다.
 
 **Verification**:
 1. Automated: handoff 시 직전 카드 pending transition 취소 여부를 검증한다.
 2. Automated: 마지막 hover 카드만 최종 Expanded인지 검증한다.
-3. Automated: Expanded 상태에서 포인터가 비카드 영역으로 이탈할 때(다른 카드 hover 없이) 허용 유예 범위 내 Normal 복귀가 수행되는지 검증한다.
+3. Automated: Expanded 상태에서 포인터가 비카드 영역으로 **이동**할 때(다른 카드 hover 없이) 허용 유예 범위 내 Normal 복귀가 수행되는지 검증한다.
 4. Automated: hover intent 스케줄러가 전역 단일 timer + intent token으로 동작하는지 검증한다.
 5. Automated: 새 hover 진입 시 이전 예약이 즉시 취소되고, 실행 직전 대상 재검증 불일치 시 no-op 처리되는지 검증한다.
-6. Automated: hover leave collapse가 다른 카드 hover 여부와 무관하게 최신 경계 판정으로 수행되는지 검증한다.
+6. Automated: 포인터 이동 기반 collapse가 다른 카드 hover 여부와 무관하게 최신 경계 판정으로 수행되는지 검증한다.
 7. Automated: unavailable 카드 진입이 handoff로 오인되지 않는지 검증한다.
 8. Automated: 키보드 focus가 stale pointer intent를 무효화하고 Blog를 확장 대상으로 만들지 않는지 검증한다.
+9. Automated: 포인터 이동 없이 스크롤만으로 경계가 바뀐 경우 Expanded가 유지되고, 이어진 실제 포인터 이동에서 경계 안이면 유지·밖이면 유예 내 Normal 복귀가 수행되는지 검증한다.
+10. Automated: 유지 중인 카드가 뷰포트를 완전히 벗어나면 해제 후 Normal 복귀가 수행되고, handoff·Escape·전환 시작에서 유지 상태가 남지 않는지 검증한다.
+11. Automated: Expanded 활성 중 폭 변경 강제 종료가 유지 규칙과 무관하게 그대로 수행되는지 검증한다.
+12. Automated: 포인터가 고정된 채 스크롤로 다른 카드가 경계 안에 들어와도 Expanded가 닫히지 않고, 실제 포인터 이동으로 비확장 카드에 진입할 때는 종전대로 즉시 collapse 되는지 둘 다 검증한다.
 
 ### 8.3 Core Motion Contract
 **Rule**: Expanded core motion은 시간/곡선/단조성/예외 경로를 엄격히 준수해야 한다.
-- 본 섹션 시간 범위는 권장이 아니라 검증 대상이다.
-- Normal→Expanded: Phase A/B/C 각 `280ms`, C stagger `40/100/160ms`.
+- 본 섹션은 **계약(불변식)**과 **조정값** 두 계층으로 나뉜다(BQ-39). 계약은 축·곡선·단조성·복원·플리커 금지·`0ms` 허용 경로·키보드/포인터 동등성이며, 개정에 사용자 승인이 필요하다. 아래 duration/stagger 수치는 조정값으로, 구현자가 UX 판단으로 바꾸되 **바꾸는 즉시 `docs/decision-register.md` 에 등재한다** — 강등은 값을 문서에서 지우는 것을 허용하지 않으며, 등재되지 않은 변경은 여전히 계약 위반이다.
+- 조정값으로 명시되지 않은 이 섹션의 시간·순서 규칙은 권장이 아니라 검증 대상이다.
+- Normal→Expanded: Phase A/B/C 각 `280ms`, C stagger `40/100/160ms`(조정값).
 - Phase A/B는 전환 시작 프레임에서 시작 가능, Phase C는 상세 블록 활성 이후 시작.
 - reveal 항목 순서는 DOM 순서와 일치해야 한다.
 - Expanded→Normal은 동일 축/곡선으로 대칭 복귀해야 한다.
@@ -1052,7 +1069,7 @@ opt_out 카드는 consent 상태와 무관하게 카탈로그에 항상 노출�
 10. Normal Spacing Model: Desktop/Tablet Normal에서 `subtitle -> tags` 기본 간격 비-0 유지, 보정 불필요 카드의 `보정 간격=0` + 추가 잉여 여백 `0`, 보정 필요 카드만 추가 보정 간격 허용, empty-tags에서 chip `0개` + 슬롯 높이 유지 PASS (Section 6.7, 13.1).
 11. Row 1/Row 2+ Consistency: `보정 필요` 판정이 row index와 무관하게 동일 규칙(해당 row의 Normal 자연 높이 비교 결과)으로 적용되고, row index 기반 우회 신호 사용 `0건` PASS (Section 6.7).
 12. Underfilled Final Row Alignment: Desktop/Tablet underfilled 마지막 row에서 시작측 정렬 유지, 카드 폭 확장(좌우 채움) `0건`, 잔여 영역 허용 예외 적용 PASS (Section 6.2).
-13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 비카드 영역 이탈 시 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 최신 경계 판정, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
+13. Hover-out Collapse Independence: Desktop/Tablet Hover-capable에서 Expanded 카드가 **포인터 이동으로** 비카드 영역을 벗어날 때 다른 카드 hover 여부와 무관하게 허용 유예 `100~180ms` 내 Normal 복귀, 단일 timer+intent token, 실행 직전 대상 재검증, 실행 시점의 최신 경계 판정, 포인터 이동 없이 스크롤만으로 생긴 경계 변화(이탈·진입 양쪽)에서는 Expanded 유지 후 다음 포인터 이동 재판정과 뷰포트 완전 이탈 해제, 폭 변경 강제 종료 불변, handoff는 `다른 enterable 카드(available 또는 opt_out) 진입`으로만 성립하며 유지 규칙보다 우선, source `0ms`/target 표준 모션 분리 PASS (Section 8.2, 8.3).
 14. Mobile Title Baseline Stability: Mobile Expanded settled에서 title 시작 기준선 편차 `0px`, OPENING/CLOSING transition window의 y-anchor drift `0px`, OPENING queue-close 1회, CLOSING 인터럽트 무시, OPEN settled unlock + transition window scroll lock, close 후 현재 scroll 위치 유지, `NORMAL` terminal 전 pre-open 높이 복귀(`0px`) 완료 PASS (Section 8.5).
 15. **Card-to-Attempt Field Integrity**: `card_answered` payload의 `source_variant`·`target_route`·`landing_ingress_flag` 필수 필드 포함, `card_answered`가 landing phase의 `scoring1` 기록임을 유지하고, `attempt_start.question_index_1based`가 UI `Qn`이 아니라 first scoring runtime question의 canonical index로 정확히 발화하며, `landing_ingress_flag` 일관성 (`card_answered` true → `attempt_start` true) PASS.
 16. Rollback Cleanup Closure: fail/cancel 케이스(사용자 취소, 목적지 타임아웃, 목적지 실패)에서 pre-answer/ingress/pending transition/state/interaction lock/body lock/queued close 누수 `0건`, duplicate-locale preflight no-op에서 pending/ingress/telemetry/internal signal `0건` PASS (Section 13.3, 13.6).

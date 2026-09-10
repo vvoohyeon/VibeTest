@@ -109,10 +109,13 @@ function renderController(initialProps: ControllerHookProps) {
 
 function createMouseEvent<T extends HTMLElement>(
   currentTarget: T,
-  init: Partial<Pick<ReactMouseEvent<T>, 'altKey' | 'button' | 'ctrlKey' | 'metaKey' | 'shiftKey'>> = {}
+  init: Partial<Pick<ReactMouseEvent<T>, 'altKey' | 'button' | 'clientX' | 'clientY' | 'ctrlKey' | 'metaKey' | 'shiftKey'>> = {}
 ) {
   return {
     currentTarget,
+    // 좌표를 주지 않은 기존 검사는 「위치를 알 수 없음」이며 위조 판정 대상이 아니다.
+    clientX: init.clientX ?? Number.NaN,
+    clientY: init.clientY ?? Number.NaN,
     button: init.button ?? 0,
     altKey: init.altKey ?? false,
     ctrlKey: init.ctrlKey ?? false,
@@ -819,5 +822,439 @@ describe('landing interaction controller handlers', () => {
 
     expect(closeEvent.preventDefault).toHaveBeenCalledTimes(1);
     expect(result.current.mobileLifecycleState.phase).toBe('CLOSING');
+  });
+
+  /**
+   * BQ-39 (R1) — 스크롤은 확장을 닫지 않는다.
+   *
+   * 확장 카드가 뷰포트를 넘으면 그 아랫부분을 읽으려는 휠 조작이 카드를 포인터 밑에서
+   * 빼내고, 그 `mouseout` 이 「경계 이탈」로 판정돼 카드가 닫힌다 — 포인터는 1px 도 움직이지
+   * 않았는데. 판별자는 이벤트 순서다: 실측 순서가
+   * `pointerout → pointerover → mouseout → mouseover → pointermove` 이므로 포인터가 실제로
+   * 움직여 생긴 이탈에만 `pointermove` 가 따라온다. 그래서 `pointermove` 전용 seq 가 collapse
+   * 예약 시점과 실행 시점 사이에 증가했는지로 두 경로를 가른다.
+   *
+   * 브라우저에서는 「rect 가 바뀌는 순간과 다음 hit-test」의 시점 경쟁이 섞이므로(원장 `L14`)
+   * 조건을 jsdom 에서 직접 만든다 — rect 를 갈아 끼워 스크롤을 흉내 내고, 포인터 이동은
+   * 보내지 않는다.
+   */
+  describe('scroll hold (BQ-39 R1)', () => {
+    const CARD_RECT_BEFORE_SCROLL = {top: 380, bottom: 700, left: 200, right: 500};
+    const CARD_RECT_AFTER_SCROLL = {top: 80, bottom: 400, left: 200, right: 500};
+    const CARD_RECT_ABOVE_VIEWPORT = {top: -500, bottom: -200, left: 200, right: 500};
+    const POINTER_INSIDE_BEFORE_SCROLL = {clientX: 298, clientY: 436};
+
+    interface StubRect {
+      top: number;
+      bottom: number;
+      left: number;
+      right: number;
+    }
+
+    function stubCardBoundaryRect(shell: HTMLElement, cardVariant: string, rect: StubRect) {
+      const boundary = findCardChild<HTMLElement>(shell, cardVariant, '[data-slot="expandedBody"]');
+      boundary.getBoundingClientRect = () =>
+        ({
+          top: rect.top,
+          bottom: rect.bottom,
+          left: rect.left,
+          right: rect.right,
+          x: rect.left,
+          y: rect.top,
+          width: rect.right - rect.left,
+          height: rect.bottom - rect.top,
+          toJSON: () => ({})
+        }) as DOMRect;
+      return boundary;
+    }
+
+    function findCardRoot(shell: HTMLElement, cardVariant: string) {
+      const cardRoot = shell.querySelector<HTMLElement>(
+        `[data-testid="landing-grid-card"][data-card-variant="${cardVariant}"]`
+      );
+      if (!cardRoot) {
+        throw new Error(`Missing test card root for ${cardVariant}`);
+      }
+      return cardRoot;
+    }
+
+    function dispatchPointerMove(target: HTMLElement, position: {clientX: number; clientY: number}) {
+      act(() => {
+        target.dispatchEvent(
+          new MouseEvent('pointermove', {bubbles: true, clientX: position.clientX, clientY: position.clientY})
+        );
+      });
+    }
+
+    function dispatchWindowScroll() {
+      act(() => {
+        window.dispatchEvent(new Event('scroll'));
+      });
+    }
+
+    it('keeps a hover-expanded Test open when the card leaves the pointer by scrolling rather than by pointer movement', () => {
+      vi.useFakeTimers();
+      const {testCard} = selectFixtureCards();
+      const shell = mountShell([testCard]);
+      const {result} = renderController({
+        cards: [testCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+
+      dispatchPointerMove(cardRoot, POINTER_INSIDE_BEFORE_SCROLL);
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseEnter(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // 휠 스크롤: 카드가 포인터 밑에서 빠져나가 `mouseout` 이 나지만 `pointermove` 는 없다.
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_AFTER_SCROLL);
+      dispatchWindowScroll();
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseLeave(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+    });
+
+    it('collapses on the next real pointer move outside the boundary without shifting the collapse grace timing', () => {
+      vi.useFakeTimers();
+      const {testCard} = selectFixtureCards();
+      const shell = mountShell([testCard]);
+      const {result} = renderController({
+        cards: [testCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+
+      dispatchPointerMove(cardRoot, POINTER_INSIDE_BEFORE_SCROLL);
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseEnter(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseLeave(createMouseEvent(cardRoot));
+      });
+      // 포인터가 실제로 움직여 카드 밖으로 나간다 — 정상 경로다.
+      dispatchPointerMove(document.body, {clientX: 900, clientY: 900});
+
+      // 유예 -1ms 에서 아직 열려 있다. 「정상 경로 타이밍 무변경」은 이 두 단언이 고정한다.
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS - 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // 유예 +1ms 에서 접힌다.
+      act(() => {
+        vi.advanceTimersByTime(2);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBeNull();
+    });
+
+    it('re-adjudicates a scroll-held card as still hovered when the next pointer move lands inside the moved boundary', () => {
+      vi.useFakeTimers();
+      const {testCard} = selectFixtureCards();
+      const shell = mountShell([testCard]);
+      const {result} = renderController({
+        cards: [testCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+
+      dispatchPointerMove(cardRoot, POINTER_INSIDE_BEFORE_SCROLL);
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseEnter(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+      });
+
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_AFTER_SCROLL);
+      dispatchWindowScroll();
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseLeave(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // 옮겨 간 경계 **안**으로 포인터가 움직인다 — 계속 열려 있어야 한다.
+      dispatchPointerMove(cardRoot, {clientX: 298, clientY: 300});
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // hold 는 해제됐다: 이후 경계 밖 이동은 평소대로 닫는다.
+      dispatchPointerMove(document.body, {clientX: 900, clientY: 900});
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBeNull();
+    });
+
+    it('releases the scroll hold and collapses once the held card leaves the viewport entirely', () => {
+      vi.useFakeTimers();
+      const {testCard} = selectFixtureCards();
+      const shell = mountShell([testCard]);
+      const {result} = renderController({
+        cards: [testCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+
+      dispatchPointerMove(cardRoot, POINTER_INSIDE_BEFORE_SCROLL);
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseEnter(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+      });
+
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_AFTER_SCROLL);
+      dispatchWindowScroll();
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseLeave(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // 계속 스크롤해 카드가 뷰포트를 완전히 벗어난다 — 「지나쳐 버렸다」이므로 닫는다.
+      // 이것이 없으면 확장 본문의 답변 버튼·CTA 가 화면 밖 탭 스톱으로 남는다.
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_ABOVE_VIEWPORT);
+      dispatchWindowScroll();
+
+      expect(result.current.interactionState.expandedCardVariant).toBeNull();
+      expect(result.current.interactionState.hoverLock.enabled).toBe(false);
+    });
+
+    it('drops the scroll hold when a handoff takes ownership so no second collapse path survives', () => {
+      vi.useFakeTimers();
+      const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+      const countScrollListeners = () =>
+        addEventListenerSpy.mock.calls.filter(([type]) => type === 'scroll').length -
+        removeEventListenerSpy.mock.calls.filter(([type]) => type === 'scroll').length;
+
+      const {testCard, secondTestCard} = selectFixtureCards();
+      const shell = mountShell([testCard, secondTestCard]);
+      const {result} = renderController({
+        cards: [testCard, secondTestCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      const secondCardRoot = findCardRoot(shell, secondTestCard.variant);
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+      stubCardBoundaryRect(shell, secondTestCard.variant, {top: 380, bottom: 700, left: 600, right: 900});
+
+      dispatchPointerMove(cardRoot, POINTER_INSIDE_BEFORE_SCROLL);
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseEnter(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+      });
+
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_AFTER_SCROLL);
+      dispatchWindowScroll();
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseLeave(createMouseEvent(cardRoot));
+      });
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+      expect(countScrollListeners()).toBe(1);
+
+      // handoff 가 hold 재판정보다 우선한다 — 두 번째 카드로 넘어가면 hold 는 남지 않는다.
+      act(() => {
+        result.current
+          .resolveCardInteractionBindings(secondTestCard)
+          .onMouseEnter(createMouseEvent(secondCardRoot));
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(secondTestCard.variant);
+      expect(countScrollListeners()).toBe(0);
+
+      // 남은 hold 가 없으므로 두 번째 카드는 자기 유예대로 한 번만 닫힌다.
+      act(() => {
+        result.current
+          .resolveCardInteractionBindings(secondTestCard)
+          .onMouseLeave(createMouseEvent(secondCardRoot));
+      });
+      dispatchPointerMove(document.body, {clientX: 950, clientY: 950});
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBeNull();
+      expect(countScrollListeners()).toBe(0);
+    });
+
+    /**
+     * 스크롤은 `mouseout` 만 위조하지 않는다 — 같은 프레임에 **다른 카드의 `mouseover`** 도
+     * 위조한다. 실측(2026-09-10, chromium): 포인터가 `218,431` 에 고정된 채 `scrollY` 가
+     * `0 → 372` 로 뛰자 `mouseout(qmbti → creativity-profile)` 과
+     * `mouseover(creativity-profile ← qmbti)` 가 **좌표 변화 없이** 같은 시각에 났다.
+     * `creativity-profile` 은 unavailable 이라 `onMouseEnter` 가 유예 없이 즉시 collapse 하며,
+     * 그 경로의 `clearHoverTimer()` 가 스크롤 hold 까지 지운다 — 유예 기반 hold 로는 닿지 않는다.
+     *
+     * 판별자는 같다: **경계 이벤트가 실어 온 좌표가 마지막으로 기록된 포인터 위치와 같으면
+     * 포인터는 움직이지 않은 것이다.** 정상 경로에서는 `mouseover` 가 `pointermove` 보다 먼저
+     * 오므로 그 시점의 기록은 아직 이전 위치이고, 새 좌표와 크게 어긋난다.
+     */
+    it('ignores a card enter that scrolling forged under a stationary pointer', () => {
+      vi.useFakeTimers();
+      const {testCard, blogCard} = selectFixtureCards();
+      const shell = mountShell([testCard, blogCard]);
+      const {result} = renderController({
+        cards: [testCard, blogCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      const blogRoot = findCardRoot(shell, blogCard.variant);
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+
+      // 실측 순서대로: 진입(`mouseover`)이 먼저고 `pointermove` 가 뒤따른다. 그래서 진입
+      // 시점의 기록은 아직 이전 위치이고, 이 진입은 위조가 아니다.
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseEnter(
+          createMouseEvent(cardRoot, POINTER_INSIDE_BEFORE_SCROLL)
+        );
+      });
+      dispatchPointerMove(cardRoot, POINTER_INSIDE_BEFORE_SCROLL);
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // 스크롤: 카드가 밀려나고 다른 카드가 **같은 좌표** 밑으로 들어온다.
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_AFTER_SCROLL);
+      dispatchWindowScroll();
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseLeave(
+          createMouseEvent(cardRoot, POINTER_INSIDE_BEFORE_SCROLL)
+        );
+        result.current.resolveCardInteractionBindings(blogCard).onMouseEnter(
+          createMouseEvent(blogRoot, POINTER_INSIDE_BEFORE_SCROLL)
+        );
+      });
+
+      // 즉시 닫히지 않는다.
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+      // 유예를 넘겨도 hold 가 살아 있어 열린 채다.
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+    });
+
+    it('still collapses immediately when a real pointer move enters a non-expanding card', () => {
+      vi.useFakeTimers();
+      const {testCard, blogCard} = selectFixtureCards();
+      const shell = mountShell([testCard, blogCard]);
+      const {result} = renderController({
+        cards: [testCard, blogCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      const blogRoot = findCardRoot(shell, blogCard.variant);
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+
+      // 실측 순서대로: 진입(`mouseover`)이 먼저고 `pointermove` 가 뒤따른다. 그래서 진입
+      // 시점의 기록은 아직 이전 위치이고, 이 진입은 위조가 아니다.
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseEnter(
+          createMouseEvent(cardRoot, POINTER_INSIDE_BEFORE_SCROLL)
+        );
+      });
+      dispatchPointerMove(cardRoot, POINTER_INSIDE_BEFORE_SCROLL);
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_EXPAND_DELAY_MS + 1);
+      });
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // 진짜 포인터 이동: `mouseover` 가 `pointermove` 보다 먼저 오므로 기록된 위치는 아직
+      // 이전 좌표이고, 이벤트가 실어 온 좌표는 그것과 크게 어긋난다. 이 경로는 그대로 즉시 닫는다
+      // (`assertion:B13-hover-collapse` 가 지키는 계약).
+      act(() => {
+        result.current.resolveCardInteractionBindings(blogCard).onMouseEnter(
+          createMouseEvent(blogRoot, {clientX: 900, clientY: 250})
+        );
+      });
+
+      expect(result.current.interactionState.expandedCardVariant).toBeNull();
+    });
+
+    it('leaves Tap Mode untouched — no scroll hold, no viewport-exit listener', () => {
+      installBrowserStubs(false);
+      vi.useFakeTimers();
+      const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+      const {testCard} = selectFixtureCards();
+      const shell = mountShell([testCard]);
+      const {result} = renderController({
+        cards: [testCard],
+        viewportWidth: 1280,
+        viewportTier: 'desktop',
+        shellRef: {current: shell}
+      });
+      const cardRoot = findCardRoot(shell, testCard.variant);
+      const trigger = findCardChild<HTMLElement>(
+        shell,
+        testCard.variant,
+        '[data-testid="landing-grid-card-trigger"]'
+      );
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_BEFORE_SCROLL);
+
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onFocus(createFocusEvent(trigger));
+      });
+      expect(result.current.interactionMode).toBe('tap');
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+
+      // hover 경로 전체가 tap 모드에서 no-op 이다: 스크롤도, 이탈도, 포인터 이동도 상태를 바꾸지 않는다.
+      stubCardBoundaryRect(shell, testCard.variant, CARD_RECT_ABOVE_VIEWPORT);
+      dispatchWindowScroll();
+      act(() => {
+        result.current.resolveCardInteractionBindings(testCard).onMouseLeave(createMouseEvent(cardRoot));
+      });
+      dispatchPointerMove(document.body, {clientX: 900, clientY: 900});
+      act(() => {
+        vi.advanceTimersByTime(DESKTOP_COLLAPSE_DELAY_MS + 1);
+      });
+
+      expect(result.current.interactionState.expandedCardVariant).toBe(testCard.variant);
+      expect(addEventListenerSpy.mock.calls.filter(([type]) => type === 'scroll')).toHaveLength(0);
+    });
   });
 });
