@@ -1220,16 +1220,38 @@ test.describe('Phase 7 state + capability smoke', () => {
     const desktopMotionRole = await firstCard.getAttribute('data-desktop-motion-role');
     const expandedShellAnimation = await expandedShell.evaluate((element) => getComputedStyle(element).animationName);
     const expandedShellTransform = await expandedShell.evaluate((element) => getComputedStyle(element).transform);
-    const answerChoiceAnimation = await firstCard
-      .locator('[data-slot="answerChoices"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
+    /**
+     * 단계 노출을 **전부** 쓸어 잰다. 종전에는 `answerChoices` 한 자리만 봤는데, stagger 는
+     * 자리마다 따로 적히므로(`40/100/160ms`) 한 자리만 보면 나머지가 조용히 남는다.
+     * `animationName` 만으로도 부족하다 — 지연은 `animation-delay` 라는 별도 longhand 이고
+     * `animation` shorthand 가 그것을 되돌린다는 사실 자체가 검사 대상이다.
+     */
+    const motionStages = await firstCard.locator('[data-motion-slot]').evaluateAll((elements) =>
+      elements.map((element) => {
+        const stageStyle = getComputedStyle(element);
+
+        return {
+          slot: element.getAttribute('data-motion-slot'),
+          animationName: stageStyle.animationName,
+          animationDelay: stageStyle.animationDelay,
+          transform: stageStyle.transform
+        };
+      })
+    );
 
     expect(['opening', 'steady']).toContain(desktopMotionRole);
     expect(
       expandedShellAnimation === 'none' || expandedShellAnimation.includes('landing-card-shell-reduced-open')
     ).toBe(true);
     expect(expandedShellTransform).toBe('none');
-    expect(answerChoiceAnimation).toBe('none');
+
+    // 전제 단언: 잴 자리가 실제로 있어야 이 검사가 무언가를 재현한다.
+    expect(motionStages.length).toBeGreaterThan(0);
+    for (const stage of motionStages) {
+      expect(stage.animationName, `motion slot ${stage.slot} still animates`).toBe('none');
+      expect(stage.animationDelay, `motion slot ${stage.slot} still staggers`).toBe('0s');
+      expect(stage.transform, `motion slot ${stage.slot} still moves`).toBe('none');
+    }
 
     await secondCard.hover();
     await unavailableCard.hover();

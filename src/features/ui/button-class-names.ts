@@ -16,8 +16,10 @@
  * **전이 대상 셋은 배타적이다.** 한 원소에 `[transition-property:…]` 를 둘 얹으면 명시도가
  * 같아 Tailwind 의 emit 순서가 승자를 정한다(L10). 아래 세 상수 중 반드시 하나만 고른다.
  *
- * GNB 의 pill 계열(`site-gnb.tsx`)은 다른 컴포넌트(`.vt-pill`)이며 포커스 처리도 다르다 —
- * 여기 오지 않는다.
+ * GNB 의 pill 계열(`site-gnb.tsx`)과 칩(`settings-controls.tsx`)은 다른 컴포넌트(`.vt-pill`)
+ * 이며 모양과 색은 여기 오지 않는다. **링만은 예외로 `focusRingClassName` 을 함께 쓴다** --
+ * 종전에 그쪽이 쓰던 두 층 box-shadow 는 안쪽 층에 *페이지* 지면을 칠해 요소의 지면과
+ * 어긋났고, 아래 `focusRingClassName` 의 주석이 적은 대로 링이 컨트롤마다 다를 이유가 없다.
  */
 
 /**

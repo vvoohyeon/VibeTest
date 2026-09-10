@@ -25,6 +25,7 @@ import {
   isDesktopShellLogicallyInteractive,
   shouldRenderDesktopStageShell
 } from '@/features/landing/grid/desktop-shell-phase';
+import {CONSENT_BANNER_AVOID_ATTRIBUTE} from '@/features/landing/shell/consent-banner';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder} from '@/lib/routes/route-builder';
 import {LANDING_CARD_BASE_GAP_PX} from '@/features/landing/grid/spacing-plan';
@@ -850,7 +851,11 @@ function DesktopExpandedShell({
       {/* Desktop shell wrapper depth and slot names are CSS/QA geometry contracts. */}
       {isVisible ? (
         <div className={LANDING_GRID_CARD_EXPANDED_LAYER_CLASSNAME} data-slot="expandedLayer">
-          <div className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME, styles.expandedShellFrame)}>
+          {/* 확장 카드가 실제로 그리는 상자다 — 동의 배너가 이 사각형을 피한다. */}
+          <div
+            className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SHELL_FRAME_CLASSNAME, styles.expandedShellFrame)}
+            {...{[CONSENT_BANNER_AVOID_ATTRIBUTE]: ''}}
+          >
             <div className={joinClassNames(LANDING_GRID_CARD_EXPANDED_SHELL_CLASSNAME, styles.expandedShell)} data-slot="expandedShell">
               <div
                 className={LANDING_GRID_CARD_EXPANDED_SHADOW_CLASSNAME}
@@ -1215,6 +1220,7 @@ export function LandingGridCard({
         <div
           className={joinClassNames(LANDING_GRID_CARD_MOBILE_EXPANDED_CLASSNAME, styles.mobileExpanded, styles.expandedBody)}
           data-slot="expandedBody"
+          {...{[CONSENT_BANNER_AVOID_ATTRIBUTE]: ''}}
           onKeyDown={onExpandedBodyKeyDown}
         >
           <div className={LANDING_GRID_CARD_MOBILE_HEADER_CLASSNAME} data-slot="mobileHeader">
@@ -1247,6 +1253,7 @@ export function LandingGridCard({
           className={resolvedTransientShellClassName}
           data-slot="mobileTransientShell"
           data-state={mobileTransientMode}
+          {...{[CONSENT_BANNER_AVOID_ATTRIBUTE]: ''}}
           aria-hidden="true"
         >
           <div

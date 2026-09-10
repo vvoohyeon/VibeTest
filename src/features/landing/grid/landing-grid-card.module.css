@@ -562,6 +562,17 @@
   }
 }
 
+/* reduced-motion 의 **전부가 여기 있지 않다.** 이 블록은 토큰 셋만 줄이고, 「움직임을
+   없앤다」는 실제 규율은 위쪽 `.root.reducedMotion …` 규칙들이 갖는다 — stagger 를 `0ms` 로
+   되돌리고 `detail-rise` 의 `translateY(4px)` 를 지우는 것이 그쪽이다. 그 클래스는 JS 의
+   `matchMedia('(prefers-reduced-motion: reduce)')` 가 붙이므로 이 미디어 쿼리와 짝을 이루되
+   같은 자리에 있지 않다.
+
+   이 블록만 읽고 「reduced-motion 이 모션을 줄이기만 하고 없애지 않는다」고 판단하면 틀린다.
+   실측(2026-09-10, chromium): `prefers-reduced-motion: reduce` 에서 desktop `motionStage*` 는
+   `animation: none · delay 0s · transform: none`, mobile transient 는
+   `landing-card-shell-reduced-open · delay 0s · transform: none` 이다. `state-smoke` 의
+   reduced-motion 검사가 이 값을 붙들고 있다. */
 @media (prefers-reduced-motion: reduce) {
   .root {
     --landing-card-shell-scale: 1;

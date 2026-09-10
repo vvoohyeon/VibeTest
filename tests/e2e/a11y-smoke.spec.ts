@@ -1,4 +1,4 @@
-import {expect, test, type Page} from '@playwright/test';
+import {expect, test, type Locator, type Page} from '@playwright/test';
 
 import {locales} from '../../src/config/site';
 import {resolveLandingCatalog} from '../../src/features/variant-registry';
@@ -55,6 +55,95 @@ async function focusDesktopSettingsByKeyboard(page: Page) {
   await expect(page.getByTestId('gnb-settings-trigger')).toBeFocused();
   await page.keyboard.press('Space');
   await expect(page.getByTestId('gnb-settings-panel')).toBeVisible();
+}
+
+/**
+ * 포커스 링의 **안쪽 층이 요소의 실제 지면과 같은가**를 픽셀로 잰다.
+ *
+ * 계산 스타일만 보면 이 결함을 잡지 못한다 — 종전 구현은 `--focus-ring-inner: var(--canvas)`
+ * 를 읽어 값이 있었고, 그 값이 *페이지* 지면이지 *요소의* 지면이 아니라는 것이 결함이었다.
+ *
+ * 한 점이 아니라 **띠**로 잰다. 요소 가장자리가 소수 좌표라 링 안쪽 2px 띠의 양 끝이
+ * 안티에일리어싱으로 섞이고, 점 하나를 찍으면 그 섞인 픽셀에 걸린다(실측: 틈이
+ * `251,250,247` 인데 바로 옆 경계 픽셀이 `243,245,241`). 그래서 「안쪽 띠 어딘가에 바깥
+ * 지면과 **정확히 같은** 픽셀이 있는가」를 묻는다 — 안쪽 층이 색이면 그런 픽셀은 하나도
+ * 없고, 진짜 틈이면 반드시 있다.
+ *
+ * PNG 디코딩은 브라우저에게 시킨다 — 스크린샷을 data URL 로 되돌려 캔버스에 그리면 새
+ * 의존성 없이 `getImageData` 로 읽을 수 있다.
+ */
+async function readFocusRingGroundBand(page: Page, target: Locator) {
+  const box = await target.boundingBox();
+  if (!box) {
+    throw new Error('Expected a bounding box for the focus-ring target.');
+  }
+
+  const geometry = await target.evaluate((element) => {
+    const style = getComputedStyle(element);
+
+    return {
+      outlineWidthPx: Math.round(parseFloat(style.outlineWidth)),
+      outlineOffsetPx: Math.round(parseFloat(style.outlineOffset)),
+      outlineStyle: style.outlineStyle,
+      outlineColor: style.outlineColor,
+      boxShadow: style.boxShadow
+    };
+  });
+
+  const edgeX = Math.round(box.x + box.width);
+  const clip = {
+    x: edgeX,
+    y: Math.round(box.y + box.height / 2) - 1,
+    // 옆 칩까지 넘어가지 않도록 링 바로 바깥 2px 만 더 본다.
+    width: geometry.outlineOffsetPx + geometry.outlineWidthPx + 2,
+    height: 3
+  };
+
+  const screenshot = await page.screenshot({clip});
+  const dataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+
+  const band = await page.evaluate(
+    async ({url, clipRect, outlineColor}) => {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Expected a 2d canvas context to decode the focus-ring screenshot.');
+      }
+
+      context.drawImage(image, 0, 0);
+      // 스크린샷은 CSS 픽셀로 잘라 왔지만 이미지는 DPR 배율이므로 되돌린다.
+      const scale = image.naturalWidth / clipRect.width;
+      const midRowY = Math.round(scale);
+      const row: string[] = [];
+      for (let offset = 0; offset < clipRect.width; offset += 1) {
+        const pixel = context.getImageData(Math.round(offset * scale), midRowY, 1, 1).data;
+        row.push(`${pixel[0]},${pixel[1]},${pixel[2]}`);
+      }
+
+      const outlineRgb = outlineColor.replace(/^rgba?\(|\)$/gu, '').split(',').slice(0, 3);
+      const outlineKey = outlineRgb.map((part) => Math.round(parseFloat(part))).join(',');
+      const outlineStartIndex = row.indexOf(outlineKey);
+      const outlineEndIndex = row.lastIndexOf(outlineKey);
+
+      return {
+        row,
+        outlineKey,
+        outlineFound: outlineStartIndex !== -1,
+        innerBand: outlineStartIndex === -1 ? [] : row.slice(0, outlineStartIndex),
+        ground: outlineEndIndex === -1 ? row[row.length - 1] : row[row.length - 1],
+        groundOutsideRing: row[row.length - 1]
+      };
+    },
+    {url: dataUrl, clipRect: clip, outlineColor: geometry.outlineColor}
+  );
+
+  return {...geometry, ...band};
 }
 
 async function focusDesktopDestinationSettingsByKeyboard(page: Page) {
@@ -368,6 +457,57 @@ test.describe('Canonical accessibility smoke', () => {
     // Focus remains valid/readable when reached programmatically (not a keyboard path).
     await unavailableTrigger.focus();
     await expectPageToBeAxeClean(page);
+  });
+
+  test('@smoke gnb focus ring shows the real ground in its inner layer and the two-layer tokens are retired', async ({
+    page
+  }) => {
+    await page.setViewportSize({width: 1440, height: 980});
+    await page.goto('/en');
+    await focusDesktopSettingsByKeyboard(page);
+
+    /**
+     * 설정 패널의 로케일 칩을 고른다. GNB 막대 위에서는 이 결함이 **보이지 않는다** —
+     * 실측(2026-09-10): 그 자리의 지면은 `--gnb-surface`(88% canvas)가 canvas 색 페이지 위에
+     * 얹혀 `251,250,247` 로 합성되고, 그것이 종전 `--focus-ring-inner`(= `--canvas`)와 같은
+     * 값이다. 패널 칩의 지면은 `--canvas-elevated`(`255,255,255`)라 둘이 갈린다. 「안쪽 층은
+     * 페이지 지면이 아니라 요소의 지면을 취해야 한다」는 주장은 여기서만 반증 가능하다.
+     */
+    const localeChip = page.locator('[data-testid="gnb-settings-panel"] .gnb-chip-row .gnb-chip').nth(1);
+    await localeChip.focus();
+    await expect(localeChip).toBeFocused();
+
+    const ring = await readFocusRingGroundBand(page, localeChip);
+
+    // 링 자체는 실재해야 한다 — L10 의 `outline-none` 함정에 다시 걸리면 두께가 0 이 된다.
+    expect(ring.outlineStyle).toBe('solid');
+    expect(ring.outlineWidthPx).toBe(2);
+    expect(ring.outlineOffsetPx).toBe(2);
+
+    // 전제 단언: 링을 화면에서 실제로 찾지 못하면 아래 띠 검사는 아무것도 재현하지 못한다.
+    expect(ring.outlineFound, `outline colour ${ring.outlineKey} not found in ${ring.row.join(' | ')}`).toBe(true);
+    expect(ring.innerBand.length).toBeGreaterThan(0);
+
+    // 이 검사의 본체. 안쪽 띠에 바깥 지면과 같은 픽셀이 있어야 「색이 아니라 틈」이다.
+    expect(ring.innerBand, `inner band ${ring.innerBand.join(' | ')}`).toContain(ring.groundOutsideRing);
+
+    // 포커스가 덧그리는 층은 outline 하나뿐이어야 한다 — box-shadow 로 된 두 층 링은 없다.
+    expect(ring.boxShadow).toBe('none');
+
+    // 원인 쪽. 토큰이 남아 있으면 다음 호출부가 다시 *페이지* 지면을 요소의 지면으로 읽는다.
+    const retiredTokens = await page.evaluate(() => {
+      const rootStyle = getComputedStyle(document.documentElement);
+
+      return {
+        inner: rootStyle.getPropertyValue('--focus-ring-inner').trim(),
+        outer: rootStyle.getPropertyValue('--focus-ring-outer').trim(),
+        ring: rootStyle.getPropertyValue('--focus-ring').trim()
+      };
+    });
+
+    expect(retiredTokens.inner).toBe('');
+    expect(retiredTokens.outer).toBe('');
+    expect(retiredTokens.ring).not.toBe('');
   });
 
   test('@smoke assertion:B7-axe-canonical gnb canonical open states remain axe-clean', async ({page}) => {

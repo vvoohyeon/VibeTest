@@ -2,6 +2,7 @@ import type {MouseEvent as ReactMouseEvent} from 'react';
 
 import {localeOptions, type AppLocale} from '@/config/site';
 import {ThemeModeIcon} from '@/features/gnb/components/theme-mode-icon';
+import {focusRingClassName} from '@/features/ui/button-class-names';
 
 const settingsControlsBaseClassName = 'gnb-settings-controls grid gap-3';
 const settingsControlsDesktopClassName =
@@ -21,8 +22,11 @@ const chipRowClassName = 'gnb-chip-row flex flex-wrap gap-2';
 // the close button and the hamburger -- not these -- and at 44 each the grid becomes
 // a wall. Inside the drawer the same chips are a primary touch target and take the
 // floor, which is what the mobile scope below does.
+// 포커스 링은 `focusRingClassName` 한 벌이다 — 칩도 pill 도 버튼도 같은 링을 쓴다.
+// 종전의 두 층 box-shadow 는 안쪽 층에 `--canvas` 를 칠했는데, 그것은 요소의 지면이 아니라
+// 페이지의 지면이라 칩 위에서 옅은 크림색 테로 보였다(실측 2026-09-10).
 const chipBaseClassName =
-  "gnb-chip inline-flex min-h-8 cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink,var(--ink))] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)] disabled:cursor-default disabled:opacity-70 [--gnb-chip-bg:var(--surface-muted)] [--gnb-chip-border:var(--hairline)] [--gnb-chip-hover-bg:var(--surface-sunken)] [--gnb-chip-hover-border:var(--border-strong)] [--gnb-chip-hover-shadow:var(--shadow-sm)]";
+  `gnb-chip inline-flex min-h-8 cursor-pointer items-center justify-center rounded-full border border-[var(--gnb-chip-border)] bg-[var(--gnb-chip-bg)] px-[10px] py-[5px] text-[0.8rem] font-semibold text-[var(--gnb-chip-ink,var(--ink))] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] ${focusRingClassName} disabled:cursor-default disabled:opacity-70 [--gnb-chip-bg:var(--surface-muted)] [--gnb-chip-border:var(--hairline)] [--gnb-chip-hover-bg:var(--surface-sunken)] [--gnb-chip-hover-border:var(--border-strong)] [--gnb-chip-hover-shadow:var(--shadow-sm)]`;
 // design.md 7.6 fixes the active chip: `--sage-muted` fill, `--accent-fg` text,
 // transparent border, no hover.
 // The ink goes through `--gnb-chip-ink`, and the base above supplies its default as a

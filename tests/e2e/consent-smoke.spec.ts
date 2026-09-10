@@ -129,6 +129,102 @@ async function readConsentBannerLayoutMetrics(page: Page) {
   });
 }
 
+const BANNER_OCCLUSION_VIEWPORT = {width: 1280, height: 720} as const;
+const BANNER_OCCLUSION_CARD_VARIANT = 'egtt';
+
+/**
+ * 확장 카드가 실제로 그리는 상자는 카드 루트가 아니라 expanded shell frame 이다 — 실측
+ * (2026-09-10, chromium 1280×720): 루트가 `[468, 720]` 일 때 프레임은 `[468, 749]` 로 29px
+ * 더 내려온다. 루트로 재면 그 29px 이 검사에서 사라지므로 프레임을 집는다.
+ */
+async function readBannerOverlap(page: Page) {
+  return page.evaluate(() => {
+    const banner = document.querySelector('[data-testid="telemetry-consent-banner"]');
+    if (!banner) {
+      throw new Error('Expected the consent banner to be mounted.');
+    }
+
+    const bannerRect = banner.getBoundingClientRect();
+    const bannerStyle = getComputedStyle(banner);
+    const avoidRects = Array.from(document.querySelectorAll('[data-consent-banner-avoid]')).map((element) =>
+      element.getBoundingClientRect()
+    );
+
+    const overlaps = avoidRects.map((rect) =>
+      Math.round(Math.max(0, Math.min(rect.bottom, bannerRect.bottom) - Math.max(rect.top, bannerRect.top)))
+    );
+
+    return {
+      avoidCount: avoidRects.length,
+      bannerVisibility: bannerStyle.visibility,
+      bannerOpacity: bannerStyle.opacity,
+      bannerRect: [Math.round(bannerRect.top), Math.round(bannerRect.bottom)] as const,
+      maxVerticalOverlap: overlaps.length === 0 ? 0 : Math.max(...overlaps),
+      // 배너가 숨어 있으면 겹쳐도 가리지 않는다. 「가림」은 겹침과 가시성의 곱이다.
+      occlusionPx:
+        bannerStyle.visibility === 'hidden' || bannerStyle.opacity === '0'
+          ? 0
+          : overlaps.length === 0
+            ? 0
+            : Math.max(...overlaps)
+    };
+  });
+}
+
+/**
+ * spacer 가 예약해야 하는 것은 「배너 높이」가 아니라 「배너 높이 + 배너가 바닥에서 띄운
+ * 만큼」이다. 고정 레이어의 하단 오프셋은 `max(16px, env(safe-area-inset-bottom))` 이라
+ * 상수로 적을 수 없으므로 뷰포트와 레이어 사각형의 차로 실측한다.
+ */
+async function readConsentBannerSpacerMetrics(page: Page) {
+  return page.evaluate(() => {
+    const spacer = document.querySelector('.telemetry-consent-banner-spacer');
+    const layer = document.querySelector('.telemetry-consent-banner-layer');
+    const banner = document.querySelector('[data-testid="telemetry-consent-banner"]');
+    if (!spacer || !layer || !banner) {
+      throw new Error('Expected the consent banner spacer, layer and section to be mounted.');
+    }
+
+    const bannerHeight = Math.ceil(banner.getBoundingClientRect().height);
+    const bottomGapPx = Math.max(0, Math.round(window.innerHeight - layer.getBoundingClientRect().bottom));
+    const spacerHeight = Math.round(spacer.getBoundingClientRect().height);
+
+    return {
+      bannerHeight,
+      bottomGapPx,
+      spacerHeight,
+      requiredHeight: bannerHeight + bottomGapPx,
+      overReservedPx: spacerHeight - (bannerHeight + bottomGapPx)
+    };
+  });
+}
+
+async function expandCardAtDocumentBottom(page: Page, cardBottomViewportY: number) {
+  const card = page.locator(`[data-card-variant="${BANNER_OCCLUSION_CARD_VARIANT}"]`);
+  const restingBox = await card.boundingBox();
+  if (!restingBox) {
+    throw new Error('Expected a resting bounding box for the banner-occlusion card.');
+  }
+
+  await page.evaluate((delta) => window.scrollBy(0, delta), restingBox.y + restingBox.height - cardBottomViewportY);
+  await page.waitForTimeout(200);
+
+  const trigger = card.getByTestId('landing-grid-card-trigger').first();
+  const triggerBox = await trigger.boundingBox();
+  if (!triggerBox) {
+    throw new Error('Expected a bounding box for the banner-occlusion card trigger.');
+  }
+
+  // 포인터를 카드 밖에서 안으로 들여야 `mouseenter` 가 실린다. (0,0) 에서 곧장 목표로
+  // 뛰면 chromium 이 진입 이벤트를 만들지 않아 확장이 시작되지 않는다(실측).
+  await page.mouse.move(6, 6);
+  await page.mouse.move(triggerBox.x + triggerBox.width / 2, triggerBox.y + triggerBox.height / 2, {steps: 5});
+  await expect(card).toHaveAttribute('data-card-state', 'expanded');
+  await page.waitForTimeout(420);
+
+  return card;
+}
+
 test.describe('Instruction consent contract smoke', () => {
   test('@smoke landing unknown consent keeps the desktop consent banner flex and max-width contract', async ({page}) => {
     await clearTelemetryConsent(page);
@@ -147,6 +243,66 @@ test.describe('Instruction consent contract smoke', () => {
     expect(metrics.message.flexBasis).toBe('520px');
     expect(metrics.actions.display).toBe('flex');
     expect(metrics.actions.justifyContent).toBe('flex-end');
+  });
+
+  test('@smoke landing UNKNOWN consent banner never covers an expanded card and stays visible when it does not', async ({
+    page
+  }) => {
+    await clearTelemetryConsent(page);
+    await page.setViewportSize(BANNER_OCCLUSION_VIEWPORT);
+    await page.goto('/en');
+
+    await expect(page.getByTestId('telemetry-consent-banner')).toBeVisible();
+
+    // ⑴ 카드 바닥을 뷰포트 바닥에 붙이면 확장 프레임이 배너 띠를 관통한다 — 수정 전 80px.
+    await expandCardAtDocumentBottom(page, BANNER_OCCLUSION_VIEWPORT.height);
+
+    const intersecting = await readBannerOverlap(page);
+
+    // 전제 단언: 이 배치가 실제로 겹침을 만들어야 검사가 무언가를 재현한다.
+    expect(intersecting.avoidCount).toBeGreaterThan(0);
+    expect(intersecting.maxVerticalOverlap).toBeGreaterThan(0);
+    expect(intersecting.occlusionPx).toBe(0);
+
+    // ⑵ 같은 카드를 화면 중앙에서 열면 배너와 만나지 않으므로 동의 UI 는 그대로 있어야 한다.
+    await page.mouse.move(6, 6);
+    await page.waitForTimeout(420);
+    await expandCardAtDocumentBottom(page, Math.round(BANNER_OCCLUSION_VIEWPORT.height / 2));
+
+    const clear = await readBannerOverlap(page);
+
+    expect(clear.avoidCount).toBeGreaterThan(0);
+    expect(clear.maxVerticalOverlap).toBe(0);
+    expect(clear.bannerVisibility).toBe('visible');
+    expect(clear.bannerOpacity).toBe('1');
+  });
+
+  test('@smoke landing UNKNOWN consent banner spacer reserves exactly the banner height plus its bottom gap', async ({
+    page
+  }) => {
+    await clearTelemetryConsent(page);
+    await page.setViewportSize(BANNER_OCCLUSION_VIEWPORT);
+    await page.goto('/en');
+
+    await expect(page.getByTestId('telemetry-consent-banner')).toBeVisible();
+
+    const desktop = await readConsentBannerSpacerMetrics(page);
+
+    // 전제 단언: 하한(120px)이 실측 높이보다 커야 과다 예약이 재현된다 — 수정 전 80+16 에
+    // 대해 120 을 잡아 24px 과다였다.
+    expect(desktop.bannerHeight).toBeGreaterThan(0);
+    expect(desktop.requiredHeight).toBeLessThan(120);
+    expect(desktop.overReservedPx).toBe(0);
+
+    // 배너가 줄바꿈해 높아지는 폭에서도 spacer 가 따라와야 한다 — 하한이 아니라 실측이
+    // 정본이라는 뜻이다.
+    await page.setViewportSize({width: 480, height: 800});
+    await page.waitForTimeout(200);
+
+    const narrow = await readConsentBannerSpacerMetrics(page);
+
+    expect(narrow.bannerHeight).toBeGreaterThan(desktop.bannerHeight);
+    expect(narrow.overReservedPx).toBe(0);
   });
 
   test('@smoke assertion:B20-instruction-contract-display landing UNKNOWN available shows variant instruction with divider/note and Deny and Abandon returns home without instructionSeen', async ({

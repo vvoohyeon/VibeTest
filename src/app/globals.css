@@ -266,14 +266,14 @@
   --gnb-surface: color-mix(in srgb, var(--canvas) 88%, transparent);
 
   /* -- focus ---------------------------------------------------------------
-     The two-layer ring is `0 0 0 2px inner, 0 0 0 4px outer`: the inner layer
-     is the OFFSET, so it takes the ground rather than a colour of its own —
-     which is exactly how VIVE writes `--ring`. It was white at 78% before,
-     which only reads as an offset on a light theme. The pair stays because the
-     names carry the two-layer construction; `--focus-ring` alone cannot say
-     which layer a call site means. */
-  --focus-ring-outer: var(--focus-ring);
-  --focus-ring-inner: var(--canvas);
+     두 층 링(`--focus-ring-outer` / `--focus-ring-inner`)은 은퇴했다. 안쪽 층은
+     OFFSET 이라 「지면을 취한다」가 설계 의도였는데, 실현은 *페이지* 지면(`--canvas`)을
+     취하고 *요소의* 지면을 취하지 않았다 — 실측(2026-09-10, chromium): GNB 트리거의 링
+     안쪽 틈이 `241,243,239` 인데 바로 바깥 지면은 `251,250,247` 이라, 투명한 틈이 아니라
+     옅은 크림색 테가 하나 더 보였다. 표면마다 다시 선언하는 대신 안쪽 층을 색이 아니라
+     **진짜 틈**으로 바꿨다: `outline` + `outline-offset` 은 아무것도 칠하지 않으므로 어떤
+     표면 위에서든 그 요소의 지면이 그대로 비친다. 링 한 벌은
+     `features/ui/button-class-names.ts` 의 `focusRingClassName` 이 갖는다. */
 
   /* -- scrims --------------------------------------------------------------
      A strength ladder, one ink. VIVE names the ink (`--overlay-scrim`) and not

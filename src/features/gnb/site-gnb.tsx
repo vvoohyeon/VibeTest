@@ -20,6 +20,7 @@ import {useLandingGnbEntryMode} from '@/features/gnb/hooks/use-landing-gnb-entry
 import {getTransitionOrigin} from '@/features/gnb/hooks/theme-transition';
 import {useThemePreference} from '@/features/gnb/hooks/use-theme-preference';
 import type {GnbContext} from '@/features/gnb/types';
+import {focusRingClassName} from '@/features/ui/button-class-names';
 import {buildLocalizedPath} from '@/i18n/localized-path';
 import {RouteBuilder, type LocaleFreeRoute} from '@/lib/routes/route-builder';
 
@@ -53,8 +54,14 @@ const gnbDesktopLinkCurrentMarkerClassName =
   'gnb-desktop-link-marker pointer-events-none absolute bottom-0 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--accent)]';
 // D-09: design.md 4.10 names the hamburger and the close button at 44x44. Fixed on
 // the shared pill rather than on one button, so back / menu / settings all clear it.
+//
+// 포커스 링은 `focusRingClassName` 을 그대로 쓴다. 종전에는 두 층 box-shadow 였고 안쪽 층이
+// `--canvas` 였는데, 그것은 *페이지* 지면이지 *이 요소의* 지면이 아니다 — 실측(2026-09-10,
+// chromium): 링 안쪽 틈이 `241,243,239` 인데 바로 바깥 지면은 `251,250,247` 이라, 투명한
+// 틈이 아니라 옅은 크림색 테가 하나 더 보였다. `outline-offset` 은 아무것도 칠하지 않으므로
+// 어떤 표면 위에서든 지면이 그대로 비친다.
 const gnbInteractiveButtonBaseClassName =
-  'inline-flex min-h-[var(--tap-min)] cursor-pointer items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-muted)] px-3 py-[7px] text-[0.88rem] font-semibold text-[var(--ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)] focus-visible:outline-none focus-visible:[box-shadow:0_0_0_2px_var(--focus-ring-inner),0_0_0_4px_var(--focus-ring-outer)]';
+  `inline-flex min-h-[var(--tap-min)] cursor-pointer items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--surface-muted)] px-3 py-[7px] text-[0.88rem] font-semibold text-[var(--ink)] [transition-duration:140ms] [transition-property:border-color,background-color,box-shadow,color] [transition-timing-function:ease] hover:border-[var(--hairline-strong)] hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-strong)] ${focusRingClassName}`;
 const gnbSettingsRootClassName =
   'gnb-settings-root relative flex items-stretch [--gnb-settings-trigger-size:var(--tap-min)] [--gnb-settings-trigger-icon-size:18px] [--gnb-settings-panel-base-width:324px] [--gnb-settings-panel-extra-top:12px] [--gnb-settings-panel-inner-left:15px] [--gnb-settings-panel-extra-right:var(--gnb-settings-panel-inner-left)] [--gnb-settings-panel-inner-bottom:15px]';
 const gnbSettingsTriggerClassName =
